@@ -99,3 +99,152 @@ input {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ОБЩЕЕ ОФОРМЛЕНИЕ НОВЫХ ЭКРАНОВ */
+
+button {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logo span {
+  color: #ff7846;
+}
+
+/* ЭКРАН ВЫБОРА РОЛИ */
+
+.role-screen {
+  background: #151515;
+  color: #ffffff;
+}
+
+.role-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.role-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 54px;
+}
+
+.role-top .logo {
+  margin: 0;
+}
+
+.back-button {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #393939;
+  border-radius: 12px;
+  background: #242424;
+  color: #ffffff;
+  font-size: 25px;
+  cursor: pointer;
+}
+
+.role-title {
+  margin: 0 0 14px;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 800;
+}
+
+.role-subtitle {
+  margin: 0 0 32px;
+  color: #aaaaaa;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.role-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.role-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid #414141;
+  border-radius: 18px;
+  background: #252525;
+  color: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.role-card:active {
+  border-color: #ff7846;
+  background: #302a27;
+}
+
+.role-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: #39302c;
+  color: #ff7846;
+  font-size: 25px;
+}
+
+.role-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.role-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.role-description {
+  color: #b0b0b0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.role-arrow {
+  color: #ff7846;
+  font-size: 28px;
+}
+
+.role-footer {
+  margin-top: auto;
+  padding-top: 30px;
+  color: #777777;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* АНКЕТЫ */
+
+.profile-label {
+  margin-bottom: 26px;
+  color: #ff7846;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.profile .back-button {
+  margin-bottom: 28px;
+}
