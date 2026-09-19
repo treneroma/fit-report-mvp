@@ -1,1 +1,101 @@
 
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  background: #111;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.screen {
+  display: none;
+  min-height: 100dvh;
+}
+
+.screen.active {
+  display: block;
+}
+
+/* ПЕРВЫЙ ЭКРАН */
+
+.welcome {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  background: #111;
+  overflow: hidden;
+}
+
+.welcome img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.start-button-area {
+  position: absolute;
+  left: 6%;
+  top: 81%;
+  width: 88%;
+  height: 7%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* ЭКРАНЫ АНКЕТЫ */
+
+.profile {
+  min-height: 100dvh;
+  background: #111;
+  color: white;
+  padding: 24px 18px;
+}
+
+.logo {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.question {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.hint {
+  color: #aaa;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #333;
+  background: #1d1d1d;
+  color: white;
+  font-size: 16px;
+  outline: none;
+}
+
+.continue-btn {
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: #ff7a3d;
+  color: black;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
