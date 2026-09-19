@@ -1,60 +1,230 @@
+
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  >
+
   <title>TRENZO</title>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <link rel="stylesheet" href="styles/main.css">
-
-
 </head>
+
 <body>
 
-  <!-- Экран 1 -->
+  <!-- ЭКРАН 1: ПРИВЕТСТВИЕ -->
+
   <section class="screen active" id="welcomeScreen">
+
     <div class="welcome">
+
       <img src="welcome.png" alt="TRENZO">
-      <button class="start-button-area" onclick="openProfile()" aria-label="Начать"></button>
+
+      <button
+        class="start-button-area"
+        onclick="openRoles()"
+        aria-label="Начать"
+      ></button>
+
     </div>
+
   </section>
 
-  <!-- Экран 2 -->
-  <section class="screen profile" id="profileScreen">
-    <div class="logo">TRENZO</div>
-    <div class="question">Как тебя зовут?</div>
-    <div class="hint">Давай познакомимся. Как к тебе обращаться?</div>
-    <input id="nameInput" type="text" placeholder="Твоё имя">
-    <button class="continue-btn" onclick="saveName()">Продолжить</button>
+
+  <!-- ЭКРАН 2: ВЫБОР РОЛИ -->
+
+  <section class="screen role-screen" id="roleScreen">
+
+    <div class="role-layout">
+
+      <div class="role-top">
+
+        <div class="logo">
+          TREN<span>ZO</span>
+        </div>
+
+        <button
+          class="back-button"
+          onclick="showScreen('welcomeScreen')"
+          aria-label="Назад"
+        >←</button>
+
+      </div>
+
+      <h1 class="role-title">
+        Как ты будешь использовать TRENZO?
+      </h1>
+
+      <p class="role-subtitle">
+        Выбери, для чего тебе нужно приложение.
+      </p>
+
+
+      <div class="role-options">
+
+        <!-- Я ТРЕНЕР -->
+
+        <button
+          class="role-card"
+          onclick="selectRole('trainer')"
+        >
+
+          <span class="role-icon">♙</span>
+
+          <span class="role-info">
+
+            <span class="role-name">
+              Я тренер
+            </span>
+
+            <span class="role-description">
+              Веду подопечных и контролирую
+              их прогресс
+            </span>
+
+          </span>
+
+          <span class="role-arrow">›</span>
+
+        </button>
+
+
+        <!-- МОЙ ПРОГРЕСС -->
+
+        <button
+          class="role-card"
+          onclick="selectRole('athlete')"
+        >
+
+          <span class="role-icon">↗</span>
+
+          <span class="role-info">
+
+            <span class="role-name">
+              Мой прогресс
+            </span>
+
+            <span class="role-description">
+              Тренируюсь самостоятельно
+              или с тренером
+            </span>
+
+          </span>
+
+          <span class="role-arrow">›</span>
+
+        </button>
+
+      </div>
+
+
+      <div class="role-footer">
+        Выбери подходящий вариант, чтобы продолжить
+      </div>
+
+    </div>
+
   </section>
 
-  <script>
-    const tg = window.Telegram?.WebApp;
 
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
+  <!-- ЭКРАН 3А: АНКЕТА ТРЕНЕРА -->
 
-    function openProfile() {
-      document.getElementById('welcomeScreen').classList.remove('active');
-      document.getElementById('profileScreen').classList.add('active');
-      window.scrollTo(0, 0);
-    }
+  <section class="screen profile" id="trainerScreen">
 
-    function saveName() {
-      const name = document.getElementById('nameInput').value.trim();
+    <button
+      class="back-button"
+      onclick="showScreen('roleScreen')"
+      aria-label="Назад"
+    >←</button>
 
-      if (!name) {
-        if (tg) tg.showAlert('Введите имя');
-        else alert('Введите имя');
-        return;
-      }
+    <div class="logo">
+      TREN<span>ZO</span>
+    </div>
 
-      if (tg) tg.showAlert('Отлично, ' + name + '!');
-      else alert('Отлично, ' + name + '!');
-    }
-  </script>
+    <div class="profile-label">
+      Профиль тренера
+    </div>
+
+    <div class="question">
+      Как тебя зовут?
+    </div>
+
+    <div class="hint">
+      Давай познакомимся. Как к тебе обращаться
+      в рабочем кабинете?
+    </div>
+
+    <input
+      id="trainerName"
+      type="text"
+      placeholder="Твоё имя"
+      autocomplete="given-name"
+    >
+
+    <button
+      class="continue-btn"
+      onclick="saveName('trainer')"
+    >
+      Продолжить →
+    </button>
+
+  </section>
+
+
+  <!-- ЭКРАН 3Б: ЛИЧНАЯ АНКЕТА -->
+
+  <section class="screen profile" id="athleteScreen">
+
+    <button
+      class="back-button"
+      onclick="showScreen('roleScreen')"
+      aria-label="Назад"
+    >←</button>
+
+    <div class="logo">
+      TREN<span>ZO</span>
+    </div>
+
+    <div class="profile-label">
+      Личный профиль
+    </div>
+
+    <div class="question">
+      Как тебя зовут?
+    </div>
+
+    <div class="hint">
+      Давай познакомимся. Как к тебе обращаться
+      в приложении?
+    </div>
+
+    <input
+      id="athleteName"
+      type="text"
+      placeholder="Твоё имя"
+      autocomplete="given-name"
+    >
+
+    <button
+      class="continue-btn"
+      onclick="saveName('athlete')"
+    >
+      Продолжить →
+    </button>
+
+  </section>
+
+
+  <!-- ОБЩАЯ ЛОГИКА ПРИЛОЖЕНИЯ -->
+
+  <script src="app.js"></script>
 
 </body>
 </html>
