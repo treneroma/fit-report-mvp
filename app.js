@@ -6,8 +6,9 @@ if (tg) {
   tg.expand();
 }
 
-// Временные данные текущей регистрации.
-// После закрытия или перезагрузки приложения они исчезнут.
+
+// Временные данные регистрации.
+// Позже подключим сохранение в Supabase.
 
 const registration = {
   role: null,
@@ -16,9 +17,10 @@ const registration = {
 };
 
 
-// Переключение основных экранов
+// Переключение экранов
 
 function showScreen(screenId) {
+
   document.querySelectorAll(".screen").forEach(function(screen) {
     screen.classList.remove("active");
   });
@@ -26,37 +28,38 @@ function showScreen(screenId) {
   document.getElementById(screenId).classList.add("active");
 
   window.scrollTo(0, 0);
+
 }
 
 
+// Адрес серверной функции авторизации
 
-/*
-  Проверка входа через Telegram.
-  Адрес функции Supabase.
-*/
-
-const TELEGRAM_AUTH_URL = "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/telegram-auth";
+const TELEGRAM_AUTH_URL =
+  "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/telegram-auth";
 
 let authInProgress = false;
 
 
 // Первый экран → проверка Telegram → выбор роли
 
-
 async function openRoles() {
 
-  // Не запускаем несколько проверок одновременно.
+  // Защита от повторного нажатия
 
   if (authInProgress) return;
 
-  // Проверяем, что приложение открыто через Telegram.
+
+  // Проверяем, что TRENZO открыт через Telegram
 
   if (!tg || !tg.initData) {
+
     showMessage(
       "Открой TRENZO через кнопку меню в Telegram-боте."
     );
+
     return;
   }
+
 
   authInProgress = true;
 
@@ -66,17 +69,24 @@ async function openRoles() {
     ".start-button-area"
   );
 
-  // Показываем загрузку и временно отключаем кнопку.
 
-  loading.hidden = false;
+  // Показываем индикатор загрузки
+
+  if (loading) {
+    loading.hidden = false;
+  }
 
   if (startButton) {
     startButton.disabled = true;
   }
 
+
   try {
 
+    // Отправляем данные Telegram на сервер
+
     const response = await fetch(TELEGRAM_AUTH_URL, {
+
       method: "POST",
 
       headers: {
@@ -86,9 +96,14 @@ async function openRoles() {
       body: JSON.stringify({
         initData: tg.initData
       })
+
     });
 
+
     const result = await response.json();
+
+
+    // Проверяем ответ сервера
 
     if (!response.ok || result.ok !== true) {
 
@@ -100,22 +115,29 @@ async function openRoles() {
       return;
     }
 
-    // Проверка и загрузка профиля завершены.
+
+    // Авторизация прошла успешно
 
     showScreen("roleScreen");
 
+
   } catch (error) {
+
+    console.error("TRENZO authentication error:", error);
 
     showMessage(
       "Не удалось связаться с сервером TRENZO. " +
-      "Проверь соединение и попробуй ещё раз."
+      "Проверь интернет и попробуй ещё раз."
     );
+
 
   } finally {
 
-    // Убираем индикатор при любом результате.
+    // Убираем индикатор и снова включаем кнопку
 
-    loading.hidden = true;
+    if (loading) {
+      loading.hidden = true;
+    }
 
     authInProgress = false;
 
@@ -124,82 +146,43 @@ async function openRoles() {
     }
 
   }
-}
 
-  authInProgress = true;
-
-  try {
-
-    // Отправляем данные Telegram на серверную проверку.
-
-    const response = await fetch(TELEGRAM_AUTH_URL, {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        initData: tg.initData
-      })
-    });
-
-    const result = await response.json();
-
-
-    // Если проверка не прошла — не открываем анкету.
-
-    if (!response.ok || result.ok !== true) {
-      showMessage(
-        "Не удалось подтвердить вход через Telegram. " +
-        "Закрой приложение и открой его заново."
-      );
-      return;
-    }
-
-
-    // Telegram подтвердил подлинность пользователя.
-
-    showScreen("roleScreen");
-
-  } catch (error) {
-
-    showMessage(
-      "Не удалось связаться с сервером TRENZO. " +
-      "Проверь интернет и попробуй ещё раз."
-    );
-
-  } finally {
-
-    authInProgress = false;
-
-  }
 }
 
 
 // Выбор сценария регистрации
 
 function selectRole(role) {
+
   registration.role = role;
 
   if (role === "athlete") {
+
     showScreen("athleteScreen");
     athleteStart();
-  }
 
-  if (role === "trainer") {
+  } else if (role === "trainer") {
+
     showScreen("trainerScreen");
     trainerStart();
+
   }
+
 }
 
 
 // Сообщения внутри Telegram или обычного браузера
 
 function showMessage(message) {
-  if (tg) {
+
+  if (tg && typeof tg.showAlert === "function") {
+
     tg.showAlert(message);
+
   } else {
+
     alert(message);
+
   }
+
 }
