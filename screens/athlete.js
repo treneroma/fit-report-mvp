@@ -1439,13 +1439,45 @@ function athleteOpenCabinetSection(section) {
         программа и отчёты появятся здесь после настройки модуля.</p>`);
   } else if (section === "progress") {
     title = "Прогресс";
-    content = athleteCabinetCard("Исходные показатели",
-      athleteCabinetRow("Вес при регистрации", d.weight ? d.weight + " кг" : "") +
-      athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
-      athleteCabinetRow("Цель", d.result)) +
-      `<div id="athleteWeightHistory" class="info-card" role="status">
-        Загружаем историю веса...
-      </div>` +
+    content = `
+      <div class="info-card" style="margin:0 !important;padding:16px;">
+        <div class="step-label" style="margin:0 0 8px;">ТВОЯ ИСТОРИЯ</div>
+        <strong style="display:block;font-size:18px;">Каждая тренировка — часть прогресса</strong>
+        <p style="margin:8px 0 0;color:#aaa;font-size:14px;line-height:1.45;">
+          Вес уже сохраняется. Силовые результаты и тренировки появятся здесь,
+          когда подключим тренировочные отчёты.
+        </p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
+        <button class="info-card" type="button" onclick="athleteOpenCabinetSection('progress-weight')"
+          style="display:flex;width:100%;align-items:center;gap:12px;margin:0 !important;
+          min-height:0 !important;height:auto !important;padding:14px;text-align:left;
+          color:inherit;font:inherit;cursor:pointer;box-sizing:border-box;">
+          <span aria-hidden="true" style="flex:none;width:40px;height:40px;
+            display:flex;align-items:center;justify-content:center;border-radius:12px;
+            background:#39302b;color:#ff7846;font-size:22px;">↗</span>
+          <span style="flex:1;min-width:0;">
+            <strong style="display:block;font-size:18px;">Вес и тело</strong>
+            <span id="athleteProgressWeightPreview" role="status"
+              style="display:block;margin-top:4px;color:#aaa;font-size:13px;line-height:1.4;">
+              Загружаем историю веса...
+            </span>
+          </span>
+          <span aria-hidden="true" style="color:#ff7846;font-size:24px;">›</span>
+        </button>
+        ${athleteCabinetNavButton("progress-strength", "↗", "Силовые показатели",
+          "Результаты и личные рекорды по упражнениям")}
+        ${athleteCabinetNavButton("progress-workouts", "▦", "Тренировки",
+          "Календарь, количество занятий и регулярность")}
+        ${athleteCabinetNavButton("progress-volume", "≋", "Тренировочный объём",
+          "Рабочие подходы, повторения и нагрузка")}
+        ${athleteCabinetNavButton("progress-achievements", "★", "Мои достижения",
+          "Личные рекорды и важные этапы")}
+      </div>`;
+  } else if (section === "progress-weight") {
+    title = "Вес и тело";
+    content = `<div id="athleteWeightHistory" class="info-card" role="status"
+        style="margin:0 !important;">Загружаем историю веса...</div>` +
       athleteCabinetCard("Записать вес",
         `<form id="athleteWeightForm" onsubmit="event.preventDefault(); athleteSaveWeight();">
           <div class="field">
@@ -1464,15 +1496,38 @@ function athleteOpenCabinetSection(section) {
             Сохранить вес →
           </button>
         </form>`);
+  } else if (["progress-strength", "progress-workouts", "progress-volume", "progress-achievements"].includes(section)) {
+    const pending = {
+      "progress-strength": ["Силовые показатели", "Здесь появятся результаты по каждому упражнению, рабочие веса, повторения и личные рекорды."],
+      "progress-workouts": ["Тренировки", "Здесь появятся количество выполненных занятий, календарь и регулярность тренировок."],
+      "progress-volume": ["Тренировочный объём", "Здесь будут подсчитываться рабочие подходы, повторения и объём нагрузки по упражнениям."],
+      "progress-achievements": ["Мои достижения", "Здесь будут отмечаться подтверждённые личные рекорды и важные этапы тренировок."]
+    }[section];
+    title = pending[0];
+    content = `<div class="info-card" style="margin:0 !important;">
+      <strong>Пока нет данных для этого раздела</strong>
+      <p style="margin-bottom:0;">${pending[1]}</p>
+      <p class="small-note">Подключим данные из сохранённых тренировочных отчётов.
+        Заполнять их повторно в «Прогрессе» не придётся.</p>
+    </div>`;
   } else {
     return;
   }
 
-  screen.innerHTML = `<div class="page">
-    ${athleteCabinetHeader("ЛИЧНЫЙ КАБИНЕТ", title)}
+  const progressSubpage = section.startsWith("progress-");
+  const backAction = progressSubpage
+    ? "athleteOpenCabinetSection('progress')" : "athleteRenderCabinet()";
+  screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
+    <div class="topbar" style="margin-bottom:12px;">
+      <button class="back-button" type="button" onclick="${backAction}"
+        aria-label="Назад">←</button>
+      <div class="logo">TREN<span>ZO</span></div>
+    </div>
+    <div class="step-label" style="margin:0 0 8px;">ЛИЧНЫЙ КАБИНЕТ</div>
+    <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
-    <button class="secondary-btn" type="button"
-      onclick="athleteRenderCabinet()">← В личный кабинет</button>
+    <button class="secondary-btn" type="button" style="margin-top:16px;"
+      onclick="${backAction}">← ${progressSubpage ? "В прогресс" : "В личный кабинет"}</button>
   </div>`;
   window.scrollTo(0, 0);
 
@@ -1481,6 +1536,9 @@ function athleteOpenCabinetSection(section) {
     athleteLoadProfileWeight();
   }
   if (section === "progress") {
+    athleteLoadProgressWeightPreview();
+  }
+  if (section === "progress-weight") {
     athleteLoadWeightHistory();
   }
 }
@@ -1564,6 +1622,29 @@ function athleteWeightPoints(rows) {
     return { id: row.id, date: row.measured_on,
       kg: Number(row.weight_kg), source: row.source };
   }).sort(function(a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
+}
+
+// Компактная карточка веса на главной странице «Прогресс».
+// Берём реальные измерения из той же истории, что и полный график.
+async function athleteLoadProgressWeightPreview() {
+  const slot = document.getElementById("athleteProgressWeightPreview");
+  if (!slot) return;
+  try {
+    const result = await athleteWeightRequest("load");
+    if (document.getElementById("athleteProgressWeightPreview") !== slot) return;
+    const rows = athleteWeightPoints(result.entries);
+    const baseline = rows.find(row => row.source === "onboarding") || rows[0];
+    const latest = rows[rows.length - 1];
+    slot.textContent = latest
+      ? (baseline ? athleteFormatWeight(baseline.kg) + " → " : "") +
+        athleteFormatWeight(latest.kg) + " · " + rows.length +
+        (rows.length === 1 ? " запись" : " записей")
+      : "Пока нет взвешиваний · Нажми, чтобы записать вес";
+  } catch (error) {
+    if (document.getElementById("athleteProgressWeightPreview") === slot) {
+      slot.textContent = "Не удалось загрузить вес · Нажми, чтобы попробовать снова";
+    }
+  }
 }
 
 async function athleteLoadWeightSummary() {
