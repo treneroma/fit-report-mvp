@@ -1,12 +1,32 @@
-
 /*
   TRENZO — регистрация пользователя «Мой прогресс»
 
-  Пока все ответы находятся только в оперативной
-  памяти открытого приложения.
+  Несекретные тестовые ответы сохраняются в Supabase.
+  Ограничения по здоровью, особенности питания, свободный
+  текст программы, фотографии и имена файлов НЕ отправляем.
 */
 
 let athleteStep = 0;
+let athleteSaving = false;
+let athleteRestoreNotice = "";
+
+// Должен совпадать со списком allowedFields в Edge Function.
+const athleteServerFields = [
+  "name", "age", "sex", "height", "weight", "goal", "targetWeight",
+  "result", "months", "experience", "recentTraining", "frequency",
+  "duration", "nutritionTracking", "nutritionWilling", "meals",
+  "trainingMode", "programStatus"
+];
+
+function athleteSafeAnswers() {
+  const safe = {};
+  for (const key of athleteServerFields) {
+    if (typeof registration.athlete[key] === "string") {
+      safe[key] = registration.athlete[key];
+    }
+  }
+  return safe;
+}
 
 const athleteTotalSteps = 15;
 
@@ -141,8 +161,30 @@ function athleteOptions(name, label, choices) {
 
 // Запуск личной анкеты
 
-function athleteStart() {
-  athleteStep = 0;
+function athleteStart(profile = null) {
+  athleteRestoreNotice = "";
+
+  if (profile?.status === "completed") {
+    athleteStep = athleteTotalSteps;
+    athleteRender();
+    return;
+  }
+
+  const savedStep = Number.isInteger(profile?.onboarding_step)
+    ? profile.onboarding_step : 0;
+
+  athleteStep = Math.min(Math.max(savedStep, 0), athleteTotalSteps - 1);
+
+  // Ограничения по здоровью сознательно не храним на сервере.
+  // Поэтому после перезапуска просим повторно заполнить этот шаг,
+  // если пользователь уже прошёл его в прошлой сессии.
+  if (athleteStep > 7 && !registration.athlete.restrictions) {
+    athleteStep = 7;
+    athleteRestoreNotice = "Основные ответы восстановлены. Ограничения по здоровью " +
+      "в тестовой версии не сохраняются — заполни этот шаг повторно " +
+      "или укажи «Нет».";
+  }
+
   athleteRender();
 }
 
@@ -333,7 +375,9 @@ function athleteFields() {
 
         <p class="small-note">
           Если ограничений нет, напиши «Нет».
-          Эта анкета не заменяет медицинскую консультацию.
+          Это поле пока хранится только до закрытия приложения:
+          мы НЕ отправляем его в Supabase. Анкета не заменяет
+          медицинскую консультацию.
         </p>
       `;
 
@@ -647,9 +691,11 @@ function athleteSummary() {
     </div>
 
     <p class="small-note">
-      Это предварительная анкета. Проверка целей,
-      расчёт питания и составление тренировок
-      ещё не выполнялись.
+      Это предварительная анкета. На сервер сохраняются только
+      основные тестовые ответы. Ограничения по здоровью,
+      особенности питания, свободный текст программы,
+      фотографии и имена файлов НЕ сохраняются и после перезапуска
+      будут недоступны. ИИ-анализ ещё не выполнялся.
     </p>
   `;
 }
@@ -697,6 +743,11 @@ function athleteRender() {
 
       <h1>${athleteTitles[athleteStep]}</h1>
 
+      ${athleteRestoreNotice ? `
+        <div class="info-card" role="status">
+          ${athleteEscape(athleteRestoreNotice)}
+        </div>` : ""}
+
       <p class="hint">
         ${athleteHints[athleteStep]}
       </p>
@@ -710,7 +761,7 @@ function athleteRender() {
 
         <div class="form-bottom">
 
-          <button class="primary-btn" type="submit">
+          <button class="primary-btn" type="submit" id="athleteNextButton">
             ${lastStep
               ? "Подтвердить и завершить →"
               : "Продолжить →"}
@@ -814,121 +865,116 @@ function athleteGoalKey() {
 }
 
 
-// Пользователь подтвердил, что увидел предупреждение
-
+// Пользователь подтвердил, что увидел предупреждение.
 function athleteAcknowledgeGoal() {
-  if (!athleteSaveCurrent(true)) return;
-
-  registration.athlete.goalAcknowledgedFor =
-    athleteGoalKey();
-
+  if (athleteSaving || !athleteSaveCurrent(true)) return;
+  registration.athlete.goalAcknowledgedFor = athleteGoalKey();
   athleteNext();
 }
 
+// Отправляем только разрешённые поля анкеты.
+// При неудаче НЕ переходим дальше, чтобы не обещать ложное сохранение.
+async function athletePersist(step, status = "draft") {
+  return trenzoRequest("save_profile", {
+    answers: athleteSafeAnswers(),
+    onboardingStep: step,
+    status: status
+  });
+}
 
-// Следующий шаг
+function athleteSetSaving(saving) {
+  athleteSaving = saving;
+  const button = document.getElementById("athleteNextButton");
+  if (button) {
+    button.disabled = saving;
+    button.textContent = saving ? "Сохраняем ответы..." :
+      (athleteStep === athleteTotalSteps - 1
+        ? "Подтвердить и завершить →" : "Продолжить →");
+  }
+  const back = document.querySelector("#athleteScreen .back-button");
+  if (back) back.disabled = saving;
+}
 
-function athleteNext() {
-  if (!athleteSaveCurrent(true)) return;
-
+// Следующий шаг: валидация → сохранение → переход.
+async function athleteNext() {
+  if (athleteSaving || !athleteSaveCurrent(true)) return;
   const d = registration.athlete;
 
-
-  // Для снижения веса проверяем направление цели.
-
   if (
-    athleteStep === 4 &&
-    d.goal === "lose" &&
-    d.targetWeight &&
+    athleteStep === 4 && d.goal === "lose" && d.targetWeight &&
     Number(d.targetWeight) >= Number(d.weight)
   ) {
-    showMessage(
-      "Желаемый вес должен быть меньше текущего, " +
-      "если твоя цель — снижение веса."
-    );
-
+    showMessage("Желаемый вес должен быть меньше текущего, " +
+      "если твоя цель — снижение веса.");
     return;
   }
-
-
-  // Не пропускаем потенциально чрезмерно быстрый
-  // план без предупреждения.
 
   if (
-    athleteStep === 4 &&
-    athleteGoalNeedsReview() &&
+    athleteStep === 4 && athleteGoalNeedsReview() &&
     d.goalAcknowledgedFor !== athleteGoalKey()
   ) {
-
     const warning = document.getElementById("goalWarning");
-
-    warning.hidden = false;
-
-    warning.innerHTML = `
-      <div class="warning-card">
-
-        <strong>Проверь выбранный срок.</strong>
-
-        <p>
-          Для такого изменения веса срок выглядит
-          очень коротким. TRENZO не может подтвердить
-          его реалистичность по одной анкете.
-        </p>
-
-        <p>
-          Пересмотри желаемый срок. Если планируешь
-          существенное изменение веса, обсуди цель
-          с квалифицированным специалистом.
-        </p>
-
-        <button
-          class="secondary-btn"
-          type="button"
-          onclick="athleteAcknowledgeGoal()"
-        >
-          Я понял, продолжить с этим сроком
-        </button>
-
-      </div>
-    `;
-
-    warning.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
-
+    if (warning) {
+      warning.hidden = false;
+      warning.innerHTML = `
+        <div class="warning-card">
+          <strong>Проверь выбранный срок.</strong>
+          <p>Для такого изменения веса срок выглядит очень коротким.
+          TRENZO не может подтвердить его реалистичность по одной анкете.</p>
+          <p>Пересмотри срок. При существенном изменении веса обсуди
+          цель с квалифицированным специалистом.</p>
+          <button class="secondary-btn" type="button"
+            onclick="athleteAcknowledgeGoal()">
+            Я понял, продолжить с этим сроком
+          </button>
+        </div>`;
+      warning.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
     return;
   }
 
+  const nextStep = athleteStep + 1;
+  const status = nextStep === athleteTotalSteps ? "completed" : "draft";
+  athleteSetSaving(true);
 
-  // Завершение анкеты
-
-  if (athleteStep === athleteTotalSteps - 1) {
-    athleteStep = athleteTotalSteps;
+  try {
+    await athletePersist(nextStep, status);
+    athleteStep = nextStep;
+    athleteRestoreNotice = "";
     athleteRender();
-    return;
+  } catch (error) {
+    console.error("TRENZO profile saving failed:", error);
+    showMessage(error.message || "Не удалось сохранить анкету. Попробуй ещё раз.");
+  } finally {
+    athleteSetSaving(false);
   }
-
-
-  athleteStep++;
-  athleteRender();
 }
 
-
-// Возврат назад с сохранением введённых значений
-
-function athleteBack() {
+// Назад: сохраняем текущие значения, включая незаконченный ответ.
+async function athleteBack() {
+  if (athleteSaving) return;
   athleteSaveCurrent(false);
 
-  if (athleteStep === 0) {
-    showScreen("roleScreen");
-    return;
+  // При возврате на выбор роли не теряем черновик.
+  const previousStep = Math.max(athleteStep - 1, 0);
+  athleteSetSaving(true);
+  try {
+    await athletePersist(previousStep, "draft");
+    athleteRestoreNotice = "";
+
+    if (athleteStep === 0) {
+      showScreen("roleScreen");
+    } else {
+      athleteStep = previousStep;
+      athleteRender();
+    }
+  } catch (error) {
+    console.error("TRENZO profile saving failed:", error);
+    showMessage(error.message || "Не удалось сохранить изменения.");
+  } finally {
+    athleteSetSaving(false);
   }
-
-  athleteStep--;
-  athleteRender();
 }
-
 
 // Завершающий экран
 
@@ -952,7 +998,6 @@ function athleteRenderComplete() {
         Мы собрали исходные данные для твоего
         личного профиля TRENZO.
       </p>
-
       <div class="info-card">
 
         <strong>Что будет дальше</strong>
@@ -980,18 +1025,19 @@ function athleteRenderComplete() {
 
       <div class="warning-card">
 
-        <strong>Сейчас это прототип регистрации.</strong>
+        <strong>Основные ответы сохранены в Supabase.</strong>
 
         <p>
-          Анкета пока не сохраняется в базе данных.
-          Фотографии и файлы программы не загружены.
-          ИИ ещё не анализировал ответы и не составлял
-          план питания или тренировок.
+          После нового входа через Telegram ты вернёшься на этот экран.
+          Ограничения по здоровью, особенности питания, свободный текст
+          программы, фотографии и имена файлов не отправляются на сервер
+          и не восстанавливаются после закрытия приложения.
         </p>
 
         <p>
-          При закрытии или перезагрузке приложения
-          введённые данные могут быть потеряны.
+          ИИ ещё не анализировал ответы и не составлял программу.
+          Для первого теста используй вымышленные данные, особенно
+          в вопросах о здоровье.
         </p>
 
       </div>
