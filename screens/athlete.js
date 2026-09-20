@@ -1449,7 +1449,7 @@ function athleteOpenCabinetSection(section) {
         </p>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
-        <button class="info-card" type="button" onclick="athleteOpenCabinetSection('progress-weight')"
+        <button class="info-card" type="button" onclick="athleteOpenWeightSection()"
           style="display:flex;width:100%;align-items:center;gap:12px;margin:0 !important;
           min-height:0 !important;height:auto !important;padding:14px;text-align:left;
           color:inherit;font:inherit;cursor:pointer;box-sizing:border-box;">
@@ -1460,7 +1460,7 @@ function athleteOpenCabinetSection(section) {
             <strong style="display:block;font-size:18px;">Вес и тело</strong>
             <span id="athleteProgressWeightPreview" role="status"
               style="display:block;margin-top:4px;color:#aaa;font-size:13px;line-height:1.4;">
-              Загружаем историю веса...
+              История измерений и график
             </span>
           </span>
           <span aria-hidden="true" style="color:#ff7846;font-size:24px;">›</span>
@@ -1539,7 +1539,8 @@ function athleteOpenCabinetSection(section) {
     athleteLoadProgressWeightPreview();
   }
   if (section === "progress-weight") {
-    athleteLoadWeightHistory();
+    if (athleteWeightLoaded) athleteRenderWeightHistory();
+    else athleteLoadWeightHistory();
   }
 }
 
@@ -1570,6 +1571,8 @@ async function athleteLoadCabinetClarifications() {
 const ATHLETE_WEIGHT_URL =
   "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/weight-history";
 let athleteWeightEntries = [];
+let athleteWeightLoaded = false;
+let athleteWeightPending = null;
 let athleteWeightPeriod = "all";
 let athleteWeightSaving = false;
 
@@ -1624,15 +1627,53 @@ function athleteWeightPoints(rows) {
   }).sort(function(a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
 }
 
+// Одна загрузка истории для всего кабинета. Повторные переходы
+// используют уже полученные данные, а не отправляют запрос заново.
+async function athleteEnsureWeightLoaded() {
+  if (athleteWeightLoaded) return athleteWeightEntries;
+  if (athleteWeightPending) return athleteWeightPending;
+  athleteWeightPending = (async function() {
+    const result = await athleteWeightRequest("load");
+    athleteWeightEntries = athleteWeightPoints(result.entries);
+    athleteWeightLoaded = true;
+    return athleteWeightEntries;
+  })();
+  try {
+    return await athleteWeightPending;
+  } finally {
+    athleteWeightPending = null;
+  }
+}
+
+// При первом открытии вес уже может подгружаться из личного кабинета.
+// Не показываем внутри страницы пустой график, который потом её сдвигает.
+async function athleteOpenWeightSection() {
+  const marker = document.getElementById("athleteProgressWeightPreview");
+  if (marker && !athleteWeightLoaded) {
+    marker.textContent = "Открываем историю веса...";
+  }
+  try {
+    await athleteEnsureWeightLoaded();
+  } catch (error) {
+    if (marker && document.getElementById("athleteProgressWeightPreview") === marker) {
+      marker.textContent = "Не удалось загрузить вес · Нажми, чтобы попробовать снова";
+    }
+    showMessage(error.message || "Не удалось загрузить историю веса.");
+    return;
+  }
+  // Если пользователь уже покинул экран, не перебиваем его навигацию.
+  if (marker && document.getElementById("athleteProgressWeightPreview") !== marker) return;
+  athleteOpenCabinetSection("progress-weight");
+}
+
 // Компактная карточка веса на главной странице «Прогресс».
 // Берём реальные измерения из той же истории, что и полный график.
 async function athleteLoadProgressWeightPreview() {
   const slot = document.getElementById("athleteProgressWeightPreview");
   if (!slot) return;
   try {
-    const result = await athleteWeightRequest("load");
+    const rows = await athleteEnsureWeightLoaded();
     if (document.getElementById("athleteProgressWeightPreview") !== slot) return;
-    const rows = athleteWeightPoints(result.entries);
     const baseline = rows.find(row => row.source === "onboarding") || rows[0];
     const latest = rows[rows.length - 1];
     slot.textContent = latest
@@ -1651,9 +1692,8 @@ async function athleteLoadWeightSummary() {
   const slot = document.getElementById("athleteCabinetLatestWeight");
   if (!slot) return;
   try {
-    const result = await athleteWeightRequest("load");
+    const rows = await athleteEnsureWeightLoaded();
     if (document.getElementById("athleteCabinetLatestWeight") !== slot) return;
-    const rows = athleteWeightPoints(result.entries);
     slot.textContent = rows.length
       ? "Последний зафиксированный вес: " + athleteFormatWeight(rows[rows.length - 1].kg)
       : "История веса пока пуста";
@@ -1668,9 +1708,8 @@ async function athleteLoadProfileWeight() {
   const slot = document.getElementById("athleteProfileWeight");
   if (!slot) return;
   try {
-    const result = await athleteWeightRequest("load");
+    const rows = await athleteEnsureWeightLoaded();
     if (document.getElementById("athleteProfileWeight") !== slot) return;
-    const rows = athleteWeightPoints(result.entries);
     const latest = rows[rows.length - 1];
     slot.innerHTML = `<strong>Актуальные измерения</strong>` +
       athleteCabinetRow("Последний зафиксированный вес",
@@ -1761,9 +1800,8 @@ async function athleteLoadWeightHistory() {
   const slot = document.getElementById("athleteWeightHistory");
   if (!slot) return;
   try {
-    const result = await athleteWeightRequest("load");
+    await athleteEnsureWeightLoaded();
     if (document.getElementById("athleteWeightHistory") !== slot) return;
-    athleteWeightEntries = athleteWeightPoints(result.entries);
     athleteRenderWeightHistory();
   } catch (error) {
     if (document.getElementById("athleteWeightHistory") === slot) {
@@ -1791,8 +1829,17 @@ async function athleteSaveWeight() {
   button.disabled = true;
   button.textContent = "Сохраняем...";
   try {
-    await athleteWeightRequest("save", { measuredOn, weightKg });
-    await athleteLoadWeightHistory();
+    // Дожидаемся предыдущей загрузки, если она ещё выполняется.
+    await athleteEnsureWeightLoaded();
+    const saved = await athleteWeightRequest("save", { measuredOn, weightKg });
+    const entry = athleteWeightPoints([saved.entry])[0];
+    if (!entry) throw new Error("Сервер не вернул сохранённое измерение.");
+    athleteWeightEntries = athleteWeightEntries
+      .filter(function(row) { return row.id !== entry.id; })
+      .concat(entry)
+      .sort(function(a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
+    athleteWeightLoaded = true;
+    athleteRenderWeightHistory();
     if (document.getElementById("athleteWeightKg") === weightInput) {
       weightInput.value = "";
       showMessage("Вес сохранён.");
