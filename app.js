@@ -126,8 +126,8 @@ async function selectRole(role) {
       ? { ...profile.answers }
       : {};
 
-    showScreen('athleteScreen');
     athleteStart(profile);
+    showScreen('athleteScreen');
   } catch (error) {
     console.error('TRENZO profile loading failed:', error);
     showMessage(error.message || 'Не удалось загрузить анкету.');
