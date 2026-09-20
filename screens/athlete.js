@@ -1242,7 +1242,8 @@ function athleteCabinetNavButton(section, symbol, title, detail) {
   return `<button class="info-card" type="button"
     onclick="athleteOpenCabinetSection('${section}')"
     style="display:flex;width:100%;align-items:center;gap:14px;
-      padding:22px 18px;text-align:left;color:inherit;
+      margin:0 !important;min-height:0;height:auto;
+      padding:14px 16px;text-align:left;color:inherit;
       font:inherit;cursor:pointer;box-sizing:border-box;">
       <span aria-hidden="true" style="display:flex;align-items:center;
         justify-content:center;flex:none;width:40px;height:40px;
@@ -1274,15 +1275,15 @@ function athleteRenderCabinet() {
     : "";
 
   document.getElementById("athleteScreen").innerHTML = `
-    <div class="page">
+   <div class="page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
-      <h1>Привет, ${name}!</h1>
+      <h1 style="margin:0 0 16px;">Личный кабинет</h1>
       <div class="info-card">
         <div class="step-label">ТВОЯ ЦЕЛЬ</div>
         <strong style="display:block;font-size:20px;margin:8px 0;">${goal}</strong>
         <p style="margin:0;">${weights}${target}</p>
       </div>
-      <div style="display:grid;gap:12px;margin-top:24px;">
+      <div style="display:grid;gap:10px;margin-top:12px;align-content:start;grid-auto-rows:max-content;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
           "Анкета, личные данные и твоя цель")}
         ${athleteCabinetNavButton("nutrition", "✦", "Питание",
