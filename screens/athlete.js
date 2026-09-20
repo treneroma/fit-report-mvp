@@ -1204,38 +1204,252 @@ async function athleteAnalyzeProfile() {
   }
 }
 
-// Первый экран кабинета: пока без работающих модулей тренировок и питания.
+// TRENZO — постоянный личный кабинет после завершения знакомства.
+// Пока работающие разделы показывают только сохранённые в анкете данные.
+// Никаких вымышленных тренировок, рационов или результатов.
+
+function athleteCabinetValue(value, labels = {}) {
+  if (typeof value !== "string" || !value.trim()) return "Не указано";
+  return athleteEscape(labels[value] || value);
+}
+
+function athleteCabinetRow(label, value, labels = {}) {
+  return `<div class="summary-row">
+    <small>${athleteEscape(label)}</small>
+    <strong>${athleteCabinetValue(value, labels)}</strong>
+  </div>`;
+}
+
+function athleteCabinetCard(title, rows) {
+  return `<div class="info-card">
+    <strong>${athleteEscape(title)}</strong>
+    <div style="margin-top: 14px;">${rows}</div>
+  </div>`;
+}
+
+function athleteCabinetHeader(label, title) {
+  return `<div class="topbar">
+      <button class="back-button" type="button"
+        onclick="athleteRenderCabinet()" aria-label="Вернуться в личный кабинет">←</button>
+      <div class="logo">TREN<span>ZO</span></div>
+    </div>
+    <div class="step-label">${athleteEscape(label)}</div>
+    <h1>${athleteEscape(title)}</h1>`;
+}
+
+function athleteCabinetNavButton(section, symbol, title, detail) {
+  // section, symbol и подписи заданы разработчиком, не приходят от пользователя.
+  return `<button class="info-card" type="button"
+    onclick="athleteOpenCabinetSection('${section}')"
+    style="display:flex;width:100%;align-items:center;gap:14px;
+      padding:22px 18px;text-align:left;color:inherit;
+      font:inherit;cursor:pointer;box-sizing:border-box;">
+      <span aria-hidden="true" style="display:flex;align-items:center;
+        justify-content:center;flex:none;width:40px;height:40px;
+        border-radius:12px;background:#39302b;color:#ff7846;
+        font-weight:700;font-size:18px;">${symbol}</span>
+      <span style="flex:1;min-width:0;">
+        <strong style="display:block;font-size:18px;">${title}</strong>
+        <span style="display:block;margin-top:6px;font-size:13px;
+          line-height:1.45;color:#aaa;">${detail}</span>
+      </span>
+      <span aria-hidden="true" style="color:#ff7846;font-size:24px;">›</span>
+    </button>`;
+}
+
 function athleteRenderCabinet() {
-  const d = registration.athlete;
+  const d = athleteSafeAnswers();
   const goalLabels = {
     lose: "Снижение веса", muscle: "Набор мышечной массы",
     recomp: "Изменение состава тела", strength: "Развитие силы",
     fitness: "Улучшение формы", other: "Индивидуальная цель"
   };
   const name = athleteEscape(d.name || "Друг");
-  const goal = athleteEscape(goalLabels[d.goal] || d.goal || "Цель не указана");
-  const weight = athleteEscape(d.weight ? d.weight + " кг" : "Не указан");
-  const target = athleteEscape(d.targetWeight ? d.targetWeight + " кг" : "Не указан");
+  const goal = athleteCabinetValue(d.goal, goalLabels);
+  const weights = d.weight
+    ? `Текущий вес: ${athleteEscape(d.weight)} кг`
+    : "Текущий вес не указан";
+  const target = d.targetWeight
+    ? ` · Цель: ${athleteEscape(d.targetWeight)} кг`
+    : "";
 
   document.getElementById("athleteScreen").innerHTML = `
     <div class="page">
       <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
-      <div class="step-label">ЛИЧНЫЙ КАБИНЕТ</div>
-      <h1>${name}, твой профиль готов!</h1>
-      <p class="hint">Знакомство завершено. Твои ответы сохранены.</p>
+      <h1>Привет, ${name}!</h1>
       <div class="info-card">
-        <strong>Твоя цель</strong>
-        <p>${goal}</p>
-        <p>Текущий вес: ${weight} · Желаемый вес: ${target}</p>
+        <div class="step-label">ТВОЯ ЦЕЛЬ</div>
+        <strong style="display:block;font-size:20px;margin:8px 0;">${goal}</strong>
+        <p style="margin:0;">${weights}${target}</p>
       </div>
-      <div class="info-card"><strong>Тренировки</strong>
-        <p>Программа и отчёты — в разработке.</p></div>
-      <div class="info-card"><strong>Питание</strong>
-        <p>План и дневник — в разработке.</p></div>
-      <div class="info-card"><strong>Прогресс</strong>
-        <p>История показателей — в разработке.</p></div>
-      <p class="small-note">Сведения о здоровье, фотографии и файлы
-        пока не сохраняются и не используются для персональных рекомендаций.</p>
+      <div style="display:grid;gap:12px;margin-top:24px;">
+        ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
+          "Анкета, личные данные и твоя цель")}
+        ${athleteCabinetNavButton("nutrition", "✦", "Питание",
+          "Твои привычки, будущий рацион и отчёты")}
+        ${athleteCabinetNavButton("training", "↗", "Тренировочный план",
+          "Текущий режим, будущие тренировки и отчёты")}
+        ${athleteCabinetNavButton("progress", "▥", "Прогресс",
+          "Исходные показатели и динамика результатов")}
+      </div>
     </div>`;
   window.scrollTo(0, 0);
+}
+
+function athleteOpenCabinetSection(section) {
+  const d = athleteSafeAnswers();
+  const screen = document.getElementById("athleteScreen");
+  if (!screen) return;
+  let title = "";
+  let content = "";
+
+  if (section === "profile") {
+    title = "Мой профиль";
+    const goals = {
+      lose: "Снизить вес", muscle: "Набрать мышечную массу",
+      recomp: "Изменить состав тела", strength: "Увеличить силовые показатели",
+      fitness: "Улучшить физическую форму", other: "Другая цель"
+    };
+    const sexes = {
+      male: "Мужской", female: "Женский",
+      unspecified: "Предпочитаю не указывать"
+    };
+    content = athleteCabinetCard("Личные данные",
+      athleteCabinetRow("Имя", d.name) +
+      athleteCabinetRow("Возраст", d.age ? d.age + " лет" : "") +
+      athleteCabinetRow("Пол", d.sex, sexes) +
+      athleteCabinetRow("Рост", d.height ? d.height + " см" : "") +
+      athleteCabinetRow("Текущий вес", d.weight ? d.weight + " кг" : "")) +
+      athleteCabinetCard("Цель",
+        athleteCabinetRow("Направление", d.goal, goals) +
+        athleteCabinetRow("Желаемый результат", d.result) +
+        athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
+        athleteCabinetRow("Желаемый срок", d.months ? d.months + " мес." : "")) +
+      athleteCabinetCard("Тренировки и питание",
+        athleteCabinetRow("Тренировочный опыт", d.experience, {
+          new: "Только начинаю", under1: "До 1 года", "1to3": "От 1 до 3 лет",
+          "3to5": "От 3 до 5 лет", "5plus": "Более 5 лет"
+        }) +
+        athleteCabinetRow("Последние 3 месяца", d.recentTraining, {
+          none: "Почти не тренировался", irregular: "Нерегулярно",
+          "1to2": "1–2 раза в неделю", "3plus": "3 и более раз в неделю",
+          program: "Регулярно по программе"
+        }) +
+        athleteCabinetRow("Тренировок в неделю", d.frequency) +
+        athleteCabinetRow("Длительность тренировки", d.duration, {
+          under45: "До 45 минут", "45to60": "45–60 минут",
+          "60to90": "60–90 минут", over90: "Более 90 минут"
+        }) +
+        athleteCabinetRow("Формат занятий", d.trainingMode, {
+          alone: "Самостоятельно", coach: "С тренером",
+          mixed: "Самостоятельно и с тренером", starting: "Планирую начать"
+        }) +
+        athleteCabinetRow("Питание", d.nutritionTracking, {
+          regular: "Слежу регулярно", sometimes: "Иногда слежу", no: "Пока не слежу"
+        }) +
+        athleteCabinetRow("Готовность вести учёт", d.nutritionWilling, {
+          yes: "Да", maybe: "Скорее да", no: "Пока нет"
+        }) +
+        athleteCabinetRow("Приёмов пищи в день", d.meals, {
+          "1to2": "1–2", "3": "3", "4": "4", "5plus": "5 и более",
+          varies: "Каждый день по-разному"
+        }) +
+        athleteCabinetRow("Программа тренировок", d.programStatus, {
+          yes: "Есть программа", partial: "Есть отдельные упражнения", no: "Программы пока нет"
+        })) +
+      `<div id="athleteCabinetClarifications" class="info-card"
+         role="status">Загружаем уточнения TRENZO...</div>` +
+      `<p class="small-note">Здесь показаны сохранённые данные анкеты.
+        Изменение ответов добавим отдельно. Сведения о здоровье,
+        фотографии и файлы в тестовой версии не сохраняются.</p>`;
+  } else if (section === "nutrition") {
+    title = "Питание";
+    content = athleteCabinetCard("Твои ответы из анкеты",
+      athleteCabinetRow("Сейчас следишь за питанием", d.nutritionTracking, {
+        regular: "Да, регулярно", sometimes: "Иногда", no: "Нет"
+      }) +
+      athleteCabinetRow("Готовность вести учёт", d.nutritionWilling, {
+        yes: "Да", maybe: "Скорее да", no: "Пока нет"
+      }) +
+      athleteCabinetRow("Приёмов пищи в день", d.meals, {
+        "1to2": "1–2", "3": "3", "4": "4", "5plus": "5 и более",
+        varies: "Каждый день по-разному"
+      })) +
+      athleteCabinetCard("Рацион и отчёты",
+        `<p>Пока не созданы. Здесь появятся твой рацион,
+        дневник питания и история отчётов.</p>`);
+  } else if (section === "training") {
+    title = "Тренировочный план";
+    content = athleteCabinetCard("Твой режим из анкеты",
+      athleteCabinetRow("Опыт", d.experience, {
+        new: "Только начинаю", under1: "До 1 года", "1to3": "От 1 до 3 лет",
+        "3to5": "От 3 до 5 лет", "5plus": "Более 5 лет"
+      }) +
+      athleteCabinetRow("Последние 3 месяца", d.recentTraining, {
+        none: "Почти не тренировался", irregular: "Нерегулярно",
+        "1to2": "1–2 раза в неделю", "3plus": "3 и более раз в неделю",
+        program: "Регулярно по программе"
+      }) +
+      athleteCabinetRow("Тренировок в неделю", d.frequency) +
+      athleteCabinetRow("Длительность", d.duration, {
+        under45: "До 45 минут", "45to60": "45–60 минут",
+        "60to90": "60–90 минут", over90: "Более 90 минут"
+      }) +
+      athleteCabinetRow("Формат занятий", d.trainingMode, {
+        alone: "Самостоятельно", coach: "С тренером",
+        mixed: "Самостоятельно и с тренером", starting: "Планирую начать"
+      }) +
+      athleteCabinetRow("Наличие программы", d.programStatus, {
+        yes: "Есть действующая программа", partial: "Есть отдельные упражнения",
+        no: "Программы пока нет"
+      })) +
+      athleteCabinetCard("Тренировки и отчёты",
+        `<p>Расписание, предстоящие и прошедшие тренировки,
+        программа и отчёты появятся здесь после настройки модуля.</p>`);
+  } else if (section === "progress") {
+    title = "Прогресс";
+    content = athleteCabinetCard("Исходные показатели",
+      athleteCabinetRow("Вес при заполнении анкеты", d.weight ? d.weight + " кг" : "") +
+      athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
+      athleteCabinetRow("Цель", d.result)) +
+      athleteCabinetCard("История результатов",
+        `<p>История измерений пока не ведётся. Когда мы добавим
+        отчёты и новые замеры, здесь будет отображаться динамика.</p>`);
+  } else {
+    return;
+  }
+
+  screen.innerHTML = `<div class="page">
+    ${athleteCabinetHeader("ЛИЧНЫЙ КАБИНЕТ", title)}
+    ${content}
+    <button class="secondary-btn" type="button"
+      onclick="athleteRenderCabinet()">← В личный кабинет</button>
+  </div>`;
+  window.scrollTo(0, 0);
+
+  if (section === "profile") {
+    athleteLoadCabinetClarifications();
+  }
+}
+
+// Уточняющие вопросы и ответы читаем из уже существующей защищённой
+// функции finish-onboarding. Не записываем их в браузере и не зовём OpenAI.
+async function athleteLoadCabinetClarifications() {
+  const slot = document.getElementById("athleteCabinetClarifications");
+  if (!slot) return;
+  try {
+    const data = await athleteOnboardingRequest("load");
+    if (document.getElementById("athleteCabinetClarifications") !== slot) return;
+    if (!Array.isArray(data.questions) || data.questions.length === 0) {
+      slot.textContent = "Уточняющих вопросов не было.";
+      return;
+    }
+    slot.innerHTML = `<strong>Дополнительные ответы</strong>` +
+      data.questions.map(function(item) {
+        return athleteCabinetRow(item.question, item.answer);
+      }).join("");
+  } catch (error) {
+    if (document.getElementById("athleteCabinetClarifications") !== slot) return;
+    slot.textContent = error.message || "Не удалось загрузить уточнения.";
+  }
 }
