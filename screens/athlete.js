@@ -166,7 +166,33 @@ function athleteStart(profile = null) {
 
   if (profile?.status === "completed") {
     athleteStep = athleteTotalSteps;
-    athleteRender();
+    // Не показываем экран «Почти готово», пока проверяется статус в базе.
+    const screen = document.getElementById("athleteScreen");
+    screen.innerHTML = `
+      <div class="page" style="display:block;min-height:0;">
+        <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
+        <p class="hint" role="status">Загружаем личный кабинет...</p>
+      </div>`;
+    athleteOnboardingRequest("load").then(function(data) {
+      // Пользователь мог уйти на другой экран, пока шёл запрос.
+      if (document.getElementById("athleteScreen") !== screen ||
+          athleteStep !== athleteTotalSteps || !screen.textContent.includes("Загружаем личный кабинет")) return;
+      if (data.setupStatus === "ready") {
+        athleteRenderCabinet();
+      } else {
+        athleteRenderComplete(data);
+      }
+    }).catch(function(error) {
+      console.error("TRENZO cabinet load failed:", error);
+      if (athleteStep !== athleteTotalSteps || !screen.isConnected ||
+          !screen.textContent.includes("Загружаем личный кабинет")) return;
+      screen.innerHTML = `<div class="page" style="display:block;min-height:0;">
+        <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
+        <p class="hint" role="alert">Не удалось загрузить личный кабинет.</p>
+        <button class="primary-btn" type="button"
+          onclick="athleteStart({status:'completed'})">Попробовать снова</button>
+      </div>`;
+    });
     return;
   }
 
@@ -1008,7 +1034,7 @@ async function athleteOnboardingRequest(action, extra = {}) {
 }
 
 // Показываем экран знакомства. Само открытие экрана НЕ вызывает OpenAI.
-function athleteRenderComplete() {
+function athleteRenderComplete(prefetched = null) {
   const name = athleteEscape(registration.athlete.name || "Друг");
 
   document.getElementById("athleteScreen").innerHTML = `
@@ -1038,10 +1064,10 @@ function athleteRenderComplete() {
     </div>`;
 
   window.scrollTo(0, 0);
-  athleteLoadOnboarding();
+  athleteLoadOnboarding(prefetched);
 }
 
-async function athleteLoadOnboarding() {
+async function athleteLoadOnboarding(prefetched = null) {
   const statusBox = document.getElementById("athleteOnboardingStatus");
   const introBox = document.getElementById("athleteAiResult");
   const questionsBox = document.getElementById("athleteOnboardingQuestions");
@@ -1053,7 +1079,7 @@ async function athleteLoadOnboarding() {
   analyzeButton.hidden = true;
 
   try {
-    const data = await athleteOnboardingRequest("load");
+    const data = prefetched || await athleteOnboardingRequest("load");
     // Экран могли закрыть, пока сервер отвечал.
     if (document.getElementById("athleteOnboardingStatus") !== statusBox) return;
 
@@ -1241,9 +1267,9 @@ function athleteCabinetNavButton(section, symbol, title, detail) {
   // section, symbol и подписи заданы разработчиком, не приходят от пользователя.
   return `<button class="info-card" type="button"
     onclick="athleteOpenCabinetSection('${section}')"
-    style="display:flex;width:100%;align-items:center;gap:14px;
-      margin:0 !important;min-height:0;height:auto;
-      padding:14px 16px;text-align:left;color:inherit;
+    style="display:flex;width:100%;align-items:center;gap:12px;
+      margin:0 !important;min-height:0 !important;height:auto !important;
+      padding:12px 14px;text-align:left;color:inherit;
       font:inherit;cursor:pointer;box-sizing:border-box;">
       <span aria-hidden="true" style="display:flex;align-items:center;
         justify-content:center;flex:none;width:40px;height:40px;
@@ -1265,7 +1291,6 @@ function athleteRenderCabinet() {
     recomp: "Изменение состава тела", strength: "Развитие силы",
     fitness: "Улучшение формы", other: "Индивидуальная цель"
   };
-  const name = athleteEscape(d.name || "Друг");
   const goal = athleteCabinetValue(d.goal, goalLabels);
   const weights = d.weight
     ? `Текущий вес: ${athleteEscape(d.weight)} кг`
@@ -1275,15 +1300,15 @@ function athleteRenderCabinet() {
     : "";
 
   document.getElementById("athleteScreen").innerHTML = `
-   <div class="page" style="display:block;min-height:0;padding-bottom:24px;">
-      <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
+    <div class="page" style="display:block;min-height:0;padding-bottom:24px;">
+      <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
       <h1 style="margin:0 0 16px;">Личный кабинет</h1>
-      <div class="info-card">
+      <div class="info-card" style="margin:0 !important;">
         <div class="step-label">ТВОЯ ЦЕЛЬ</div>
         <strong style="display:block;font-size:20px;margin:8px 0;">${goal}</strong>
         <p style="margin:0;">${weights}${target}</p>
       </div>
-      <div style="display:grid;gap:10px;margin-top:12px;align-content:start;grid-auto-rows:max-content;">
+      <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
           "Анкета, личные данные и твоя цель")}
         ${athleteCabinetNavButton("nutrition", "✦", "Питание",
