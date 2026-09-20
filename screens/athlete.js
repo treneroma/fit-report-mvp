@@ -1293,8 +1293,8 @@ function athleteRenderCabinet() {
   };
   const goal = athleteCabinetValue(d.goal, goalLabels);
   const weights = d.weight
-    ? `Текущий вес: ${athleteEscape(d.weight)} кг`
-    : "Текущий вес не указан";
+    ? `Вес при регистрации: ${athleteEscape(d.weight)} кг`
+    : "Вес при регистрации не указан";
   const target = d.targetWeight
     ? ` · Цель: ${athleteEscape(d.targetWeight)} кг`
     : "";
@@ -1307,6 +1307,7 @@ function athleteRenderCabinet() {
         <div class="step-label">ТВОЯ ЦЕЛЬ</div>
         <strong style="display:block;font-size:20px;margin:8px 0;">${goal}</strong>
         <p style="margin:0;">${weights}${target}</p>
+        <p id="athleteCabinetLatestWeight" style="margin:6px 0 0;color:#bbb;">Последний вес: загружаем...</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
@@ -1320,6 +1321,7 @@ function athleteRenderCabinet() {
       </div>
     </div>`;
   window.scrollTo(0, 0);
+  athleteLoadWeightSummary();
 }
 
 function athleteOpenCabinetSection(section) {
@@ -1345,7 +1347,10 @@ function athleteOpenCabinetSection(section) {
       athleteCabinetRow("Возраст", d.age ? d.age + " лет" : "") +
       athleteCabinetRow("Пол", d.sex, sexes) +
       athleteCabinetRow("Рост", d.height ? d.height + " см" : "") +
-      athleteCabinetRow("Текущий вес", d.weight ? d.weight + " кг" : "")) +
+      athleteCabinetRow("Вес при регистрации", d.weight ? d.weight + " кг" : "")) +
+      `<div id="athleteProfileWeight" class="info-card" role="status">
+        Загружаем последний зафиксированный вес...
+      </div>` +
       athleteCabinetCard("Цель",
         athleteCabinetRow("Направление", d.goal, goals) +
         athleteCabinetRow("Желаемый результат", d.result) +
@@ -1435,12 +1440,30 @@ function athleteOpenCabinetSection(section) {
   } else if (section === "progress") {
     title = "Прогресс";
     content = athleteCabinetCard("Исходные показатели",
-      athleteCabinetRow("Вес при заполнении анкеты", d.weight ? d.weight + " кг" : "") +
+      athleteCabinetRow("Вес при регистрации", d.weight ? d.weight + " кг" : "") +
       athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
       athleteCabinetRow("Цель", d.result)) +
-      athleteCabinetCard("История результатов",
-        `<p>История измерений пока не ведётся. Когда мы добавим
-        отчёты и новые замеры, здесь будет отображаться динамика.</p>`);
+      `<div id="athleteWeightHistory" class="info-card" role="status">
+        Загружаем историю веса...
+      </div>` +
+      athleteCabinetCard("Записать вес",
+        `<form id="athleteWeightForm" onsubmit="event.preventDefault(); athleteSaveWeight();">
+          <div class="field">
+            <label class="field-title" for="athleteWeightDate">Дата взвешивания</label>
+            <input class="text-input" id="athleteWeightDate" type="date" required
+              value="${athleteLocalDate()}" max="${athleteLocalDate()}">
+          </div>
+          <div class="field">
+            <label class="field-title" for="athleteWeightKg">Вес, кг</label>
+            <input class="text-input" id="athleteWeightKg" type="number" required
+              min="25" max="400" step="0.1" placeholder="Например, 89.2">
+          </div>
+          <p class="small-note">Если за эту дату уже есть ручная запись,
+            мы обновим её. Вес при регистрации останется прежним.</p>
+          <button id="athleteWeightSaveButton" class="primary-btn" type="submit">
+            Сохранить вес →
+          </button>
+        </form>`);
   } else {
     return;
   }
@@ -1455,6 +1478,10 @@ function athleteOpenCabinetSection(section) {
 
   if (section === "profile") {
     athleteLoadCabinetClarifications();
+    athleteLoadProfileWeight();
+  }
+  if (section === "progress") {
+    athleteLoadWeightHistory();
   }
 }
 
@@ -1477,5 +1504,225 @@ async function athleteLoadCabinetClarifications() {
   } catch (error) {
     if (document.getElementById("athleteCabinetClarifications") !== slot) return;
     slot.textContent = error.message || "Не удалось загрузить уточнения.";
+  }
+}
+
+// История веса: отдельная защищённая Edge Function с проверкой Telegram.
+// Вес из анкеты не перезаписываем. Все измерения читаем с сервера.
+const ATHLETE_WEIGHT_URL =
+  "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/weight-history";
+let athleteWeightEntries = [];
+let athleteWeightPeriod = "all";
+let athleteWeightSaving = false;
+
+function athleteLocalDate() {
+  const now = new Date();
+  return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0")].join("-");
+}
+
+async function athleteWeightRequest(action, extra = {}) {
+  if (!tg || !tg.initData) {
+    throw new Error("Открой TRENZO через Telegram и попробуй снова.");
+  }
+  const response = await fetch(ATHLETE_WEIGHT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, initData: tg.initData, ...extra })
+  });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Сервер вернул некорректный ответ.");
+  }
+  if (!response.ok || result.ok !== true) {
+    if (response.status === 401) {
+      throw new Error("Сессия Telegram устарела. Закрой Mini App и открой заново.");
+    }
+    if (response.status === 400) {
+      throw new Error("Проверь дату и вес: от 25 до 400 кг, точность до 0,1 кг.");
+    }
+    throw new Error("Не удалось загрузить или сохранить вес. Попробуй ещё раз.");
+  }
+  return result;
+}
+
+function athleteFormatWeight(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n.toFixed(1).replace(".", ",") + " кг" : "—";
+}
+
+function athleteWeightPoints(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter(function(row) {
+    return row && Number.isSafeInteger(row.id) &&
+      /^\d{4}-\d{2}-\d{2}$/.test(row.measured_on || "") &&
+      Number.isFinite(Number(row.weight_kg)) &&
+      Number(row.weight_kg) >= 25 && Number(row.weight_kg) <= 400;
+  }).map(function(row) {
+    return { id: row.id, date: row.measured_on,
+      kg: Number(row.weight_kg), source: row.source };
+  }).sort(function(a, b) { return a.date.localeCompare(b.date) || a.id - b.id; });
+}
+
+async function athleteLoadWeightSummary() {
+  const slot = document.getElementById("athleteCabinetLatestWeight");
+  if (!slot) return;
+  try {
+    const result = await athleteWeightRequest("load");
+    if (document.getElementById("athleteCabinetLatestWeight") !== slot) return;
+    const rows = athleteWeightPoints(result.entries);
+    slot.textContent = rows.length
+      ? "Последний зафиксированный вес: " + athleteFormatWeight(rows[rows.length - 1].kg)
+      : "История веса пока пуста";
+  } catch (error) {
+    if (document.getElementById("athleteCabinetLatestWeight") === slot) {
+      slot.textContent = error.message || "Не удалось загрузить вес.";
+    }
+  }
+}
+
+async function athleteLoadProfileWeight() {
+  const slot = document.getElementById("athleteProfileWeight");
+  if (!slot) return;
+  try {
+    const result = await athleteWeightRequest("load");
+    if (document.getElementById("athleteProfileWeight") !== slot) return;
+    const rows = athleteWeightPoints(result.entries);
+    const latest = rows[rows.length - 1];
+    slot.innerHTML = `<strong>Актуальные измерения</strong>` +
+      athleteCabinetRow("Последний зафиксированный вес",
+        latest ? athleteFormatWeight(latest.kg) : "") +
+      athleteCabinetRow("Дата последнего взвешивания",
+        latest ? latest.date.split("-").reverse().join(".") : "");
+  } catch (error) {
+    if (document.getElementById("athleteProfileWeight") === slot) {
+      slot.textContent = error.message || "Не удалось загрузить вес.";
+    }
+  }
+}
+
+function athleteWeightChart(points) {
+  if (!points.length) return "<p>Пока нет измерений для выбранного периода.</p>";
+  const values = points.map(p => p.kg);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const min = Math.max(0, Math.floor((low - 0.5) * 2) / 2);
+  const max = Math.ceil((high + 0.5) * 2) / 2;
+  const range = Math.max(1, max - min);
+  const coords = points.map(function(p, i) {
+    const x = points.length === 1 ? 160 : 35 + (270 * i / (points.length - 1));
+    const y = 126 - (p.kg - min) / range * 106;
+    return { x: x.toFixed(2), y: y.toFixed(2) };
+  });
+  const path = coords.map(p => p.x + "," + p.y).join(" ");
+  const dots = coords.map(p => `<circle cx="${p.x}" cy="${p.y}" r="3.2" fill="#ff7846"/>`).join("");
+  const start = points[0].date.slice(5).split("-").reverse().join(".");
+  const end = points[points.length - 1].date.slice(5).split("-").reverse().join(".");
+  return `<svg viewBox="0 0 320 161" role="img"
+      aria-label="График веса по датам" style="display:block;width:100%;max-width:480px;height:auto;">
+      <line x1="35" y1="20" x2="35" y2="126" stroke="#666"/>
+      <line x1="35" y1="126" x2="305" y2="126" stroke="#666"/>
+      <text x="31" y="20" text-anchor="end" fill="#aaa" font-size="9">${max.toFixed(1)}</text>
+      <text x="31" y="126" text-anchor="end" fill="#aaa" font-size="9">${min.toFixed(1)}</text>
+      <polyline points="${path}" fill="none" stroke="#ff7846"
+        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+      <text x="35" y="146" fill="#aaa" font-size="10">${start}</text>
+      <text x="305" y="146" text-anchor="end" fill="#aaa" font-size="10">${end}</text>
+    </svg>`;
+}
+
+function athleteRenderWeightHistory() {
+  const slot = document.getElementById("athleteWeightHistory");
+  if (!slot) return;
+  const rows = athleteWeightEntries;
+  const baseline = rows.find(p => p.source === "onboarding");
+  const latest = rows[rows.length - 1];
+  const since = new Date();
+  if (athleteWeightPeriod === "month") since.setDate(since.getDate() - 30);
+  if (athleteWeightPeriod === "quarter") since.setDate(since.getDate() - 90);
+  const from = [since.getFullYear(), String(since.getMonth() + 1).padStart(2, "0"),
+    String(since.getDate()).padStart(2, "0")].join("-");
+  const graphRows = athleteWeightPeriod === "all"
+    ? rows : rows.filter(p => p.date >= from);
+  const difference = baseline && latest
+    ? (latest.kg - baseline.kg) : null;
+  const delta = difference === null ? "" :
+    ` · Изменение: ${difference > 0 ? "+" : ""}${difference.toFixed(1).replace(".", ",")} кг`;
+  const history = rows.slice(-30).reverse().map(function(row) {
+    const source = row.source === "onboarding" ? " · начало" : "";
+    return `<div class="summary-row">
+      <small>${row.date.split("-").reverse().join(".")}${source}</small>
+      <strong>${athleteFormatWeight(row.kg)}</strong>
+    </div>`;
+  }).join("");
+  slot.innerHTML = `<strong>История веса</strong>
+    <p>Первый вес: ${baseline ? athleteFormatWeight(baseline.kg) : "—"}</p>
+    <p>Последний вес: ${latest ? athleteFormatWeight(latest.kg) : "—"}${delta}</p>
+    <div class="field"><label class="field-title" for="athleteWeightPeriod">Период графика</label>
+      <select id="athleteWeightPeriod" class="text-input"
+        onchange="athleteWeightPeriod=this.value;athleteRenderWeightHistory();">
+        <option value="month" ${athleteWeightPeriod === "month" ? "selected" : ""}>30 дней</option>
+        <option value="quarter" ${athleteWeightPeriod === "quarter" ? "selected" : ""}>90 дней</option>
+        <option value="all" ${athleteWeightPeriod === "all" ? "selected" : ""}>Всё время</option>
+      </select></div>
+    ${athleteWeightChart(graphRows)}
+    <strong style="display:block;margin-top:14px;">Все взвешивания</strong>
+    ${history || "<p>Пока нет записей о весе.</p>"}
+    ${rows.length > 30 ? "<p class=\"small-note\">Показаны последние 30 записей, на графике — все.</p>" : ""}
+    <p class="small-note">Вес может колебаться от дня к дню. Для сравнения недель
+      позднее добавим средние значения по неделям.</p>`;
+}
+
+async function athleteLoadWeightHistory() {
+  const slot = document.getElementById("athleteWeightHistory");
+  if (!slot) return;
+  try {
+    const result = await athleteWeightRequest("load");
+    if (document.getElementById("athleteWeightHistory") !== slot) return;
+    athleteWeightEntries = athleteWeightPoints(result.entries);
+    athleteRenderWeightHistory();
+  } catch (error) {
+    if (document.getElementById("athleteWeightHistory") === slot) {
+      slot.textContent = error.message || "Не удалось загрузить историю веса.";
+    }
+  }
+}
+
+async function athleteSaveWeight() {
+  if (athleteWeightSaving) return;
+  const form = document.getElementById("athleteWeightForm");
+  const button = document.getElementById("athleteWeightSaveButton");
+  const dateInput = document.getElementById("athleteWeightDate");
+  const weightInput = document.getElementById("athleteWeightKg");
+  if (!form || !button || !dateInput || !weightInput || !form.reportValidity()) return;
+  const weightKg = Number(weightInput.value);
+  const measuredOn = dateInput.value;
+  if (!Number.isFinite(weightKg) || weightKg < 25 || weightKg > 400 ||
+      Math.round(weightKg * 10) !== weightKg * 10 || !measuredOn ||
+      measuredOn > athleteLocalDate()) {
+    showMessage("Укажи дату не позже сегодняшней и вес от 25 до 400 кг с точностью до 0,1 кг.");
+    return;
+  }
+  athleteWeightSaving = true;
+  button.disabled = true;
+  button.textContent = "Сохраняем...";
+  try {
+    await athleteWeightRequest("save", { measuredOn, weightKg });
+    await athleteLoadWeightHistory();
+    if (document.getElementById("athleteWeightKg") === weightInput) {
+      weightInput.value = "";
+      showMessage("Вес сохранён.");
+    }
+  } catch (error) {
+    showMessage(error.message || "Не удалось сохранить вес.");
+  } finally {
+    athleteWeightSaving = false;
+    if (document.getElementById("athleteWeightSaveButton") === button) {
+      button.disabled = false;
+      button.textContent = "Сохранить вес →";
+    }
   }
 }
