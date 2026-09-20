@@ -976,230 +976,266 @@ async function athleteBack() {
   }
 }
 
-// Завершающий экран
+// Завершение знакомства. Вопросы и ответы загружаются только с сервера.
+const ATHLETE_ONBOARDING_URL =
+  "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/finish-onboarding";
 
+let athleteAiInProgress = false;
+let athleteFinishInProgress = false;
+
+async function athleteOnboardingRequest(action, extra = {}) {
+  if (!tg || !tg.initData) {
+    throw new Error("Открой TRENZO через Telegram и попробуй снова.");
+  }
+  const response = await fetch(ATHLETE_ONBOARDING_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, initData: tg.initData, ...extra })
+  });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Сервер вернул некорректный ответ.");
+  }
+  if (!response.ok || result.ok !== true) {
+    if (response.status === 401) {
+      throw new Error("Сессия Telegram устарела. Закрой приложение и открой его заново.");
+    }
+    throw new Error("Не удалось загрузить или сохранить знакомство. Попробуй ещё раз.");
+  }
+  return result;
+}
+
+// Показываем экран знакомства. Само открытие экрана НЕ вызывает OpenAI.
 function athleteRenderComplete() {
-  const name = athleteEscape(registration.athlete.name);
+  const name = athleteEscape(registration.athlete.name || "Друг");
 
   document.getElementById("athleteScreen").innerHTML = `
     <div class="page">
+      <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
+      <div class="step-label">ПОСЛЕДНИЙ ШАГ</div>
+      <h1>${name}, почти готово!</h1>
+      <p class="hint">Я изучу твою цель, уточню то, чего не хватает, —
+        и мы завершим знакомство.</p>
 
-      <div class="topbar">
-        <div class="logo">TREN<span>ZO</span></div>
+      <div id="athleteOnboardingStatus" class="info-card" role="status">
+        Загружаем сохранённые данные...
       </div>
-
-      <div class="step-label">
-        АНКЕТА ЗАВЕРШЕНА
-      </div>
-
-      <h1>${name}, знакомство состоялось!</h1>
-
-      <p class="hint">
-        Мы собрали исходные данные для твоего
-        личного профиля TRENZO.
-      </p>
-      <div class="info-card">
-
-        <strong>Что будет дальше</strong>
-
-        <p>
-          1. Проверка цели и выбранного срока.
-        </p>
-
-        <p>
-          2. Настройка питания с учётом твоих
-          ответов и готовности вести учёт.
-        </p>
-
-        <p>
-          3. Анализ текущей тренировочной программы
-          или подготовка адаптационного периода.
-        </p>
-
-        <p>
-          4. Личный кабинет с тренировками,
-          питанием и историей прогресса.
-        </p>
-
-      </div>
-
-      <div class="warning-card">
-
-        <strong>Основные ответы сохранены в Supabase.</strong>
-
-        <p>
-          После нового входа через Telegram ты вернёшься на этот экран.
-          Ограничения по здоровью, особенности питания, свободный текст
-          программы, фотографии и имена файлов не отправляются на сервер
-          и не восстанавливаются после закрытия приложения.
-        </p>
-
-        <p>
-          ИИ ещё не анализировал ответы и не составлял программу.
-          Для первого теста используй вымышленные данные, особенно
-          в вопросах о здоровье.
-        </p>
-
-      </div>
-
+      <button id="athleteAnalyzeButton" class="primary-btn" type="button"
+        onclick="athleteAnalyzeProfile()" hidden>
+        Анализировать анкету ✦
+      </button>
+      <div id="athleteAiResult" class="info-card"
+        style="white-space: pre-wrap;" hidden></div>
+      <div id="athleteOnboardingQuestions"></div>
       <div class="form-bottom">
-
-      
-<button
-  id="athleteAnalyzeButton"
-  class="primary-btn"
-  type="button"
-  onclick="athleteAnalyzeProfile()"
->
-  Анализировать анкету ✦
-</button>
-
-<div
-  id="athleteAiResult"
-  class="info-card"
-  role="status"
-  style="white-space: pre-wrap;"
-  hidden
-></div>
-
-        <button
-          class="primary-btn"
-          onclick="athleteStep = 14; athleteRender();"
-        >
-          Посмотреть анкету
+        <button class="secondary-btn" type="button"
+          onclick="athleteStep = 14; athleteRender();">
+          Посмотреть исходную анкету
         </button>
-
-        <button
-          class="secondary-btn"
-          onclick="athleteStep = 0; athleteRender();"
-        >
-          Вернуться к началу анкеты
-        </button>
-
       </div>
-
-    </div>
-  `;
+    </div>`;
 
   window.scrollTo(0, 0);
+  athleteLoadOnboarding();
 }
 
+async function athleteLoadOnboarding() {
+  const statusBox = document.getElementById("athleteOnboardingStatus");
+  const introBox = document.getElementById("athleteAiResult");
+  const questionsBox = document.getElementById("athleteOnboardingQuestions");
+  const analyzeButton = document.getElementById("athleteAnalyzeButton");
+  if (!statusBox || !introBox || !questionsBox || !analyzeButton) return;
 
-// TRENZO — запуск первого ИИ-анализа анкеты
+  statusBox.hidden = false;
+  statusBox.textContent = "Загружаем сохранённые данные...";
+  analyzeButton.hidden = true;
 
-let athleteAiInProgress = false;
+  try {
+    const data = await athleteOnboardingRequest("load");
+    // Экран могли закрыть, пока сервер отвечал.
+    if (document.getElementById("athleteOnboardingStatus") !== statusBox) return;
 
+    if (data.setupStatus === "ready") {
+      athleteRenderCabinet();
+      return;
+    }
+
+    if (typeof data.intro !== "string" || !data.intro.trim()) {
+      statusBox.textContent = "Осталось познакомиться с твоей целью.";
+      introBox.hidden = true;
+      questionsBox.innerHTML = "";
+      analyzeButton.hidden = false;
+      return;
+    }
+
+    statusBox.hidden = true;
+    introBox.hidden = false;
+    introBox.textContent = data.intro;
+    questionsBox.innerHTML = "";
+
+    if (!Array.isArray(data.questions) || data.questions.length > 2) {
+      throw new Error("Не удалось загрузить вопросы. Попробуй ещё раз.");
+    }
+
+    const items = data.questions;
+    const fields = items.map(function(item, index) {
+      if (!item || !Number.isSafeInteger(item.id) || item.id < 1 ||
+          typeof item.question !== "string") {
+        throw new Error("Некорректные данные вопроса.");
+      }
+      const answer = typeof item.answer === "string" ? item.answer : "";
+      return `
+        <div class="field">
+          <label class="field-title" for="athleteAnswer${item.id}">
+            ${index + 1}. ${athleteEscape(item.question)}
+          </label>
+          <textarea class="text-area" id="athleteAnswer${item.id}"
+            data-question-id="${item.id}" maxlength="2000" required
+            placeholder="Напиши свой ответ...">${athleteEscape(answer)}</textarea>
+        </div>`;
+    }).join("");
+
+    questionsBox.innerHTML = `
+      <form id="athleteOnboardingForm"
+        onsubmit="event.preventDefault(); athleteFinishOnboarding();">
+        ${fields}
+        <p class="small-note">Ответы сохранятся в твоём профиле.
+          На этом этапе не указывай сведения о здоровье и другие чувствительные данные.</p>
+        <button type="submit" id="athleteFinishButton" class="primary-btn">
+          Завершить знакомство →
+        </button>
+      </form>`;
+  } catch (error) {
+    console.error("TRENZO onboarding load failed:", error);
+    statusBox.hidden = false;
+    statusBox.textContent = error.message || "Не удалось загрузить знакомство.";
+  }
+}
+
+// Отправляем ответы на сохранённые вопросы. Запроса к OpenAI здесь нет.
+async function athleteFinishOnboarding() {
+  if (athleteFinishInProgress) return;
+  const form = document.getElementById("athleteOnboardingForm");
+  const button = document.getElementById("athleteFinishButton");
+  if (!form || !button || !form.reportValidity()) return;
+
+  const answers = Array.from(form.querySelectorAll("textarea[data-question-id]"))
+    .map(function(area) {
+      return { id: Number(area.dataset.questionId), answer: area.value.trim() };
+    });
+
+  if (answers.some(function(item) {
+    return !Number.isSafeInteger(item.id) || !item.answer ||
+      item.answer.length > 2000;
+  })) {
+    showMessage("Ответь на каждый вопрос (не более 2000 символов).");
+    return;
+  }
+
+  athleteFinishInProgress = true;
+  button.disabled = true;
+  button.textContent = "Сохраняем твой профиль...";
+  try {
+    const result = await athleteOnboardingRequest("finish", { answers });
+    if (result.setupStatus !== "ready") {
+      throw new Error("Не удалось завершить знакомство.");
+    }
+    athleteRenderCabinet();
+  } catch (error) {
+    console.error("TRENZO onboarding finish failed:", error);
+    showMessage(error.message || "Не удалось сохранить ответы.");
+    button.disabled = false;
+    button.textContent = "Завершить знакомство →";
+  } finally {
+    athleteFinishInProgress = false;
+  }
+}
+
+// Анализ анкеты выполняется только при первом явном нажатии.
+// Если результат уже сохранён, analyze-profile возвращает его без OpenAI.
 async function athleteAnalyzeProfile() {
-
   if (athleteAiInProgress) return;
-
-  const button = document.getElementById(
-    "athleteAnalyzeButton"
-  );
-
-  const resultBox = document.getElementById(
-    "athleteAiResult"
-  );
-
-  if (!button || !resultBox) return;
-
+  const button = document.getElementById("athleteAnalyzeButton");
+  const statusBox = document.getElementById("athleteOnboardingStatus");
+  if (!button || !statusBox) return;
   if (!tg || !tg.initData) {
-    showMessage(
-      "Открой TRENZO через Telegram и попробуй снова."
-    );
+    showMessage("Открой TRENZO через Telegram и попробуй снова.");
     return;
   }
 
   athleteAiInProgress = true;
-
   button.disabled = true;
   button.textContent = "Знакомлюсь с твоей целью...";
-
-resultBox.hidden = false;
-resultBox.textContent =
-  "Смотрю твою анкету. Сейчас разберусь с твоей " +
-  "целью и подскажу, с чего лучше начать.";
+  statusBox.hidden = false;
+  statusBox.textContent = "Смотрю твою анкету. Сейчас разберусь с целью.";
 
   try {
-
     const response = await fetch(
       "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/analyze-profile",
       {
         method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        body: JSON.stringify({
-          initData: tg.initData
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: tg.initData })
       }
     );
-
     const result = await response.json();
-
     if (!response.ok || result.ok !== true) {
-
       if (response.status === 401) {
-        throw new Error(
-          "Сессия Telegram устарела. " +
-          "Закрой приложение и открой его заново."
-        );
+        throw new Error("Сессия Telegram устарела. Закрой приложение и открой его заново.");
       }
-
-      if (response.status === 403) {
-        throw new Error(
-          "Для этого аккаунта ИИ-анализ пока не включён."
-        );
-      }
-
       if (response.status === 429) {
-        throw new Error(
-          "Дневной лимит ИИ-анализов исчерпан. " +
-          "Попробуй завтра."
-        );
+        throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
       }
-
-      throw new Error(
-        "Не удалось выполнить ИИ-анализ. " +
-        "Попробуй ещё раз."
-      );
+      throw new Error("Не удалось выполнить анализ анкеты.");
     }
-
-    if (
-      typeof result.analysis !== "string" ||
-      !result.analysis.trim()
-    ) {
-      throw new Error(
-        "ИИ вернул пустой ответ. Попробуй ещё раз."
-      );
-    }
-
-    // Показываем анализ как обычный текст,
-    // не исполняя HTML из ответа ИИ.
-
-    resultBox.textContent = result.analysis;
-
-    button.textContent = "Повторить анализ";
-
+    // Запрашиваем сохранённые вопросы с их ID, чтобы привязать к ним ответы.
+    await athleteLoadOnboarding();
   } catch (error) {
-
-    console.error(
-      "TRENZO AI analysis failed:",
-      error
-    );
-
-    resultBox.textContent =
-      error.message ||
-      "Не удалось выполнить анализ.";
-
-    button.textContent = "Повторить анализ";
-
+    console.error("TRENZO AI analysis failed:", error);
+    statusBox.hidden = false;
+    statusBox.textContent = error.message || "Не удалось выполнить анализ.";
+    button.hidden = false;
   } finally {
-
     athleteAiInProgress = false;
     button.disabled = false;
-
+    button.textContent = "Анализировать анкету ✦";
   }
+}
+
+// Первый экран кабинета: пока без работающих модулей тренировок и питания.
+function athleteRenderCabinet() {
+  const d = registration.athlete;
+  const goalLabels = {
+    lose: "Снижение веса", muscle: "Набор мышечной массы",
+    recomp: "Изменение состава тела", strength: "Развитие силы",
+    fitness: "Улучшение формы", other: "Индивидуальная цель"
+  };
+  const name = athleteEscape(d.name || "Друг");
+  const goal = athleteEscape(goalLabels[d.goal] || d.goal || "Цель не указана");
+  const weight = athleteEscape(d.weight ? d.weight + " кг" : "Не указан");
+  const target = athleteEscape(d.targetWeight ? d.targetWeight + " кг" : "Не указан");
+
+  document.getElementById("athleteScreen").innerHTML = `
+    <div class="page">
+      <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
+      <div class="step-label">ЛИЧНЫЙ КАБИНЕТ</div>
+      <h1>${name}, твой профиль готов!</h1>
+      <p class="hint">Знакомство завершено. Твои ответы сохранены.</p>
+      <div class="info-card">
+        <strong>Твоя цель</strong>
+        <p>${goal}</p>
+        <p>Текущий вес: ${weight} · Желаемый вес: ${target}</p>
+      </div>
+      <div class="info-card"><strong>Тренировки</strong>
+        <p>Программа и отчёты — в разработке.</p></div>
+      <div class="info-card"><strong>Питание</strong>
+        <p>План и дневник — в разработке.</p></div>
+      <div class="info-card"><strong>Прогресс</strong>
+        <p>История показателей — в разработке.</p></div>
+      <p class="small-note">Сведения о здоровье, фотографии и файлы
+        пока не сохраняются и не используются для персональных рекомендаций.</p>
+    </div>`;
+  window.scrollTo(0, 0);
 }
