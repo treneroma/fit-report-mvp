@@ -470,3 +470,8 @@ h1 {
 #athleteAiResult:not([hidden]) {
   margin-bottom: 18px;
 }
+
+/* Отступ между соседними карточками */
+#athleteScreen .page > .info-card + .info-card {
+  margin-top: 20px !important;
+}
