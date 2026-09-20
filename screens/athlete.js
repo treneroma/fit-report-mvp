@@ -1044,6 +1044,24 @@ function athleteRenderComplete() {
 
       <div class="form-bottom">
 
+      
+<button
+  id="athleteAnalyzeButton"
+  class="primary-btn"
+  type="button"
+  onclick="athleteAnalyzeProfile()"
+>
+  Анализировать анкету ✦
+</button>
+
+<div
+  id="athleteAiResult"
+  class="info-card"
+  role="status"
+  style="white-space: pre-wrap;"
+  hidden
+></div>
+
         <button
           class="primary-btn"
           onclick="athleteStep = 14; athleteRender();"
@@ -1064,4 +1082,124 @@ function athleteRenderComplete() {
   `;
 
   window.scrollTo(0, 0);
+}
+
+
+// TRENZO — запуск первого ИИ-анализа анкеты
+
+let athleteAiInProgress = false;
+
+async function athleteAnalyzeProfile() {
+
+  if (athleteAiInProgress) return;
+
+  const button = document.getElementById(
+    "athleteAnalyzeButton"
+  );
+
+  const resultBox = document.getElementById(
+    "athleteAiResult"
+  );
+
+  if (!button || !resultBox) return;
+
+  if (!tg || !tg.initData) {
+    showMessage(
+      "Открой TRENZO через Telegram и попробуй снова."
+    );
+    return;
+  }
+
+  athleteAiInProgress = true;
+
+  button.disabled = true;
+  button.textContent = "Анализируем анкету...";
+
+  resultBox.hidden = false;
+  resultBox.textContent =
+    "ИИ анализирует твою цель и срок её достижения. " +
+    "Это может занять несколько секунд.";
+
+  try {
+
+    const response = await fetch(
+      "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/analyze-profile",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          initData: tg.initData
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.ok !== true) {
+
+      if (response.status === 401) {
+        throw new Error(
+          "Сессия Telegram устарела. " +
+          "Закрой приложение и открой его заново."
+        );
+      }
+
+      if (response.status === 403) {
+        throw new Error(
+          "Для этого аккаунта ИИ-анализ пока не включён."
+        );
+      }
+
+      if (response.status === 429) {
+        throw new Error(
+          "Дневной лимит ИИ-анализов исчерпан. " +
+          "Попробуй завтра."
+        );
+      }
+
+      throw new Error(
+        "Не удалось выполнить ИИ-анализ. " +
+        "Попробуй ещё раз."
+      );
+    }
+
+    if (
+      typeof result.analysis !== "string" ||
+      !result.analysis.trim()
+    ) {
+      throw new Error(
+        "ИИ вернул пустой ответ. Попробуй ещё раз."
+      );
+    }
+
+    // Показываем анализ как обычный текст,
+    // не исполняя HTML из ответа ИИ.
+
+    resultBox.textContent = result.analysis;
+
+    button.textContent = "Повторить анализ";
+
+  } catch (error) {
+
+    console.error(
+      "TRENZO AI analysis failed:",
+      error
+    );
+
+    resultBox.textContent =
+      error.message ||
+      "Не удалось выполнить анализ.";
+
+    button.textContent = "Повторить анализ";
+
+  } finally {
+
+    athleteAiInProgress = false;
+    button.disabled = false;
+
+  }
 }
