@@ -29,10 +29,82 @@ function showScreen(screenId) {
 }
 
 
-// Первый экран → выбор роли
 
-function openRoles() {
-  showScreen("roleScreen");
+/*
+  Проверка входа через Telegram.
+  Адрес функции Supabase.
+*/
+
+const TELEGRAM_AUTH_URL = "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/telegram-auth";
+
+let authInProgress = false;
+
+
+// Первый экран → проверка Telegram → выбор роли
+
+async function openRoles() {
+
+  // Не отправляем несколько запросов одновременно.
+
+  if (authInProgress) return;
+
+  // Проверяем, что приложение открыто через Telegram.
+
+  if (!tg || !tg.initData) {
+    showMessage(
+      "Открой TRENZO через кнопку меню в Telegram-боте."
+    );
+    return;
+  }
+
+  authInProgress = true;
+
+  try {
+
+    // Отправляем данные Telegram на серверную проверку.
+
+    const response = await fetch(TELEGRAM_AUTH_URL, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        initData: tg.initData
+      })
+    });
+
+    const result = await response.json();
+
+
+    // Если проверка не прошла — не открываем анкету.
+
+    if (!response.ok || result.ok !== true) {
+      showMessage(
+        "Не удалось подтвердить вход через Telegram. " +
+        "Закрой приложение и открой его заново."
+      );
+      return;
+    }
+
+
+    // Telegram подтвердил подлинность пользователя.
+
+    showScreen("roleScreen");
+
+  } catch (error) {
+
+    showMessage(
+      "Не удалось связаться с сервером TRENZO. " +
+      "Проверь интернет и попробуй ещё раз."
+    );
+
+  } finally {
+
+    authInProgress = false;
+
+  }
 }
 
 
