@@ -42,9 +42,10 @@ let authInProgress = false;
 
 // Первый экран → проверка Telegram → выбор роли
 
+
 async function openRoles() {
 
-  // Не отправляем несколько запросов одновременно.
+  // Не запускаем несколько проверок одновременно.
 
   if (authInProgress) return;
 
@@ -56,6 +57,74 @@ async function openRoles() {
     );
     return;
   }
+
+  authInProgress = true;
+
+  const loading = document.getElementById("authLoading");
+
+  const startButton = document.querySelector(
+    ".start-button-area"
+  );
+
+  // Показываем загрузку и временно отключаем кнопку.
+
+  loading.hidden = false;
+
+  if (startButton) {
+    startButton.disabled = true;
+  }
+
+  try {
+
+    const response = await fetch(TELEGRAM_AUTH_URL, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        initData: tg.initData
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || result.ok !== true) {
+
+      showMessage(
+        "Не удалось выполнить вход в TRENZO. " +
+        "Попробуй ещё раз."
+      );
+
+      return;
+    }
+
+    // Проверка и загрузка профиля завершены.
+
+    showScreen("roleScreen");
+
+  } catch (error) {
+
+    showMessage(
+      "Не удалось связаться с сервером TRENZO. " +
+      "Проверь соединение и попробуй ещё раз."
+    );
+
+  } finally {
+
+    // Убираем индикатор при любом результате.
+
+    loading.hidden = true;
+
+    authInProgress = false;
+
+    if (startButton) {
+      startButton.disabled = false;
+    }
+
+  }
+}
 
   authInProgress = true;
 
