@@ -460,3 +460,13 @@ h1 {
   color: #888888;
   font-size: 12px;
 }
+
+/* Отступы на финальном экране анкеты */
+
+#athleteAnalyzeButton {
+  margin-bottom: 18px;
+}
+
+#athleteAiResult:not([hidden]) {
+  margin-bottom: 18px;
+}
