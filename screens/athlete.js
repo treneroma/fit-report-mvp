@@ -1113,12 +1113,12 @@ async function athleteAnalyzeProfile() {
   athleteAiInProgress = true;
 
   button.disabled = true;
-  button.textContent = "Анализируем анкету...";
+  button.textContent = "Знакомлюсь с твоей целью...";
 
-  resultBox.hidden = false;
-  resultBox.textContent =
-    "ИИ анализирует твою цель и срок её достижения. " +
-    "Это может занять несколько секунд.";
+resultBox.hidden = false;
+resultBox.textContent =
+  "Смотрю твою анкету. Сейчас разберусь с твоей " +
+  "целью и подскажу, с чего лучше начать.";
 
   try {
 
