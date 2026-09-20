@@ -385,3 +385,78 @@ h1 {
     margin-bottom: 34px;
   }
 }
+
+
+/* ЗАГРУЗКА ПРИ ВХОДЕ В TRENZO */
+
+.auth-loading[hidden] {
+  display: none;
+}
+
+.auth-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(17, 17, 17, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  width: 100%;
+  max-width: 320px;
+
+  text-align: center;
+}
+
+.auth-spinner {
+  width: 64px;
+  height: 64px;
+
+  margin-bottom: 28px;
+
+  border: 4px solid #39302c;
+  border-top-color: #ff7846;
+
+  border-radius: 50%;
+
+  animation: trenzo-spin 0.8s linear infinite;
+}
+
+@keyframes trenzo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-loading-title {
+  margin-bottom: 12px;
+
+  color: #ffffff;
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.auth-loading-text {
+  color: #c4c4c4;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.auth-loading-hint {
+  margin-top: 22px;
+
+  color: #888888;
+  font-size: 12px;
+}
