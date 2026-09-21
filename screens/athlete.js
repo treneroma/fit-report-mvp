@@ -1254,10 +1254,11 @@ function athleteCabinetCard(title, rows) {
 }
 
 function athleteCabinetHeader(label, title) {
-  return `<div class="topbar">
-      <button class="back-button" type="button"
-        onclick="athleteRenderCabinet()" aria-label="Вернуться в личный кабинет">←</button>
+  return `<div class="topbar" style="justify-content:space-between;">
       <div class="logo">TREN<span>ZO</span></div>
+      <button class="back-button" type="button"
+        onclick="athleteRenderCabinet()"
+        aria-label="Вернуться в личный кабинет">←</button>
     </div>
     <h1 style="margin:0 0 14px;">
       ${athleteEscape(title)}
@@ -1517,11 +1518,12 @@ function athleteOpenCabinetSection(section) {
   const backAction = progressSubpage
     ? "athleteOpenCabinetSection('progress')" : "athleteRenderCabinet()";
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
-    <div class="topbar" style="margin-bottom:12px;">
-      <button class="back-button" type="button" onclick="${backAction}"
-        aria-label="Назад">←</button>
-      <div class="logo">TREN<span>ZO</span></div>
-    </div>
+    <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
+  <div class="logo">TREN<span>ZO</span></div>
+  <button class="back-button" type="button"
+    onclick="${backAction}"
+    aria-label="Назад">←</button>
+</div>
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
     <button class="secondary-btn" type="button" style="margin-top:16px;"
