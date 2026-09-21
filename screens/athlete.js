@@ -1388,8 +1388,6 @@ function athleteOpenCabinetSection(section) {
         athleteCabinetRow("Программа тренировок", d.programStatus, {
           yes: "Есть программа", partial: "Есть отдельные упражнения", no: "Программы пока нет"
         })) +
-      `<div id="athleteCabinetClarifications" class="info-card"
-         role="status">Загружаем уточнения TRENZO...</div>` +
       `<p class="small-note">Здесь показаны сохранённые данные анкеты.
         Изменение ответов добавим отдельно. Сведения о здоровье,
         фотографии и файлы в тестовой версии не сохраняются.</p>`;
@@ -1532,7 +1530,6 @@ function athleteOpenCabinetSection(section) {
   window.scrollTo(0, 0);
 
   if (section === "profile") {
-    athleteLoadCabinetClarifications();
     athleteLoadProfileWeight();
   }
   if (section === "progress") {
@@ -1541,28 +1538,6 @@ function athleteOpenCabinetSection(section) {
   if (section === "progress-weight") {
     if (athleteWeightLoaded) athleteRenderWeightHistory();
     else athleteLoadWeightHistory();
-  }
-}
-
-// Уточняющие вопросы и ответы читаем из уже существующей защищённой
-// функции finish-onboarding. Не записываем их в браузере и не зовём OpenAI.
-async function athleteLoadCabinetClarifications() {
-  const slot = document.getElementById("athleteCabinetClarifications");
-  if (!slot) return;
-  try {
-    const data = await athleteOnboardingRequest("load");
-    if (document.getElementById("athleteCabinetClarifications") !== slot) return;
-    if (!Array.isArray(data.questions) || data.questions.length === 0) {
-      slot.textContent = "Уточняющих вопросов не было.";
-      return;
-    }
-    slot.innerHTML = `<strong>Дополнительные ответы</strong>` +
-      data.questions.map(function(item) {
-        return athleteCabinetRow(item.question, item.answer);
-      }).join("");
-  } catch (error) {
-    if (document.getElementById("athleteCabinetClarifications") !== slot) return;
-    slot.textContent = error.message || "Не удалось загрузить уточнения.";
   }
 }
 
