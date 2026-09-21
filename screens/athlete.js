@@ -1522,7 +1522,6 @@ function athleteOpenCabinetSection(section) {
         aria-label="Назад">←</button>
       <div class="logo">TREN<span>ZO</span></div>
     </div>
-    <div class="step-label" style="margin:0 0 8px;">ЛИЧНЫЙ КАБИНЕТ</div>
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
     <button class="secondary-btn" type="button" style="margin-top:16px;"
