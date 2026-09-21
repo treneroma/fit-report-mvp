@@ -1259,8 +1259,9 @@ function athleteCabinetHeader(label, title) {
         onclick="athleteRenderCabinet()" aria-label="Вернуться в личный кабинет">←</button>
       <div class="logo">TREN<span>ZO</span></div>
     </div>
-    <div class="step-label">${athleteEscape(label)}</div>
-    <h1>${athleteEscape(title)}</h1>`;
+    <h1 style="margin:0 0 14px;">
+      ${athleteEscape(title)}
+    </h1>`;
 }
 
 function athleteCabinetNavButton(section, symbol, title, detail) {
