@@ -1739,6 +1739,9 @@ onclick="${backAction}">← ${backLabel}</button>
     if (athleteWeightLoaded) athleteRenderWeightHistory();
     else athleteLoadWeightHistory();
   }
+  if (section === "progress-measurements") {
+  athleteLoadMeasurementsTable();
+}
 }
 
 // История веса: отдельная защищённая Edge Function с проверкой Telegram.
@@ -1877,6 +1880,121 @@ async function athleteSaveMeasurements() {
       error.message ||
       "Не удалось сохранить замеры."
     );
+  }
+}
+function athleteFormatCm(value) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+
+  const n = Number(value);
+
+  if (!Number.isFinite(n)) {
+    return "—";
+  }
+
+  return Number.isInteger(n)
+    ? String(n)
+    : n.toFixed(1).replace(".", ",");
+}
+
+
+async function athleteLoadMeasurementsTable() {
+  const slot = document.getElementById("athleteMeasurementsTable");
+
+  if (!slot) return;
+
+  slot.innerHTML = `
+    <tr>
+      <td colspan="8"
+        style="padding:28px 16px;color:#888;text-align:center;
+        border-top:1px solid #414141;">
+        Загружаем замеры...
+      </td>
+    </tr>`;
+
+  try {
+    const result = await athleteMeasurementsRequest("load");
+
+    if (
+      document.getElementById("athleteMeasurementsTable") !== slot
+    ) {
+      return;
+    }
+
+    const rows = Array.isArray(result.entries)
+      ? result.entries.slice().reverse()
+      : [];
+
+    if (!rows.length) {
+      slot.innerHTML = `
+        <tr>
+          <td colspan="8"
+            style="padding:28px 16px;color:#888;text-align:center;
+            border-top:1px solid #414141;">
+            Пока нет сохранённых замеров
+          </td>
+        </tr>`;
+      return;
+    }
+
+    slot.innerHTML = rows.map(function(row) {
+      const date = typeof row.measured_on === "string"
+        ? row.measured_on.split("-").reverse().join(".")
+        : "—";
+
+      return `
+        <tr>
+          <td style="padding:14px 10px;text-align:left;
+            border-top:1px solid #414141;">
+            ${athleteEscape(date)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.shoulders_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.chest_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.waist_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.abdomen_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.hips_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.biceps_cm)}
+          </td>
+
+          <td style="padding:14px 10px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.thigh_cm)}
+          </td>
+        </tr>`;
+    }).join("");
+
+  } catch (error) {
+    console.error("TRENZO body measurements load failed:", error);
+
+    if (
+      document.getElementById("athleteMeasurementsTable") === slot
+    ) {
+      slot.innerHTML = `
+        <tr>
+          <td colspan="8"
+            style="padding:28px 16px;color:#888;text-align:center;
+            border-top:1px solid #414141;">
+            Не удалось загрузить замеры
+          </td>
+        </tr>`;
+    }
   }
 }
 function athleteFormatWeight(value) {
