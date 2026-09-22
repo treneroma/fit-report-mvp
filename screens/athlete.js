@@ -1525,14 +1525,14 @@ title = "Вес";
     <div class="info-card"
       style="margin:0 !important;padding:0;overflow:hidden;">
 
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-        <table style="
-          width:100%;
-          min-width:700px;
-          border-collapse:collapse;
-          font-size:13px;
-          text-align:center;
-        ">
+     <div style="width:100%;overflow:hidden;">
+  <table style="
+    width:100%;
+    table-layout:fixed;
+    border-collapse:collapse;
+    font-size:11px;
+    text-align:center;
+  ">
 
           <thead>
             <tr style="color:#aaa;">
@@ -1540,7 +1540,6 @@ title = "Вес";
               <th style="padding:14px 10px;">Плечи</th>
               <th style="padding:14px 10px;">Грудь</th>
               <th style="padding:14px 10px;">Талия</th>
-              <th style="padding:14px 10px;">Живот</th>
               <th style="padding:14px 10px;">Бёдра</th>
               <th style="padding:14px 10px;">Бицепс</th>
               <th style="padding:14px 10px;">Бедро</th>
@@ -1549,7 +1548,7 @@ title = "Вес";
 
           <tbody id="athleteMeasurementsTable">
             <tr>
-              <td colspan="8"
+              <td colspan="7"
                 style="padding:28px 16px;color:#888;text-align:center;
                 border-top:1px solid #414141;">
                 Пока нет сохранённых замеров
@@ -1621,18 +1620,6 @@ title = "Вес";
           min="1"
           step="0.1"
           placeholder="Например, 76">
-      </div>
-
-      <div class="field">
-        <label class="field-title" for="athleteAbdomen">
-          Живот, см
-        </label>
-        <input class="text-input"
-          id="athleteAbdomen"
-          type="number"
-          min="1"
-          step="0.1"
-          placeholder="Например, 82">
       </div>
 
       <div class="field">
@@ -1848,7 +1835,6 @@ async function athleteSaveMeasurements() {
     shouldersCm: readCm("athleteShoulders"),
     chestCm: readCm("athleteChest"),
     waistCm: readCm("athleteWaist"),
-    abdomenCm: readCm("athleteAbdomen"),
     hipsCm: readCm("athleteHips"),
     bicepsCm: readCm("athleteBiceps"),
     thighCm: readCm("athleteThigh")
@@ -1963,10 +1949,6 @@ async function athleteLoadMeasurementsTable() {
           </td>
 
           <td style="padding:14px 10px;border-top:1px solid #414141;">
-            ${athleteFormatCm(row.abdomen_cm)}
-          </td>
-
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
             ${athleteFormatCm(row.hips_cm)}
           </td>
 
@@ -1988,7 +1970,7 @@ async function athleteLoadMeasurementsTable() {
     ) {
       slot.innerHTML = `
         <tr>
-          <td colspan="8"
+          <td colspan="7"
             style="padding:28px 16px;color:#888;text-align:center;
             border-top:1px solid #414141;">
             Не удалось загрузить замеры
