@@ -1522,13 +1522,160 @@ title = "Вес";
   title = "Замеры тела";
 
   content = `
-    <div class="info-card" style="margin:0 !important;">
-      <strong>Замеры тела</strong>
-      <p style="margin-bottom:0;">
-        Здесь появятся история замеров и изменения показателей тела.
-      </p>
-    </div>`;
+    <div class="info-card"
+      style="margin:0 !important;padding:0;overflow:hidden;">
 
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="
+          width:100%;
+          min-width:700px;
+          border-collapse:collapse;
+          font-size:13px;
+          text-align:center;
+        ">
+
+          <thead>
+            <tr style="color:#aaa;">
+              <th style="padding:14px 10px;text-align:left;">Дата</th>
+              <th style="padding:14px 10px;">Плечи</th>
+              <th style="padding:14px 10px;">Грудь</th>
+              <th style="padding:14px 10px;">Талия</th>
+              <th style="padding:14px 10px;">Живот</th>
+              <th style="padding:14px 10px;">Бёдра</th>
+              <th style="padding:14px 10px;">Бицепс</th>
+              <th style="padding:14px 10px;">Бедро</th>
+            </tr>
+          </thead>
+
+          <tbody id="athleteMeasurementsTable">
+            <tr>
+              <td colspan="8"
+                style="padding:28px 16px;color:#888;text-align:center;
+                border-top:1px solid #414141;">
+                Пока нет сохранённых замеров
+              </td>
+            </tr>
+          </tbody>
+
+        </table>
+      </div>
+
+   </div>
+
+<button class="primary-btn" type="button"
+  style="margin-top:16px;"
+ onclick="athleteOpenCabinetSection('progress-measurements-form')">
+  Записать замеры →
+</button>`;
+
+ } else if (section === "progress-measurements-form") {
+  title = "Новые замеры";
+
+  content = `
+    <form id="athleteMeasurementsForm">
+
+      <div class="field">
+        <label class="field-title" for="athleteMeasurementDate">
+          Дата замера
+        </label>
+
+        <input class="text-input"
+          id="athleteMeasurementDate"
+          type="date"
+          value="${athleteLocalDate()}"
+          max="${athleteLocalDate()}"
+          required>
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteShoulders">
+          Плечи, см
+        </label>
+        <input class="text-input"
+          id="athleteShoulders"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 120">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteChest">
+          Грудь, см
+        </label>
+        <input class="text-input"
+          id="athleteChest"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 98">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteWaist">
+          Талия, см
+        </label>
+        <input class="text-input"
+          id="athleteWaist"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 76">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteAbdomen">
+          Живот, см
+        </label>
+        <input class="text-input"
+          id="athleteAbdomen"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 82">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteHips">
+          Бёдра, см
+        </label>
+        <input class="text-input"
+          id="athleteHips"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 102">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteBiceps">
+          Бицепс, см
+        </label>
+        <input class="text-input"
+          id="athleteBiceps"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 34">
+      </div>
+
+      <div class="field">
+        <label class="field-title" for="athleteThigh">
+          Бедро, см
+        </label>
+        <input class="text-input"
+          id="athleteThigh"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 58">
+      </div>
+
+      <button class="primary-btn" type="button" disabled>
+        Сохранить замеры →
+      </button>
+
+    </form>`;
   } else if (["progress-strength", "progress-workouts", "progress-volume", "progress-achievements"].includes(section)) {
     const pending = {
       "progress-strength": ["Силовые показатели", "Здесь появятся результаты по каждому упражнению, рабочие веса, повторения и личные рекорды."],
@@ -1552,12 +1699,17 @@ title = "Вес";
 let backAction = "athleteRenderCabinet()";
   let backLabel = "В личный кабинет";
 
-if (
+if (section === "progress-measurements-form") {
+  backAction = "athleteOpenCabinetSection('progress-measurements')";
+  backLabel = "В замеры тела";
+
+} else if (
   section === "progress-weight" ||
   section === "progress-measurements"
 ) {
   backAction = "athleteOpenCabinetSection('progress-body')";
   backLabel = "В вес и тело";
+
 } else if (progressSubpage) {
   backAction = "athleteOpenCabinetSection('progress')";
   backLabel = "В прогресс";
