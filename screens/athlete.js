@@ -1533,7 +1533,15 @@ title = "Вес";
     font-size:11px;
     text-align:center;
   ">
-
+<colgroup>
+  <col style="width:25%;">
+  <col style="width:12.5%;">
+  <col style="width:12.5%;">
+  <col style="width:12.5%;">
+  <col style="width:12.5%;">
+  <col style="width:12.5%;">
+  <col style="width:12.5%;">
+</colgroup>
           <thead>
             <tr style="color:#aaa;">
               <th style="padding:14px 10px;text-align:left;">Дата</th>
@@ -1925,9 +1933,11 @@ async function athleteLoadMeasurementsTable() {
     }
 
     slot.innerHTML = rows.map(function(row) {
-      const date = typeof row.measured_on === "string"
-        ? row.measured_on.split("-").reverse().join(".")
-        : "—";
+     const date = typeof row.measured_on === "string"
+  ? row.measured_on.slice(8, 10) + "." +
+    row.measured_on.slice(5, 7) + "." +
+    row.measured_on.slice(2, 4)
+  : "—";
 
       return `
         <tr>
