@@ -1824,6 +1824,8 @@ async function athleteMeasurementsRequest(action, extra = {}) {
   return result;
 }
 async function athleteSaveMeasurements() {
+    showMessage("Кнопка сработала");
+  return;
   const form = document.getElementById("athleteMeasurementsForm");
   const dateInput = document.getElementById("athleteMeasurementDate");
 
