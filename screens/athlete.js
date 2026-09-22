@@ -1449,7 +1449,7 @@ function athleteOpenCabinetSection(section) {
         </p>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
-        <button class="info-card" type="button" onclick="athleteOpenWeightSection()"
+<button class="info-card" type="button" onclick="athleteOpenCabinetSection('progress-body')"
           style="display:flex;width:100%;align-items:center;gap:12px;margin:0 !important;
           min-height:0 !important;height:auto !important;padding:14px;text-align:left;
           color:inherit;font:inherit;cursor:pointer;box-sizing:border-box;">
@@ -1474,8 +1474,30 @@ function athleteOpenCabinetSection(section) {
         ${athleteCabinetNavButton("progress-achievements", "★", "Мои достижения",
           "Личные рекорды и важные этапы")}
       </div>`;
+  } else if (section === "progress-body") {
+  title = "Вес и тело";
+
+  content = `
+    <div style="display:flex;flex-direction:column;gap:10px;margin:0;align-items:stretch;">
+
+      ${athleteCabinetNavButton(
+        "progress-weight",
+        "↗",
+        "Вес",
+        "История веса, график и новые записи"
+      )}
+
+      ${athleteCabinetNavButton(
+        "progress-measurements",
+        "↔",
+        "Замеры тела",
+        "Объёмы и изменения тела"
+      )}
+
+    </div>`;
+
   } else if (section === "progress-weight") {
-    title = "Вес и тело";
+title = "Вес";
     content = `<div id="athleteWeightHistory" class="info-card" role="status"
         style="margin:0 !important;">Загружаем историю веса...</div>` +
       athleteCabinetCard("Записать вес",
@@ -1496,6 +1518,17 @@ function athleteOpenCabinetSection(section) {
             Сохранить вес →
           </button>
         </form>`);
+} else if (section === "progress-measurements") {
+  title = "Замеры тела";
+
+  content = `
+    <div class="info-card" style="margin:0 !important;">
+      <strong>Замеры тела</strong>
+      <p style="margin-bottom:0;">
+        Здесь появятся история замеров и изменения показателей тела.
+      </p>
+    </div>`;
+
   } else if (["progress-strength", "progress-workouts", "progress-volume", "progress-achievements"].includes(section)) {
     const pending = {
       "progress-strength": ["Силовые показатели", "Здесь появятся результаты по каждому упражнению, рабочие веса, повторения и личные рекорды."],
@@ -1515,8 +1548,20 @@ function athleteOpenCabinetSection(section) {
   }
 
   const progressSubpage = section.startsWith("progress-");
-  const backAction = progressSubpage
-    ? "athleteOpenCabinetSection('progress')" : "athleteRenderCabinet()";
+
+let backAction = "athleteRenderCabinet()";
+  let backLabel = "В личный кабинет";
+
+if (
+  section === "progress-weight" ||
+  section === "progress-measurements"
+) {
+  backAction = "athleteOpenCabinetSection('progress-body')";
+  backLabel = "В вес и тело";
+} else if (progressSubpage) {
+  backAction = "athleteOpenCabinetSection('progress')";
+  backLabel = "В прогресс";
+}
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
   <div class="logo">TREN<span>ZO</span></div>
@@ -1527,7 +1572,7 @@ function athleteOpenCabinetSection(section) {
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
     <button class="secondary-btn" type="button" style="margin-top:16px;"
-      onclick="${backAction}">← ${progressSubpage ? "В прогресс" : "В личный кабинет"}</button>
+onclick="${backAction}">← ${backLabel}</button>
   </div>`;
   window.scrollTo(0, 0);
 
