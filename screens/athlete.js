@@ -1671,9 +1671,10 @@ title = "Вес";
           placeholder="Например, 58">
       </div>
 
-      <button class="primary-btn" type="button" disabled>
-        Сохранить замеры →
-      </button>
+      <button class="primary-btn" type="button"
+  onclick="athleteSaveMeasurements()">
+  Сохранить замеры →
+</button>
 
     </form>`;
   } else if (["progress-strength", "progress-workouts", "progress-volume", "progress-achievements"].includes(section)) {
@@ -1744,6 +1745,8 @@ onclick="${backAction}">← ${backLabel}</button>
 // Вес из анкеты не перезаписываем. Все измерения читаем с сервера.
 const ATHLETE_WEIGHT_URL =
   "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/weight-history";
+const ATHLETE_MEASUREMENTS_URL =
+  "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/body-measurements";
 let athleteWeightEntries = [];
 let athleteWeightLoaded = false;
 let athleteWeightPending = null;
@@ -1783,6 +1786,99 @@ async function athleteWeightRequest(action, extra = {}) {
   return result;
 }
 
+async function athleteMeasurementsRequest(action, extra = {}) {
+  if (!tg || !tg.initData) {
+    throw new Error("Открой TRENZO через Telegram и попробуй снова.");
+  }
+
+  const response = await fetch(ATHLETE_MEASUREMENTS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      initData: tg.initData,
+      ...extra
+    })
+  });
+
+  let result;
+
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Сервер вернул некорректный ответ.");
+  }
+
+  if (!response.ok || result.ok !== true) {
+    if (response.status === 401) {
+      throw new Error("Сессия Telegram устарела. Закрой Mini App и открой заново.");
+    }
+
+    if (response.status === 400) {
+      throw new Error("Проверь дату и значения замеров.");
+    }
+
+    throw new Error("Не удалось загрузить или сохранить замеры. Попробуй ещё раз.");
+  }
+
+  return result;
+}
+async function athleteSaveMeasurements() {
+  const form = document.getElementById("athleteMeasurementsForm");
+  const dateInput = document.getElementById("athleteMeasurementDate");
+
+  if (!form || !dateInput || !form.reportValidity()) return;
+
+  function readCm(id) {
+    const input = document.getElementById(id);
+
+    if (!input || input.value.trim() === "") {
+      return null;
+    }
+
+    return Number(input.value);
+  }
+
+  const measuredOn = dateInput.value;
+
+  const data = {
+    shouldersCm: readCm("athleteShoulders"),
+    chestCm: readCm("athleteChest"),
+    waistCm: readCm("athleteWaist"),
+    abdomenCm: readCm("athleteAbdomen"),
+    hipsCm: readCm("athleteHips"),
+    bicepsCm: readCm("athleteBiceps"),
+    thighCm: readCm("athleteThigh")
+  };
+
+  const hasMeasurement = Object.values(data).some(function(value) {
+    return value !== null;
+  });
+
+  if (!hasMeasurement) {
+    showMessage("Укажи хотя бы один замер.");
+    return;
+  }
+
+  try {
+    await athleteMeasurementsRequest("save", {
+      measuredOn,
+      ...data
+    });
+
+    showMessage("Замеры сохранены.");
+
+    athleteOpenCabinetSection("progress-measurements");
+
+  } catch (error) {
+    console.error("TRENZO body measurements save failed:", error);
+
+    showMessage(
+      error.message ||
+      "Не удалось сохранить замеры."
+    );
+  }
+}
 function athleteFormatWeight(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n.toFixed(1).replace(".", ",") + " кг" : "—";
