@@ -1527,20 +1527,20 @@ title = "Вес";
 
      <div style="width:100%;overflow:hidden;">
   <table style="
-    width:100%;
+    width:calc(100% - 16px);
     table-layout:fixed;
     border-collapse:collapse;
     font-size:11px;
     text-align:center;
   ">
 <colgroup>
-  <col style="width:25%;">
-  <col style="width:12.5%;">
-  <col style="width:12.5%;">
-  <col style="width:12.5%;">
-  <col style="width:12.5%;">
-  <col style="width:12.5%;">
-  <col style="width:12.5%;">
+  <col style="width:22%;">
+  <col style="width:13%;">
+  <col style="width:13%;">
+  <col style="width:13%;">
+  <col style="width:13%;">
+  <col style="width:13%;">
+  <col style="width:13%;">
 </colgroup>
           <thead>
             <tr style="color:#aaa;">
