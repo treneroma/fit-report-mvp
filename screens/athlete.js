@@ -1911,7 +1911,7 @@ function athleteFormatCm(value) {
     : n.toFixed(1).replace(".", ",");
 }
 
-
+let athleteMeasurementsCache = null;
 async function athleteLoadMeasurementsTable() {
   const slot = document.getElementById("athleteMeasurementsTable");
 
@@ -1919,7 +1919,7 @@ async function athleteLoadMeasurementsTable() {
 
   slot.innerHTML = `
     <tr>
-      <td colspan="8"
+      <td colspan="7"
         style="padding:28px 16px;color:#888;text-align:center;
         border-top:1px solid #414141;">
         Загружаем замеры...
