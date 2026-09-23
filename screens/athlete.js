@@ -1448,7 +1448,7 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-    <button class="primary-btn" type="button">
+    <button class="primary-btn" type="button" style="margin-bottom:16px;">
       + Загрузить питание за день
     </button>
 
