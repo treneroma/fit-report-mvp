@@ -1404,9 +1404,12 @@ function athleteOpenCabinetSection(section) {
         Собираем данные для расчёта твоего плана питания.
       </p>
 
-      <p style="color:#ff7846;font-weight:700;margin:12px 0 0;">
-        Добавлено дней: 0 из 7
-      </p>
+      <p
+  id="athleteNutritionOverviewDaysCount"
+  style="color:#ff7846;font-weight:700;margin:12px 0 0;"
+>
+  Добавлено дней: 0 из 7
+</p>
     </div>
 
     <button
@@ -1998,6 +2001,9 @@ onclick="${backAction}">← ${backLabel}</button>
   if (section === "nutrition-diary") {
   athleteLoadNutritionHistory();
 }
+  if (section === "nutrition") {
+  athleteRenderNutritionOverview();
+}
 }
 
 // История веса: отдельная защищённая Edge Function с проверкой Telegram.
@@ -2137,6 +2143,60 @@ async function athleteNutritionRequest(action, extra = {}) {
   return result;
 }
 let athleteNutritionCache = null;
+let athleteNutritionPending = null;
+
+async function athleteEnsureNutritionLoaded() {
+  if (Array.isArray(athleteNutritionCache)) {
+    return athleteNutritionCache;
+  }
+
+  if (!athleteNutritionPending) {
+    athleteNutritionPending = athleteNutritionRequest("load")
+      .then(function(result) {
+        athleteNutritionCache = Array.isArray(result.entries)
+          ? result.entries.slice()
+          : [];
+
+        return athleteNutritionCache;
+      })
+      .finally(function() {
+        athleteNutritionPending = null;
+      });
+  }
+
+  return athleteNutritionPending;
+}
+async function athleteRenderNutritionOverview() {
+  const daysCount = document.getElementById(
+    "athleteNutritionOverviewDaysCount"
+  );
+
+  if (!daysCount) return;
+
+  try {
+    await athleteEnsureNutritionLoaded();
+
+    // За время запроса пользователь мог уйти с экрана.
+    if (
+      document.getElementById("athleteNutritionOverviewDaysCount") !== daysCount
+    ) {
+      return;
+    }
+
+    const count = Math.min(athleteNutritionCache.length, 7);
+
+    daysCount.textContent = `Добавлено дней: ${count} из 7`;
+
+  } catch (error) {
+    console.error("TRENZO nutrition overview failed:", error);
+
+    if (
+      document.getElementById("athleteNutritionOverviewDaysCount") === daysCount
+    ) {
+      daysCount.textContent = "Добавлено дней: — из 7";
+    }
+  }
+}
 async function athleteLoadNutritionHistory() {
   const slot = document.getElementById("athleteNutritionHistory");
 
