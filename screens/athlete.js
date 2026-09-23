@@ -1430,6 +1430,40 @@ function athleteOpenCabinetSection(section) {
     Получать калории и БЖУ без скриншотов
   </p>
 </button>
+<div class="info-card" style="margin-bottom:16px;">
+  <strong>Проверка FatSecret</strong>
+
+  <p style="color:#aaa;margin:8px 0 16px;">
+    Выбери день, за который ты записывал питание в FatSecret.
+  </p>
+
+  <input
+    id="athleteFatSecretTestDate"
+    type="date"
+    style="
+      display:block;
+      width:100%;
+      box-sizing:border-box;
+      padding:12px;
+      margin-bottom:12px;
+      border:1px solid #414141;
+      border-radius:12px;
+      background:#333;
+      color:#fff;
+      font:inherit;
+      color-scheme:dark;
+    "
+  >
+
+  <button
+    class="primary-btn"
+    type="button"
+    onclick="athleteTestFatSecretDay()"
+    style="width:100%;"
+  >
+    Проверить данные FatSecret
+  </button>
+</div>
     <button
       class="info-card"
       type="button"
@@ -2440,6 +2474,57 @@ async function athleteConnectFatSecret() {
 
   } finally {
     if (button) button.disabled = false;
+  }
+}
+async function athleteTestFatSecretDay() {
+  const dateInput = document.getElementById("athleteFatSecretTestDate");
+
+  if (!dateInput || !dateInput.value) {
+    showMessage("Выбери дату, за которую есть питание в FatSecret.");
+    return;
+  }
+
+  if (!tg || !tg.initData) {
+    showMessage("Открой TRENZO через Telegram.");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/fatsecret-connect",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "read-day",
+          initData: tg.initData,
+          reportDate: dateInput.value
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.ok !== true) {
+      throw new Error(result.error || "Ошибка чтения дневника");
+    }
+
+    if (!result.hasData) {
+      showMessage("За выбранную дату FatSecret не вернул данных.");
+      return;
+    }
+
+    showMessage(
+      `Данные FatSecret за ${result.reportDate}:\n` +
+      `Калории: ${result.calories} ккал\n` +
+      `Белки: ${result.protein} г\n` +
+      `Жиры: ${result.fat} г\n` +
+      `Углеводы: ${result.carbs} г`
+    );
+
+  } catch (error) {
+    console.error("FatSecret diary test failed:", error);
+    showMessage("Не удалось получить данные FatSecret. Проверим логи.");
   }
 }
 async function athleteSaveNutritionReport() {
