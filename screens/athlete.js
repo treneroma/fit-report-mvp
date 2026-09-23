@@ -1457,10 +1457,13 @@ function athleteOpenCabinetSection(section) {
   <div class="info-card" style="margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
     <strong>Добавлено дней</strong>
-    <strong style="color:#ff7846;">0 из 7</strong>
+    <strong id="athleteNutritionDaysCount" style="color:#ff7846;">0 из 7</strong>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px;">
+  <div
+  id="athleteNutritionDaysProgress"
+  style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px;"
+>
     <span style="height:10px;border-radius:4px;background:#414141;"></span>
     <span style="height:10px;border-radius:4px;background:#414141;"></span>
     <span style="height:10px;border-radius:4px;background:#414141;"></span>
@@ -1476,13 +1479,18 @@ function athleteOpenCabinetSection(section) {
 </div>
 
     <div class="info-card" style="margin-bottom:16px;">
-      <h3 style="margin-top:0;">Текущие показатели</h3>
+  <h3 style="margin:0 0 8px;">Текущие показатели</h3>
 
-      <p style="color:#aaa;margin-bottom:0;">
-        Здесь появятся твои фактические калории и БЖУ после загрузки
-        первого отчёта.
-      </p>
-    </div>
+  <p style="color:#aaa;margin:0 0 20px;">
+    Среднее по добавленным дням
+  </p>
+
+  <div id="athleteNutritionCurrentStats">
+    <p style="color:#aaa;margin:0;">
+      Пока нет данных.
+    </p>
+  </div>
+</div>
 
   <button
   class="primary-btn"
@@ -2157,7 +2165,86 @@ if (
     const entries = Array.isArray(result.entries)
       ? result.entries.slice().reverse()
       : [];
+const daysCount = document.getElementById("athleteNutritionDaysCount");
 
+if (daysCount) {
+  const count = Math.min(entries.length, 7);
+  daysCount.textContent = `${count} из 7`;
+}
+    const daysProgress = document.getElementById("athleteNutritionDaysProgress");
+
+if (daysProgress) {
+  const count = Math.min(entries.length, 7);
+
+  Array.from(daysProgress.children).forEach(function(segment, index) {
+    segment.style.background =
+      index < count ? "#ff7846" : "#414141";
+  });
+}
+    const statsSlot = document.getElementById("athleteNutritionCurrentStats");
+
+if (statsSlot && entries.length) {
+  const totals = entries.reduce(function(sum, entry) {
+    sum.calories += Number(entry.calories) || 0;
+    sum.protein += Number(entry.protein_g) || 0;
+    sum.fat += Number(entry.fat_g) || 0;
+    sum.carbs += Number(entry.carbs_g) || 0;
+
+    return sum;
+  }, {
+    calories: 0,
+    protein: 0,
+    fat: 0,
+    carbs: 0
+  });
+
+  const count = entries.length;
+
+  const calories = totals.calories / count;
+  const protein = totals.protein / count;
+  const fat = totals.fat / count;
+  const carbs = totals.carbs / count;
+
+  statsSlot.innerHTML = `
+    <div style="
+      display:grid;
+      grid-template-columns:1.35fr repeat(3,minmax(0,1fr));
+      gap:8px;
+    ">
+      <div>
+        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Калории</div>
+        <div style="white-space:nowrap;">
+          <strong style="font-size:22px;">${Math.round(calories)}</strong>
+          <span style="color:#aaa;font-size:11px;"> ккал</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Белки</div>
+        <div style="white-space:nowrap;">
+          <strong>${protein.toFixed(1).replace(".", ",")}</strong>
+          <span style="color:#aaa;font-size:11px;"> г</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Жиры</div>
+        <div style="white-space:nowrap;">
+          <strong>${fat.toFixed(1).replace(".", ",")}</strong>
+          <span style="color:#aaa;font-size:11px;"> г</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Углеводы</div>
+        <div style="white-space:nowrap;">
+          <strong>${carbs.toFixed(1).replace(".", ",")}</strong>
+          <span style="color:#aaa;font-size:11px;"> г</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
     if (!entries.length) {
       slot.innerHTML = `
         <p style="color:#aaa;margin-bottom:0;">
