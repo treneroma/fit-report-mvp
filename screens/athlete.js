@@ -1633,9 +1633,11 @@ function athleteOpenCabinetSection(section) {
 
     <div class="info-card" style="margin-top:16px;">
       <h3 style="margin-top:0;">История питания</h3>
-      <p style="color:#aaa;margin-bottom:0;">
-        Пока нет сохранённых отчётов.
-      </p>
+      <div id="athleteNutritionHistory">
+  <p style="color:#aaa;margin-bottom:0;">
+    Пока нет сохранённых отчётов.
+  </p>
+</div>
     </div>
   `;
   } else if (section === "training") {
@@ -1985,6 +1987,9 @@ onclick="${backAction}">← ${backLabel}</button>
   if (section === "progress-measurements") {
   athleteLoadMeasurementsTable();
 }
+  if (section === "nutrition-diary") {
+  athleteLoadNutritionHistory();
+}
 }
 
 // История веса: отдельная защищённая Edge Function с проверкой Telegram.
@@ -2123,6 +2128,102 @@ async function athleteNutritionRequest(action, extra = {}) {
 
   return result;
 }
+let athleteNutritionCache = null;
+async function athleteLoadNutritionHistory() {
+  const slot = document.getElementById("athleteNutritionHistory");
+
+  if (!slot) return;
+
+  if (athleteNutritionCache === null) {
+  slot.innerHTML = `<p style="color:#aaa;">Загружаем историю питания...</p>`;
+}
+
+  try {
+    const result = athleteNutritionCache === null
+  ? await athleteNutritionRequest("load")
+  : { entries: athleteNutritionCache };
+
+if (
+  athleteNutritionCache === null &&
+  Array.isArray(result.entries)
+) {
+  athleteNutritionCache = result.entries.slice();
+}
+
+    if (document.getElementById("athleteNutritionHistory") !== slot) {
+      return;
+    }
+
+    const entries = Array.isArray(result.entries)
+      ? result.entries.slice().reverse()
+      : [];
+
+    if (!entries.length) {
+      slot.innerHTML = `
+        <p style="color:#aaa;margin-bottom:0;">
+          Пока нет сохранённых отчётов.
+        </p>
+      `;
+      return;
+    }
+
+    function formatValue(value) {
+      return Number(value).toLocaleString("ru-RU", {
+        maximumFractionDigits: 1
+      });
+    }
+
+    slot.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table style="
+          width:100%;
+          border-collapse:collapse;
+          text-align:center;
+          font-size:12px;
+          white-space:nowrap;
+        ">
+          <thead>
+            <tr style="color:#aaa;">
+              <th style="padding:10px 3px;">Дата</th>
+              <th style="padding:10px 3px;">ккал</th>
+              <th style="padding:10px 3px;">Б, г</th>
+              <th style="padding:10px 3px;">Ж, г</th>
+              <th style="padding:10px 3px;">У, г</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${entries.map(function(entry) {
+              const dateParts = entry.report_date.split("-");
+              const date = dateParts[2] + "." + dateParts[1];
+
+              return `
+                <tr style="border-top:1px solid #414141;">
+                  <td style="padding:12px 3px;">${date}</td>
+                  <td style="padding:12px 3px;">${formatValue(entry.calories)}</td>
+                  <td style="padding:12px 3px;">${formatValue(entry.protein_g)}</td>
+                  <td style="padding:12px 3px;">${formatValue(entry.fat_g)}</td>
+                  <td style="padding:12px 3px;">${formatValue(entry.carbs_g)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  } catch (error) {
+    console.error("TRENZO nutrition history failed:", error);
+
+    if (document.getElementById("athleteNutritionHistory") === slot) {
+      slot.innerHTML = `
+        <p style="color:#aaa;margin-bottom:0;">
+          Не удалось загрузить историю питания.
+        </p>
+      `;
+    }
+  }
+}
 async function athleteSaveNutritionReport() {
   const sheet = document.getElementById("nutritionUploadSheet");
   const dateInput = document.getElementById("nutritionReportDate");
@@ -2167,10 +2268,21 @@ async function athleteSaveNutritionReport() {
       reader.readAsDataURL(file);
     });
 
-    await athleteNutritionRequest("save", {
-      reportDate: dateInput.value,
-      imageDataUrl
+   const saved = await athleteNutritionRequest("save", {
+  reportDate: dateInput.value,
+  imageDataUrl
+});
+
+if (saved.entry && Array.isArray(athleteNutritionCache)) {
+  athleteNutritionCache = athleteNutritionCache
+    .filter(function(row) {
+      return row.report_date !== saved.entry.report_date;
+    })
+    .concat(saved.entry)
+    .sort(function(a, b) {
+      return a.report_date.localeCompare(b.report_date);
     });
+}
 
     sheet.close();
     imageInput.value = "";
