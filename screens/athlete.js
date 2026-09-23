@@ -1411,14 +1411,32 @@ function athleteOpenCabinetSection(section) {
   Добавлено дней: 0 из 7
 </p>
     </div>
-
+<button
+  id="athleteFatSecretConnectButton"
+  class="info-card"
+  type="button"
+  onclick="athleteConnectFatSecret()"
+  style="
+    display:block;
+    width:100%;
+    margin-bottom:16px;
+    text-align:left;
+    color:#fff;
+    cursor:pointer;
+  "
+>
+  <strong>Подключить FatSecret</strong>
+  <p style="color:#aaa;margin:8px 0 0;">
+    Получать калории и БЖУ без скриншотов
+  </p>
+</button>
     <button
       class="info-card"
       type="button"
       onclick="athleteOpenCabinetSection('nutrition-diary')"
       style="display:block;width:100%;margin-bottom:16px;text-align:left;cursor:pointer;color:#fff;"
     >
-      <strong>Дневник питания →</strong>
+      <strong>Дневник питания</strong>
       <p style="color:#aaa;margin:8px 0 0;">
         Загрузка питания и история по дням
       </p>
@@ -2369,6 +2387,59 @@ if (statsSlot && entries.length) {
         </p>
       `;
     }
+  }
+}
+async function athleteConnectFatSecret() {
+  if (!tg || !tg.initData) {
+    showMessage("Открой TRENZO через Telegram и попробуй снова.");
+    return;
+  }
+
+  const button = document.getElementById(
+    "athleteFatSecretConnectButton"
+  );
+
+  if (button) button.disabled = true;
+
+  try {
+    const response = await fetch(
+      "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/fatsecret-connect",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start",
+          initData: tg.initData
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || result.ok !== true) {
+      throw new Error(
+        result.error || "Не удалось начать подключение FatSecret."
+      );
+    }
+
+    const url = new URL(result.authorizationUrl);
+
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "authentication.fatsecret.com"
+    ) {
+      throw new Error("Получена некорректная ссылка FatSecret.");
+    }
+
+    tg.openLink(url.href);
+
+  } catch (error) {
+    console.error("TRENZO FatSecret connection failed:", error);
+
+    showMessage("Не удалось открыть подключение FatSecret. Попробуй ещё раз.");
+
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 async function athleteSaveNutritionReport() {
