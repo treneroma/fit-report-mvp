@@ -1928,6 +1928,7 @@ async function athleteLoadMeasurementsTable() {
 
   if (!slot) return;
 
+if (athleteMeasurementsCache === null) {
   slot.innerHTML = `
     <tr>
       <td colspan="7"
@@ -1936,6 +1937,7 @@ async function athleteLoadMeasurementsTable() {
         Загружаем замеры...
       </td>
     </tr>`;
+}
 
   try {
     const result = athleteMeasurementsCache === null
