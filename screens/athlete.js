@@ -1394,21 +1394,61 @@ function athleteOpenCabinetSection(section) {
         Изменение ответов добавим отдельно. Сведения о здоровье,
         фотографии и файлы в тестовой версии не сохраняются.</p>`;
   } else if (section === "nutrition") {
-    title = "Питание";
-    content = athleteCabinetCard("Твои ответы из анкеты",
-      athleteCabinetRow("Сейчас следишь за питанием", d.nutritionTracking, {
-        regular: "Да, регулярно", sometimes: "Иногда", no: "Нет"
-      }) +
-      athleteCabinetRow("Готовность вести учёт", d.nutritionWilling, {
-        yes: "Да", maybe: "Скорее да", no: "Пока нет"
-      }) +
-      athleteCabinetRow("Приёмов пищи в день", d.meals, {
-        "1to2": "1–2", "3": "3", "4": "4", "5plus": "5 и более",
-        varies: "Каждый день по-разному"
-      })) +
-      athleteCabinetCard("Рацион и отчёты",
-        `<p>Пока не созданы. Здесь появятся твой рацион,
-        дневник питания и история отчётов.</p>`);
+  title = "Питание";
+
+  content = `
+    <div class="info-card" style="margin-bottom:16px;">
+      <div style="color:#ff7846;font-weight:700;letter-spacing:2px;margin-bottom:12px;">
+        ЭТАП 1 · ЗНАКОМСТВО С РАЦИОНОМ
+      </div>
+
+      <h3 style="margin:0 0 16px;">
+        Сначала узнаем, как ты питаешься
+      </h3>
+
+      <p>
+        В течение первых 7 дней не нужно специально менять привычное питание.
+        Наша задача — собрать данные о твоём текущем рационе.
+      </p>
+
+      <p>
+        Установи удобное приложение для учёта питания. Взвешивай продукты,
+        записывай всё, что ешь и пьёшь, а в конце каждого дня загружай
+        итоговый скриншот с калориями, белками, жирами и углеводами.
+      </p>
+    </div>
+
+    <div class="info-card" style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;">
+        <strong>Сбор данных</strong>
+        <strong style="color:#ff7846;">0 из 7 дней</strong>
+      </div>
+
+      <p style="color:#aaa;margin-bottom:0;">
+        После семи заполненных дней мы сможем оценить твой привычный рацион.
+      </p>
+    </div>
+
+    <div class="info-card" style="margin-bottom:16px;">
+      <h3 style="margin-top:0;">Текущие показатели</h3>
+
+      <p style="color:#aaa;margin-bottom:0;">
+        Здесь появятся твои фактические калории и БЖУ после загрузки
+        первого отчёта.
+      </p>
+    </div>
+
+    <button class="primary-btn" type="button">
+      + Загрузить питание за день
+    </button>
+
+    <div class="info-card" style="margin-top:16px;">
+      <h3 style="margin-top:0;">История питания</h3>
+      <p style="color:#aaa;margin-bottom:0;">
+        Пока нет сохранённых отчётов.
+      </p>
+    </div>
+  `;
   } else if (section === "training") {
     title = "Тренировочный план";
     content = athleteCabinetCard("Твой режим из анкеты",
