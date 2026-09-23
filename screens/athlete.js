@@ -1602,11 +1602,23 @@ function athleteOpenCabinetSection(section) {
   </label>
 
   <input
-    id="nutritionReportImage"
-    type="file"
-    accept="image/*"
-    style="display:none;"
-  >
+  id="nutritionReportImage"
+  type="file"
+  accept="image/*"
+  style="display:none;"
+  onchange="
+    const file = this.files[0];
+    const sheet = this.closest('dialog');
+    const label = this.previousElementSibling.querySelector('strong');
+    const button = sheet.querySelector('button.primary-btn');
+
+    label.textContent = file ? '✓ ' + file.name : 'Выбрать скриншот';
+    label.style.overflowWrap = 'anywhere';
+
+    button.disabled = !file;
+    button.style.opacity = file ? '1' : '0.5';
+  "
+>
 
   <button
     class="primary-btn"
