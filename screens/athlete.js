@@ -1568,7 +1568,26 @@ title = "Вес";
       </div>
 
    </div>
+<div class="info-card"
+  style="margin:16px 0 0 !important;padding:16px;">
 
+  <strong style="display:block;font-size:18px;">
+    Динамика изменений
+  </strong>
+
+  <p style="margin:6px 0 16px;color:#aaa;font-size:13px;">
+    Сравнение с первым замером
+  </p>
+
+  <div id="athleteMeasurementsDynamics"
+    role="status"
+    style="color:#aaa;font-size:14px;line-height:1.5;">
+
+    Для сравнения нужны минимум два замера.
+
+  </div>
+
+</div>
 <button class="primary-btn" type="button"
   style="margin-top:16px;"
  onclick="athleteOpenCabinetSection('progress-measurements-form')">
@@ -1919,7 +1938,97 @@ async function athleteLoadMeasurementsTable() {
     const rows = Array.isArray(result.entries)
       ? result.entries.slice().reverse()
       : [];
+const dynamicsSlot = document.getElementById(
+  "athleteMeasurementsDynamics"
+);
 
+if (dynamicsSlot) {
+
+  if (rows.length < 2) {
+
+    dynamicsSlot.textContent =
+      "Для сравнения нужны минимум два замера.";
+
+  } else {
+
+    const first = rows[rows.length - 1];
+    const latest = rows[0];
+
+    const measurements = [
+      ["Плечи", "shoulders_cm"],
+      ["Грудь", "chest_cm"],
+      ["Талия", "waist_cm"],
+      ["Бёдра", "hips_cm"],
+      ["Бицепс", "biceps_cm"],
+      ["Бедро", "thigh_cm"]
+    ];
+
+    dynamicsSlot.innerHTML = measurements.map(function(item) {
+
+      const label = item[0];
+      const field = item[1];
+
+      const firstValue = first[field];
+      const latestValue = latest[field];
+
+      let change = "—";
+
+      if (
+        firstValue !== null &&
+        firstValue !== undefined &&
+        latestValue !== null &&
+        latestValue !== undefined &&
+        firstValue !== "" &&
+        latestValue !== "" &&
+        Number.isFinite(Number(firstValue)) &&
+        Number.isFinite(Number(latestValue))
+      ) {
+
+        const difference =
+          Number(latestValue) - Number(firstValue);
+
+        const formatted = Math.abs(difference)
+          .toFixed(1)
+          .replace(".", ",")
+          .replace(/,0$/, "");
+
+        change = difference > 0
+          ? "+" + formatted + " см ↑"
+          : difference < 0
+            ? "−" + formatted + " см ↓"
+            : "0 см";
+
+      }
+
+      return `
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:12px;
+          padding:12px 0;
+          border-bottom:1px solid #414141;
+        ">
+
+          <span style="color:#ccc;">
+            ${label}
+          </span>
+
+          <strong style="
+            color:#ff7846;
+            font-size:14px;
+            white-space:nowrap;
+          ">
+            ${change}
+          </strong>
+
+        </div>`;
+
+    }).join("");
+
+  }
+
+}
     if (!rows.length) {
       slot.innerHTML = `
         <tr>
