@@ -1623,6 +1623,7 @@ function athleteOpenCabinetSection(section) {
   <button
     class="primary-btn"
     type="button"
+    onclick="athleteSaveNutritionReport()"
     disabled
     style="width:100%;margin-top:24px;opacity:0.5;"
   >
@@ -2067,6 +2068,127 @@ async function athleteMeasurementsRequest(action, extra = {}) {
   }
 
   return result;
+}
+async function athleteNutritionRequest(action, extra = {}) {
+  if (!tg || !tg.initData) {
+    throw new Error("Открой TRENZO через Telegram и попробуй снова.");
+  }
+
+  const response = await fetch(
+    "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/nutrition-report",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        initData: tg.initData,
+        ...extra
+      })
+    }
+  );
+
+  let result;
+
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Сервер вернул некорректный ответ.");
+  }
+
+  if (!response.ok || result.ok !== true) {
+    if (response.status === 401) {
+      throw new Error("Сессия Telegram устарела. Закрой Mini App и открой заново.");
+    }
+
+    if (response.status === 403) {
+      throw new Error("Доступ к распознаванию питания пока не открыт.");
+    }
+
+    if (response.status === 413) {
+      throw new Error("Изображение слишком большое. Выбери скриншот меньшего размера.");
+    }
+
+    if (response.status === 422) {
+      throw new Error(
+        "Не удалось распознать все показатели. Проверь, что на скриншоте видны итоговые калории и БЖУ за день."
+      );
+    }
+
+    if (response.status === 400) {
+      throw new Error("Проверь дату отчёта и формат изображения.");
+    }
+
+    throw new Error("Не удалось обработать отчёт питания. Попробуй ещё раз.");
+  }
+
+  return result;
+}
+async function athleteSaveNutritionReport() {
+  const sheet = document.getElementById("nutritionUploadSheet");
+  const dateInput = document.getElementById("nutritionReportDate");
+  const imageInput = document.getElementById("nutritionReportImage");
+
+  if (!sheet || !dateInput || !imageInput) return;
+
+  const file = imageInput.files[0];
+
+  if (!dateInput.value) {
+    showMessage("Выбери дату отчёта.");
+    return;
+  }
+
+  if (!file) {
+    showMessage("Выбери скриншот питания.");
+    return;
+  }
+
+  if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+    showMessage("Выбери изображение PNG, JPG или WEBP.");
+    return;
+  }
+
+  if (file.size > 4000000) {
+    showMessage("Скриншот слишком большой. Выбери файл до 4 МБ.");
+    return;
+  }
+
+  const button = sheet.querySelector("button.primary-btn");
+
+  button.disabled = true;
+  button.textContent = "Распознаём отчёт...";
+
+  try {
+    const imageDataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("Не удалось прочитать изображение."));
+
+      reader.readAsDataURL(file);
+    });
+
+    await athleteNutritionRequest("save", {
+      reportDate: dateInput.value,
+      imageDataUrl
+    });
+
+    sheet.close();
+    imageInput.value = "";
+
+    showMessage("Отчёт питания сохранён.");
+
+  } catch (error) {
+    console.error("TRENZO nutrition save failed:", error);
+
+    showMessage(
+      error.message || "Не удалось сохранить отчёт питания."
+    );
+
+  } finally {
+    button.textContent = "Распознать и сохранить";
+    button.disabled = !imageInput.files.length;
+    button.style.opacity = button.disabled ? "0.5" : "1";
+  }
 }
 async function athleteSaveMeasurements() {
   const form = document.getElementById("athleteMeasurementsForm");
