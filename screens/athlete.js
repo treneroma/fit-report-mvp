@@ -1877,10 +1877,21 @@ async function athleteSaveMeasurements() {
   }
 
   try {
-    await athleteMeasurementsRequest("save", {
-      measuredOn,
-      ...data
-    });
+    const saved = await athleteMeasurementsRequest("save", {
+  measuredOn,
+  ...data
+});
+
+if (saved.entry && Array.isArray(athleteMeasurementsCache)) {
+  athleteMeasurementsCache = athleteMeasurementsCache
+    .filter(function(row) {
+      return row.id !== saved.entry.id &&
+        row.measured_on !== saved.entry.measured_on;
+    })
+    .concat(saved.entry);
+} else {
+  athleteMeasurementsCache = null;
+}
 
     showMessage("Замеры сохранены.");
 
@@ -1927,7 +1938,16 @@ async function athleteLoadMeasurementsTable() {
     </tr>`;
 
   try {
-    const result = await athleteMeasurementsRequest("load");
+    const result = athleteMeasurementsCache === null
+  ? await athleteMeasurementsRequest("load")
+  : { entries: athleteMeasurementsCache };
+
+if (
+  athleteMeasurementsCache === null &&
+  Array.isArray(result.entries)
+) {
+  athleteMeasurementsCache = result.entries.slice();
+}
 
     if (
       document.getElementById("athleteMeasurementsTable") !== slot
