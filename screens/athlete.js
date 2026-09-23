@@ -1409,13 +1409,6 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-    <div class="info-card" style="margin-bottom:16px;">
-      <strong>Мой план питания</strong>
-      <p style="color:#aaa;margin:8px 0 0;">
-        Целевые калории и БЖУ · Скоро
-      </p>
-    </div>
-
     <button
       class="info-card"
       type="button"
