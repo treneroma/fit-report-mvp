@@ -1418,16 +1418,26 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-    <div class="info-card" style="margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;gap:12px;">
-        <strong>Сбор данных</strong>
-        <strong style="color:#ff7846;">0 из 7 дней</strong>
-      </div>
+  <div class="info-card" style="margin-bottom:16px;">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
+    <strong>Добавлено дней</strong>
+    <strong style="color:#ff7846;">0 из 7</strong>
+  </div>
 
-      <p style="color:#aaa;margin-bottom:0;">
-        После семи заполненных дней мы сможем оценить твой привычный рацион.
-      </p>
-    </div>
+  <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:16px;">
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+    <span style="height:10px;border-radius:4px;background:#414141;"></span>
+  </div>
+
+  <p style="color:#aaa;margin:16px 0 0;">
+    После семи заполненных дней мы сможем оценить твой привычный рацион.
+  </p>
+</div>
 
     <div class="info-card" style="margin-bottom:16px;">
       <h3 style="margin-top:0;">Текущие показатели</h3>
