@@ -1484,9 +1484,139 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-    <button class="primary-btn" type="button" style="margin-bottom:16px;">
-      + Загрузить отчет питания
-    </button>
+  <button
+  class="primary-btn"
+  type="button"
+  style="margin-bottom:16px;"
+  onclick="document.getElementById('nutritionUploadSheet').showModal()"
+>
+  + Загрузить отчёт питания
+</button>
+
+<dialog
+  id="nutritionUploadSheet"
+  style="
+    position:fixed;
+    inset:auto 0 0;
+    width:100%;
+    max-width:520px;
+    box-sizing:border-box;
+    margin:0 auto;
+    padding:24px;
+    border:1px solid #414141;
+    border-radius:24px 24px 0 0;
+    background:#262626;
+    color:#fff;
+    box-shadow:0 -12px 50px #0008;
+  "
+>
+  <div style="
+    width:44px;
+    height:5px;
+    margin:0 auto 24px;
+    border-radius:999px;
+    background:#555;
+  "></div>
+
+  <div style="
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:24px;
+  ">
+    <h3 style="margin:0;">Отчёт питания</h3>
+
+    <button
+      type="button"
+      onclick="this.closest('dialog').close()"
+      style="
+        width:36px;
+        height:36px;
+        flex-shrink:0;
+        border:1px solid #484848;
+        border-radius:10px;
+        background:#303030;
+        color:#fff;
+        font-size:24px;
+        cursor:pointer;
+      "
+    >×</button>
+  </div>
+
+  <label
+    for="nutritionReportDate"
+    style="display:block;margin-bottom:10px;font-weight:600;"
+  >
+    Дата отчёта
+  </label>
+
+  <input
+    id="nutritionReportDate"
+    type="date"
+    required
+    style="
+      display:block;
+      width:100%;
+      box-sizing:border-box;
+      padding:14px;
+      margin-bottom:24px;
+      border:1px solid #484848;
+      border-radius:12px;
+      background:#303030;
+      color:#fff;
+      font:inherit;
+      color-scheme:dark;
+    "
+  >
+
+  <label
+    for="nutritionReportImage"
+    style="display:block;margin-bottom:10px;font-weight:600;"
+  >
+    Скриншот питания
+  </label>
+
+  <label
+    for="nutritionReportImage"
+    style="
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-height:120px;
+      padding:16px;
+      border:1px dashed #ff7846;
+      border-radius:14px;
+      background:#332d29;
+      text-align:center;
+      cursor:pointer;
+    "
+  >
+    <span style="font-size:32px;color:#ff7846;">＋</span>
+    <strong style="color:#fff;">Выбрать скриншот</strong>
+    <span style="color:#aaa;font-size:13px;">
+      Итоги дня с калориями и БЖУ
+    </span>
+  </label>
+
+  <input
+    id="nutritionReportImage"
+    type="file"
+    accept="image/*"
+    style="display:none;"
+  >
+
+  <button
+    class="primary-btn"
+    type="button"
+    disabled
+    style="width:100%;margin-top:24px;opacity:0.5;"
+  >
+    Распознать и сохранить
+  </button>
+</dialog>
 
     <div class="info-card" style="margin-top:16px;">
       <h3 style="margin-top:0;">История питания</h3>
