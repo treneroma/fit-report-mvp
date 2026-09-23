@@ -1398,6 +1398,49 @@ function athleteOpenCabinetSection(section) {
 
   content = `
     <div class="info-card" style="margin-bottom:16px;">
+      <h3 style="margin:0 0 18px;">Контроль питания</h3>
+
+      <p style="color:#aaa;margin:0;">
+        Собираем данные для расчёта твоего плана питания.
+      </p>
+
+      <p style="color:#ff7846;font-weight:700;margin:12px 0 0;">
+        Добавлено дней: 0 из 7
+      </p>
+    </div>
+
+    <div class="info-card" style="margin-bottom:16px;">
+      <strong>Мой план питания</strong>
+      <p style="color:#aaa;margin:8px 0 0;">
+        Целевые калории и БЖУ · Скоро
+      </p>
+    </div>
+
+    <button
+      class="info-card"
+      type="button"
+      onclick="athleteOpenCabinetSection('nutrition-diary')"
+      style="display:block;width:100%;margin-bottom:16px;text-align:left;cursor:pointer;color:#fff;"
+    >
+      <strong>Дневник питания →</strong>
+      <p style="color:#aaa;margin:8px 0 0;">
+        Загрузка питания и история по дням
+      </p>
+    </button>
+
+    <div class="info-card">
+      <strong>Отчёты по питанию</strong>
+      <p style="color:#aaa;margin:8px 0 0;">
+        Еженедельный анализ ИИ · Скоро
+      </p>
+    </div>
+  `;
+
+} else if (section === "nutrition-diary") {
+  title = "Дневник питания";
+
+  content = `
+    <div class="info-card" style="margin-bottom:16px;">
       <div style="color:#ff7846;font-weight:700;letter-spacing:2px;margin-bottom:12px;">
         ЭТАП 1 · ЗНАКОМСТВО С РАЦИОНОМ
       </div>
