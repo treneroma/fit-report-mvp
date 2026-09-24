@@ -2008,7 +2008,10 @@ title = "Вес";
 let backAction = "athleteRenderCabinet()";
   let backLabel = "В личный кабинет";
 
-if (section === "progress-measurements-form") {
+if (section === "nutrition-diary") {
+  backAction = "athleteOpenCabinetSection('nutrition')";
+
+} else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
   backLabel = "В замеры тела";
 
