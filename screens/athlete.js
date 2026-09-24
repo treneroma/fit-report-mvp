@@ -2480,13 +2480,22 @@ async function athleteTestFatSecretDay() {
   const dateInput = document.getElementById("athleteFatSecretTestDate");
 
   if (!dateInput || !dateInput.value) {
-    showMessage("Выбери дату, за которую есть питание в FatSecret.");
+    showMessage("Выбери месяц, за который нужно загрузить питание.");
     return;
   }
 
   if (!tg || !tg.initData) {
     showMessage("Открой TRENZO через Telegram.");
     return;
+  }
+
+  const button = document.querySelector(
+    'button[onclick="athleteTestFatSecretDay()"]'
+  );
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Загружаем питание...";
   }
 
   try {
@@ -2506,25 +2515,35 @@ async function athleteTestFatSecretDay() {
     const result = await response.json();
 
     if (!response.ok || result.ok !== true) {
-      throw new Error(result.error || "Ошибка чтения дневника");
+      throw new Error(
+        result.error || "Не удалось загрузить питание из FatSecret."
+      );
     }
 
-    if (!result.hasData) {
-      showMessage("За выбранную дату FatSecret не вернул данных.");
-      return;
-    }
+    // Сбрасываем кеш, чтобы дневник получил новые записи из Supabase.
+    athleteNutritionCache = null;
+
+    // Открываем дневник: он заново загрузит историю и обновит показатели.
+    athleteOpenCabinetSection("nutrition-diary");
 
     showMessage(
-      `Данные FatSecret за ${result.reportDate}:\n` +
-      `Калории: ${result.calories} ккал\n` +
-      `Белки: ${result.protein} г\n` +
-      `Жиры: ${result.fat} г\n` +
-      `Углеводы: ${result.carbs} г`
+      `Импорт FatSecret за ${result.month} завершён.\n` +
+      `Добавлено дней: ${result.imported}\n` +
+      `Уже были в дневнике: ${result.skipped}`
     );
 
   } catch (error) {
-    console.error("FatSecret diary test failed:", error);
-    showMessage("Не удалось получить данные FatSecret. Проверим логи.");
+    console.error("FatSecret nutrition import failed:", error);
+
+    showMessage(
+      "Не удалось загрузить питание из FatSecret. Проверим логи."
+    );
+
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Проверить данные FatSecret";
+    }
   }
 }
 async function athleteSaveNutritionReport() {
