@@ -1,9 +1,9 @@
 /*
   TRENZO — регистрация пользователя «Мой прогресс»
 
-  Несекретные тестовые ответы сохраняются в Supabase.
-  Ограничения по здоровью, особенности питания, свободный
-  текст программы, фотографии и имена файлов НЕ отправляем.
+  Разрешённые поля анкеты сохраняются в Supabase.
+  Ограничения по здоровью, свободный текст программы,
+  фотографии и имена файлов НЕ отправляем.
 */
 
 let athleteStep = 0;
@@ -15,7 +15,7 @@ const athleteServerFields = [
   "name", "age", "sex", "height", "weight", "goal", "targetWeight",
   "result", "months", "experience", "recentTraining", "frequency",
   "duration", "nutritionTracking", "nutritionWilling", "meals",
-  "trainingMode", "programStatus"
+  "nutritionNotes", "trainingMode", "programStatus"
 ];
 
 function athleteSafeAnswers() {
@@ -107,7 +107,7 @@ function athleteInput(name, label, type, placeholder, extra = "") {
 }
 
 
-function athleteArea(name, label, placeholder, required = false) {
+function athleteArea(name, label, placeholder, required = false, extra = "") {
   const value = registration.athlete[name] ?? "";
 
   return `
@@ -122,6 +122,7 @@ function athleteArea(name, label, placeholder, required = false) {
         name="${name}"
         placeholder="${placeholder}"
         ${required ? "required" : ""}
+        ${extra}
       >${athleteEscape(value)}</textarea>
     </div>
   `;
@@ -489,8 +490,15 @@ function athleteFields() {
         ${athleteArea(
           "nutritionNotes",
           "Особенности и ограничения питания",
-          "Например: аллергии, продукты, которые не употребляешь, особенности режима. Если ничего нет, можно оставить поле пустым."
+          "Например: аллергии, продукты, которые не употребляешь, особенности режима. Если ничего нет, можно оставить поле пустым.",
+          false,
+          'maxlength="2000"'
         )}
+
+        <p class="small-note">
+          Эти сведения сохраняются в профиле и будут учитываться
+          при анализе рациона и подготовке рекомендаций.
+        </p>
       `;
 
 
@@ -719,7 +727,7 @@ function athleteSummary() {
     <p class="small-note">
       Это предварительная анкета. На сервер сохраняются только
       основные тестовые ответы. Ограничения по здоровью,
-      особенности питания, свободный текст программы,
+      свободный текст программы,
       фотографии и имена файлов НЕ сохраняются и после перезапуска
       будут недоступны. ИИ-анализ ещё не выполнялся.
     </p>
@@ -1387,6 +1395,7 @@ function athleteOpenCabinetSection(section) {
           "1to2": "1–2", "3": "3", "4": "4", "5plus": "5 и более",
           varies: "Каждый день по-разному"
         }) +
+        athleteCabinetRow("Особенности питания", d.nutritionNotes) +
         athleteCabinetRow("Программа тренировок", d.programStatus, {
           yes: "Есть программа", partial: "Есть отдельные упражнения", no: "Программы пока нет"
         })) +
