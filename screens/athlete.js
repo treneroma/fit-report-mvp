@@ -1497,7 +1497,7 @@ function athleteOpenCabinetSection(section) {
   title = "Дневник питания";
 
   content = `
-    <div class="info-card" style="margin-bottom:16px;">
+    <div id="athleteNutritionIntroCard" class="info-card" style="margin-bottom:16px;">
       <div style="color:#ff7846;font-weight:700;letter-spacing:2px;margin-bottom:12px;">
         ЭТАП 1 · ЗНАКОМСТВО С РАЦИОНОМ
       </div>
@@ -1518,7 +1518,7 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-  <div class="info-card" style="margin-bottom:16px;">
+  <div id="athleteNutritionProgressCard" class="info-card" style="margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
     <strong>Добавлено дней</strong>
     <strong id="athleteNutritionDaysCount" style="color:#ff7846;">0 из 7</strong>
@@ -1539,6 +1539,41 @@ function athleteOpenCabinetSection(section) {
 
   <p style="color:#aaa;margin:16px 0 0;">
     После семи заполненных дней мы сможем оценить твой привычный рацион.
+  </p>
+</div>
+
+<div
+  id="athleteNutritionCompletionMessage"
+  class="info-card"
+  role="status"
+  hidden
+  style="position:relative;margin-bottom:16px;padding-right:56px;"
+>
+  <button
+    type="button"
+    onclick="athleteDismissNutritionCompletion()"
+    aria-label="Закрыть сообщение"
+    style="
+      position:absolute;
+      top:12px;
+      right:12px;
+      width:36px;
+      height:36px;
+      border:1px solid #484848;
+      border-radius:10px;
+      background:#303030;
+      color:#fff;
+      font-size:24px;
+      line-height:1;
+      cursor:pointer;
+    "
+  >×</button>
+
+  <strong style="display:block;margin:0 0 10px;">
+    Отлично, этап знакомства с рационом пройден.
+  </strong>
+  <p style="color:#aaa;margin:0;">
+    Мы собрали достаточно данных, чтобы проанализировать твой текущий рацион.
   </p>
 </div>
 
@@ -2209,6 +2244,55 @@ async function athleteNutritionRequest(action, extra = {}) {
 let athleteNutritionCache = null;
 let athleteNutritionPending = null;
 
+function athleteNutritionDayCount(entries) {
+  return new Set(
+    (Array.isArray(entries) ? entries : [])
+      .map(function(entry) { return entry && entry.report_date; })
+      .filter(Boolean)
+  ).size;
+}
+
+function athleteNutritionCompletionStorageKey() {
+  const telegramUserId = tg?.initDataUnsafe?.user?.id;
+  return `trenzo:nutrition-completion-dismissed:${telegramUserId || "current"}`;
+}
+
+function athleteNutritionCompletionDismissed() {
+  try {
+    return localStorage.getItem(athleteNutritionCompletionStorageKey()) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function athleteDismissNutritionCompletion() {
+  try {
+    localStorage.setItem(athleteNutritionCompletionStorageKey(), "1");
+  } catch {
+    // Если хранилище недоступно, сообщение всё равно закрывается до перерисовки.
+  }
+
+  const message = document.getElementById(
+    "athleteNutritionCompletionMessage"
+  );
+  if (message) message.hidden = true;
+}
+
+function athleteUpdateNutritionIntroduction(entries) {
+  const completed = athleteNutritionDayCount(entries) >= 7;
+  const intro = document.getElementById("athleteNutritionIntroCard");
+  const progress = document.getElementById("athleteNutritionProgressCard");
+  const message = document.getElementById(
+    "athleteNutritionCompletionMessage"
+  );
+
+  if (intro) intro.hidden = completed;
+  if (progress) progress.hidden = completed;
+  if (message) {
+    message.hidden = !completed || athleteNutritionCompletionDismissed();
+  }
+}
+
 async function athleteEnsureNutritionLoaded() {
   if (Array.isArray(athleteNutritionCache)) {
     return athleteNutritionCache;
@@ -2247,7 +2331,7 @@ async function athleteRenderNutritionOverview() {
       return;
     }
 
-    const count = Math.min(athleteNutritionCache.length, 7);
+    const count = Math.min(athleteNutritionDayCount(athleteNutritionCache), 7);
 
     daysCount.textContent = `Добавлено дней: ${count} из 7`;
 
@@ -2289,16 +2373,17 @@ if (
     const entries = Array.isArray(result.entries)
       ? result.entries.slice().reverse()
       : [];
+athleteUpdateNutritionIntroduction(entries);
 const daysCount = document.getElementById("athleteNutritionDaysCount");
 
 if (daysCount) {
-  const count = Math.min(entries.length, 7);
+  const count = Math.min(athleteNutritionDayCount(entries), 7);
   daysCount.textContent = `${count} из 7`;
 }
     const daysProgress = document.getElementById("athleteNutritionDaysProgress");
 
 if (daysProgress) {
-  const count = Math.min(entries.length, 7);
+  const count = Math.min(athleteNutritionDayCount(entries), 7);
 
   Array.from(daysProgress.children).forEach(function(segment, index) {
     segment.style.background =
