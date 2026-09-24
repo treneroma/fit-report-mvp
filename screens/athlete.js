@@ -2033,7 +2033,7 @@ if (section === "progress-measurements-form") {
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
     <button class="secondary-btn" type="button" style="margin-top:16px;"
-onclick="${backAction}">← ${backLabel}</button>
+onclick="athleteRenderCabinet()">← В личный кабинет</button>
   </div>`;
   window.scrollTo(0, 0);
 
