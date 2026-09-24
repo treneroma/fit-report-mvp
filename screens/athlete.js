@@ -1439,7 +1439,7 @@ function athleteOpenCabinetSection(section) {
 
   <input
     id="athleteFatSecretTestDate"
-    type="date"
+    type="month"
     style="
       display:block;
       width:100%;
@@ -2507,7 +2507,7 @@ async function athleteTestFatSecretDay() {
         body: JSON.stringify({
           action: "read-day",
           initData: tg.initData,
-          reportDate: dateInput.value
+          reportDate: `${dateInput.value}-01`
         })
       }
     );
