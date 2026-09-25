@@ -1407,7 +1407,7 @@ function athleteOpenCabinetSection(section) {
 
   content = `
     <div class="info-card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 18px;">Контроль питания</h3>
+      <h3 style="margin:0 0 8px;">Контроль питания</h3>
       <p style="color:#aaa;margin:0 0 14px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
         <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
@@ -2746,7 +2746,6 @@ function athleteRenderNutritionTargets(plan) {
       <div class="nutrition-macro-track" role="progressbar" aria-label="${item.label}: ${Math.round(percent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}">
         <div class="nutrition-macro-progress" style="width:${width}%;background:${item.color};"></div>
       </div>
-      <small class="nutrition-macro-percent">${Math.round(percent)}%</small>
     </div>`;
   }).join("");
   const markup = `
@@ -2759,7 +2758,6 @@ function athleteRenderNutritionTargets(plan) {
         <div class="nutrition-calorie-value">
           <strong>${athleteNutritionFormat(average.calories)}</strong>
           <span>ккал</span>
-          <small>${Math.round(caloriesPercent)}% за сегодня</small>
         </div>
       </div>
       <div class="nutrition-macro-grid">${macroMarkup}</div>
