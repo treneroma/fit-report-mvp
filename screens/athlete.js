@@ -2600,6 +2600,14 @@ function athleteNutritionWeekDates(weekStart) {
   });
 }
 
+let athleteNutritionSelectedWeek = "";
+
+function athleteSelectNutritionWeek(weekStart) {
+  athleteNutritionSelectedWeek = weekStart;
+  const slot = document.getElementById("athleteNutritionHistory");
+  if (slot) athleteRenderNutritionHistoryWeeks(slot, athleteNutritionCache || []);
+}
+
 function athleteRenderNutritionHistoryWeeks(slot, entries) {
   const today = athleteLocalDate();
   const currentWeekStart = athleteNutritionWeekStart(today);
@@ -2615,54 +2623,62 @@ function athleteRenderNutritionHistoryWeeks(slot, entries) {
   const weekStarts = Array.from(weeks.keys()).sort(function(a, b) {
     return b.localeCompare(a);
   });
+  if (!weekStarts.includes(athleteNutritionSelectedWeek)) {
+    athleteNutritionSelectedWeek = currentWeekStart;
+  }
+  const selectedWeekStart = athleteNutritionSelectedWeek;
+  const selectedWeekEntries = weeks.get(selectedWeekStart) || new Map();
+  const selectedDates = athleteNutritionWeekDates(selectedWeekStart);
   const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const monthDay = function(dateValue) {
     const [, month, day] = dateValue.split("-");
     return `${day}.${month}`;
   };
+  const weekLabel = function(weekStart) {
+    const dates = athleteNutritionWeekDates(weekStart);
+    const end = dates[6];
+    const startYear = dates[0].slice(0, 4);
+    const endYear = end.slice(0, 4);
+    const prefix = weekStart === currentWeekStart ? "Эта неделя · " : "";
+    const count = (weeks.get(weekStart) || new Map()).size;
+    const range = `${monthDay(dates[0])}${startYear !== endYear ? `.${startYear}` : ""}–${monthDay(end)}.${endYear}`;
+    return `${prefix}${range}${weekStart === currentWeekStart ? "" : ` · ${count} из 7 дней`}`;
+  };
   const formatValue = function(value) {
     return Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
   };
 
-  slot.innerHTML = weekStarts.map(function(weekStart) {
-    const dates = athleteNutritionWeekDates(weekStart);
-    const weekEntries = weeks.get(weekStart);
-    const recordedCount = weekEntries.size;
-    const isCurrentWeek = weekStart === currentWeekStart;
-    const weekEnd = dates[6];
-    const title = isCurrentWeek
-      ? `Эта неделя · ${monthDay(dates[0])}–${monthDay(weekEnd)}`
-      : `${monthDay(dates[0])}–${monthDay(weekEnd)} · ${recordedCount} из 7 дней`;
-
-    return `<details ${isCurrentWeek ? "open" : ""} style="margin-top:8px;border-top:1px solid #414141;">
-      <summary style="padding:10px 0;cursor:pointer;font-weight:700;font-size:14px;">
-        ${athleteEscape(title)}
-        ${isCurrentWeek ? `<span style="float:right;color:#aaa;font-weight:400;">${recordedCount} из 7</span>` : ""}
-      </summary>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;text-align:center;font-size:11px;white-space:nowrap;">
-          <thead><tr style="color:#aaa;">
-            <th style="padding:5px 2px;text-align:left;">День</th>
-            <th style="padding:5px 2px;">ккал</th>
-            <th style="padding:5px 2px;">Б</th>
-            <th style="padding:5px 2px;">Ж</th>
-            <th style="padding:5px 2px;">У</th>
-          </tr></thead>
-          <tbody>${dates.map(function(dateValue, index) {
-            const entry = weekEntries.get(dateValue);
-            const color = entry ? "#ddd" : "#777";
-            return `<tr style="border-top:1px solid #383838;color:${color};">
-              <td style="padding:6px 2px;text-align:left;">${weekdays[index]} ${monthDay(dateValue)}</td>
-              <td style="padding:6px 2px;">${entry ? formatValue(entry.calories) : "—"}</td>
-              <td style="padding:6px 2px;">${entry ? formatValue(entry.protein_g) : "—"}</td>
-              <td style="padding:6px 2px;">${entry ? formatValue(entry.fat_g) : "—"}</td>
-              <td style="padding:6px 2px;">${entry ? formatValue(entry.carbs_g) : "—"}</td>
-            </tr>`;
-          }).join("")}</tbody>
-        </table>
-      </div>
-    </details>`;
-  }).join("");
+  const recordedCount = selectedWeekEntries.size;
+  slot.innerHTML = `
+    <div class="nutrition-history-week-picker">
+      <label class="visually-hidden" for="athleteNutritionWeekPicker">Выбрать неделю</label>
+      <select id="athleteNutritionWeekPicker" class="nutrition-history-week-select"
+        aria-label="Выбрать неделю" onchange="athleteSelectNutritionWeek(this.value)">
+        ${weekStarts.map(function(weekStart) {
+          return `<option value="${weekStart}" ${weekStart === selectedWeekStart ? "selected" : ""}>${athleteEscape(weekLabel(weekStart))}</option>`;
+        }).join("")}
+      </select>
+      <span class="nutrition-history-week-count">${recordedCount} из 7</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="nutrition-history-table">
+        <thead><tr>
+          <th>День</th><th>ккал</th><th>Б</th><th>Ж</th><th>У</th>
+        </tr></thead>
+        <tbody>${selectedDates.map(function(dateValue, index) {
+          const entry = selectedWeekEntries.get(dateValue);
+          const color = entry ? "#ddd" : "#777";
+          return `<tr style="color:${color};">
+            <td>${weekdays[index]} ${monthDay(dateValue)}</td>
+            <td>${entry ? formatValue(entry.calories) : "—"}</td>
+            <td>${entry ? formatValue(entry.protein_g) : "—"}</td>
+            <td>${entry ? formatValue(entry.fat_g) : "—"}</td>
+            <td>${entry ? formatValue(entry.carbs_g) : "—"}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>
+    </div>
+  `;
 }
 
 function athleteRenderNutritionTargets(plan) {
