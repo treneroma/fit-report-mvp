@@ -529,44 +529,47 @@ h1 {
   }
 
   .nutrition-macro-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .nutrition-macro-card {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(56px, 0.9fr);
-    gap: 2px 8px;
-    align-items: center;
-    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 6px;
     border-radius: 10px;
   }
 
   .nutrition-macro-icon {
-    display: none;
-  }
-
-  .nutrition-macro-label {
-    margin: 0;
-    font-size: 11px;
-  }
-
-  .nutrition-macro-target {
-    grid-column: 1;
-    grid-row: 2;
-    margin: 0;
+    display: grid;
+    width: 26px;
+    height: 26px;
+    margin: 0 0 4px;
+    border-radius: 8px;
     font-size: 15px;
   }
 
+  .nutrition-macro-label {
+    min-height: 24px;
+    margin: 0 0 2px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .nutrition-macro-target {
+    margin: 0 0 6px;
+    font-size: 13px;
+  }
+
   .nutrition-macro-track {
-    grid-column: 2;
-    grid-row: 1;
+    height: 6px;
   }
 
   .nutrition-macro-percent {
-    grid-column: 2;
-    grid-row: 2;
-    margin: 0;
+    margin-top: 3px;
+    font-size: 9px;
   }
 }
 
