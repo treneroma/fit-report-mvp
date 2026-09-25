@@ -2557,6 +2557,92 @@ function athleteNutritionFormat(value, digits = 0) {
   });
 }
 
+function athleteNutritionWeekStart(dateValue) {
+  const parts = String(dateValue || "").split("-").map(Number);
+  if (parts.length !== 3 || parts.some(function(part) { return !Number.isFinite(part); })) {
+    return "";
+  }
+
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  const offsetFromMonday = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - offsetFromMonday);
+  return date.toISOString().slice(0, 10);
+}
+
+function athleteNutritionWeekDates(weekStart) {
+  const start = new Date(`${weekStart}T12:00:00Z`);
+  return Array.from({ length: 7 }, function(_, index) {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function athleteRenderNutritionHistoryWeeks(slot, entries) {
+  const today = athleteLocalDate();
+  const currentWeekStart = athleteNutritionWeekStart(today);
+  const weeks = new Map([[currentWeekStart, new Map()]]);
+
+  (Array.isArray(entries) ? entries : []).forEach(function(entry) {
+    const weekStart = athleteNutritionWeekStart(entry && entry.report_date);
+    if (!weekStart) return;
+    if (!weeks.has(weekStart)) weeks.set(weekStart, new Map());
+    weeks.get(weekStart).set(entry.report_date, entry);
+  });
+
+  const weekStarts = Array.from(weeks.keys()).sort(function(a, b) {
+    return b.localeCompare(a);
+  });
+  const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const monthDay = function(dateValue) {
+    const [, month, day] = dateValue.split("-");
+    return `${day}.${month}`;
+  };
+  const formatValue = function(value) {
+    return Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+  };
+
+  slot.innerHTML = weekStarts.map(function(weekStart) {
+    const dates = athleteNutritionWeekDates(weekStart);
+    const weekEntries = weeks.get(weekStart);
+    const recordedCount = weekEntries.size;
+    const isCurrentWeek = weekStart === currentWeekStart;
+    const weekEnd = dates[6];
+    const title = isCurrentWeek
+      ? `Эта неделя · ${monthDay(dates[0])}–${monthDay(weekEnd)}`
+      : `${monthDay(dates[0])}–${monthDay(weekEnd)} · ${recordedCount} из 7 дней`;
+
+    return `<details ${isCurrentWeek ? "open" : ""} style="margin-top:8px;border-top:1px solid #414141;">
+      <summary style="padding:10px 0;cursor:pointer;font-weight:700;font-size:14px;">
+        ${athleteEscape(title)}
+        ${isCurrentWeek ? `<span style="float:right;color:#aaa;font-weight:400;">${recordedCount} из 7</span>` : ""}
+      </summary>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;text-align:center;font-size:11px;white-space:nowrap;">
+          <thead><tr style="color:#aaa;">
+            <th style="padding:5px 2px;text-align:left;">День</th>
+            <th style="padding:5px 2px;">ккал</th>
+            <th style="padding:5px 2px;">Б</th>
+            <th style="padding:5px 2px;">Ж</th>
+            <th style="padding:5px 2px;">У</th>
+          </tr></thead>
+          <tbody>${dates.map(function(dateValue, index) {
+            const entry = weekEntries.get(dateValue);
+            const color = entry ? "#ddd" : "#777";
+            return `<tr style="border-top:1px solid #383838;color:${color};">
+              <td style="padding:6px 2px;text-align:left;">${weekdays[index]} ${monthDay(dateValue)}</td>
+              <td style="padding:6px 2px;">${entry ? formatValue(entry.calories) : "—"}</td>
+              <td style="padding:6px 2px;">${entry ? formatValue(entry.protein_g) : "—"}</td>
+              <td style="padding:6px 2px;">${entry ? formatValue(entry.fat_g) : "—"}</td>
+              <td style="padding:6px 2px;">${entry ? formatValue(entry.carbs_g) : "—"}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>
+    </details>`;
+  }).join("");
+}
+
 function athleteRenderNutritionTargets(plan) {
   const slots = [
     document.getElementById("athleteNutritionOverviewTargets"),
@@ -2781,59 +2867,7 @@ if (daysProgress) {
       index < count ? "#ff7846" : "#414141";
   });
 }
-    if (!entries.length) {
-      slot.innerHTML = `
-        <p style="color:#aaa;margin-bottom:0;">
-          Пока нет сохранённых отчётов.
-        </p>
-      `;
-      return;
-    }
-
-    function formatValue(value) {
-      return Number(value).toLocaleString("ru-RU", {
-        maximumFractionDigits: 1
-      });
-    }
-
-    slot.innerHTML = `
-      <div style="overflow-x:auto;">
-        <table style="
-          width:100%;
-          border-collapse:collapse;
-          text-align:center;
-          font-size:12px;
-          white-space:nowrap;
-        ">
-          <thead>
-            <tr style="color:#aaa;">
-              <th style="padding:10px 3px;">Дата</th>
-              <th style="padding:10px 3px;">ккал</th>
-              <th style="padding:10px 3px;">Б, г</th>
-              <th style="padding:10px 3px;">Ж, г</th>
-              <th style="padding:10px 3px;">У, г</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            ${entries.map(function(entry) {
-              const dateParts = entry.report_date.split("-");
-              const date = dateParts[2] + "." + dateParts[1];
-
-              return `
-                <tr style="border-top:1px solid #414141;">
-                  <td style="padding:12px 3px;">${date}</td>
-                  <td style="padding:12px 3px;">${formatValue(entry.calories)}</td>
-                  <td style="padding:12px 3px;">${formatValue(entry.protein_g)}</td>
-                  <td style="padding:12px 3px;">${formatValue(entry.fat_g)}</td>
-                  <td style="padding:12px 3px;">${formatValue(entry.carbs_g)}</td>
-                </tr>
-              `;
-            }).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
+    athleteRenderNutritionHistoryWeeks(slot, entries);
 
   } catch (error) {
     console.error("TRENZO nutrition history failed:", error);
