@@ -441,11 +441,14 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  align-items: center;
 }
 
 .nutrition-macro-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  margin-block: 4px;
+  aspect-ratio: 8 / 9;
   padding: 12px;
   border: 1px solid #30343a;
   border-radius: 16px;
@@ -478,6 +481,8 @@ h1 {
 
 .nutrition-macro-track {
   height: 8px;
+  flex-shrink: 0;
+  margin-top: auto;
   overflow: hidden;
   border-radius: 99px;
   background: #343a40;
@@ -580,11 +585,9 @@ h1 {
   }
 
   .nutrition-macro-card {
-    display: flex;
-    flex-direction: column;
     align-items: stretch;
-    gap: 0;
-    padding: 6px;
+    aspect-ratio: 4 / 5;
+    padding: 5px;
     border-radius: 10px;
   }
 
@@ -598,14 +601,14 @@ h1 {
   }
 
   .nutrition-macro-label {
-    min-height: 24px;
-    margin: 0 0 2px;
+    margin: 0;
     font-size: 10px;
     line-height: 1.15;
+    white-space: nowrap;
   }
 
   .nutrition-macro-target {
-    margin: 0 0 6px;
+    margin: 4px 0 5px;
     font-size: 13px;
   }
 
