@@ -1408,17 +1408,10 @@ function athleteOpenCabinetSection(section) {
   content = `
     <div class="info-card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 18px;">Контроль питания</h3>
-
-      <p style="color:#aaa;margin:0;">
-        Собираем данные для расчёта твоего плана питания.
-      </p>
-
-      <p
-  id="athleteNutritionOverviewDaysCount"
-  style="color:#ff7846;font-weight:700;margin:12px 0 0;"
->
-  Добавлено дней: 0 из 7
-</p>
+      <p style="color:#aaa;margin:0 0 14px;">Твоя средняя дневная цель на эту неделю</p>
+      <div id="athleteNutritionOverviewTargets">
+        <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
+      </div>
     </div>
     <button
       class="info-card"
@@ -1478,7 +1471,7 @@ function athleteOpenCabinetSection(section) {
       </p>
     </div>
 
-  <div id="athleteNutritionProgressCard" class="info-card" style="margin-bottom:16px;">
+<div id="athleteNutritionProgressCard" class="info-card" style="margin-bottom:16px;">
   <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
     <strong>Добавлено дней</strong>
     <strong id="athleteNutritionDaysCount" style="color:#ff7846;">0 из 7</strong>
@@ -1538,15 +1531,15 @@ function athleteOpenCabinetSection(section) {
 </div>
 
 <div class="info-card" style="margin-bottom:16px;">
-  <h3 style="margin:0 0 8px;">Текущие показатели</h3>
+  <h3 style="margin:0 0 8px;">Контроль питания</h3>
 
   <p style="color:#aaa;margin:0 0 20px;">
-    Среднее по добавленным дням
+    Твоя средняя дневная цель на эту неделю
   </p>
 
-  <div id="athleteNutritionCurrentStats">
+  <div id="athleteNutritionDiaryTargets">
     <p style="color:#aaa;margin:0;">
-      Пока нет данных.
+      Показатели появятся после анализа питания.
     </p>
   </div>
 </div>
@@ -2313,9 +2306,9 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
 }
   if (section === "nutrition-diary") {
   athleteLoadNutritionHistory();
+  athleteLoadNutritionPlan();
 }
   if (section === "nutrition") {
-  athleteRenderNutritionOverview();
   athleteLoadNutritionPlan();
   }
 }
@@ -2477,6 +2470,7 @@ async function athleteNutritionRequest(action, extra = {}) {
   return result;
 }
 let athleteNutritionCache = null;
+let athleteNutritionPlanCache = null;
 let athleteNutritionPending = null;
 
 function athleteNutritionDayCount(entries) {
@@ -2521,6 +2515,13 @@ function athleteUpdateNutritionIntroduction(entries) {
     "athleteNutritionCompletionMessage"
   );
 
+  if (athleteNutritionPlanCache) {
+    if (intro) intro.hidden = true;
+    if (progress) progress.hidden = true;
+    if (message) message.hidden = true;
+    return;
+  }
+
   if (intro) intro.hidden = completed;
   if (progress) progress.hidden = completed;
   if (message) {
@@ -2549,38 +2550,6 @@ async function athleteEnsureNutritionLoaded() {
 
   return athleteNutritionPending;
 }
-async function athleteRenderNutritionOverview() {
-  const daysCount = document.getElementById(
-    "athleteNutritionOverviewDaysCount"
-  );
-
-  if (!daysCount) return;
-
-  try {
-    await athleteEnsureNutritionLoaded();
-
-    // За время запроса пользователь мог уйти с экрана.
-    if (
-      document.getElementById("athleteNutritionOverviewDaysCount") !== daysCount
-    ) {
-      return;
-    }
-
-    const count = Math.min(athleteNutritionDayCount(athleteNutritionCache), 7);
-
-    daysCount.textContent = `Добавлено дней: ${count} из 7`;
-
-  } catch (error) {
-    console.error("TRENZO nutrition overview failed:", error);
-
-    if (
-      document.getElementById("athleteNutritionOverviewDaysCount") === daysCount
-    ) {
-      daysCount.textContent = "Добавлено дней: — из 7";
-    }
-  }
-}
-
 function athleteNutritionFormat(value, digits = 0) {
   return Number(value).toLocaleString("ru-RU", {
     minimumFractionDigits: digits,
@@ -2588,18 +2557,82 @@ function athleteNutritionFormat(value, digits = 0) {
   });
 }
 
+function athleteRenderNutritionTargets(plan) {
+  const slots = [
+    document.getElementById("athleteNutritionOverviewTargets"),
+    document.getElementById("athleteNutritionDiaryTargets")
+  ].filter(Boolean);
+  if (!slots.length) return;
+
+  const days = plan && Array.isArray(plan.weekPlan) ? plan.weekPlan : [];
+  const values = days.map(function(day) {
+    return {
+      calories: Number(day.calories),
+      protein: Number(day.protein_g),
+      fat: Number(day.fat_g),
+      carbs: Number(day.carbs_g)
+    };
+  });
+  const hasTargets = !plan?.reviewRequired && values.length === 7 && values.every(function(day) {
+    return Object.values(day).every(Number.isFinite);
+  });
+
+  if (!hasTargets) {
+    const message = plan?.reviewRequired
+      ? "Числовые цели пока не сформированы — нужна проверка специалиста."
+      : "Показатели появятся после анализа питания.";
+    slots.forEach(function(slot) {
+      slot.innerHTML = `<p style="color:#aaa;margin:0;">${athleteEscape(message)}</p>`;
+    });
+    return;
+  }
+
+  const average = {
+    calories: values.reduce((sum, day) => sum + day.calories, 0) / values.length,
+    protein: values.reduce((sum, day) => sum + day.protein, 0) / values.length,
+    fat: values.reduce((sum, day) => sum + day.fat, 0) / values.length,
+    carbs: values.reduce((sum, day) => sum + day.carbs, 0) / values.length
+  };
+  const markup = `
+    <div style="margin-bottom:14px;">
+      <div style="color:#aaa;font-size:13px;margin-bottom:4px;">Калории в день</div>
+      <div style="line-height:1.1;">
+        <strong style="font-size:36px;">${athleteNutritionFormat(average.calories)}</strong>
+        <span style="color:#aaa;font-size:14px;"> ккал</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Белки</small><strong>${athleteNutritionFormat(average.protein)} г</strong></div>
+      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Жиры</small><strong>${athleteNutritionFormat(average.fat)} г</strong></div>
+      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Углеводы</small><strong>${athleteNutritionFormat(average.carbs)} г</strong></div>
+    </div>`;
+
+  slots.forEach(function(slot) {
+    slot.innerHTML = markup;
+  });
+}
+
 function athleteRenderNutritionPlan(result) {
   const output = document.getElementById("athleteNutritionPlanOutput");
   const status = document.getElementById("athleteNutritionPlanStatus");
   const button = document.getElementById("athleteNutritionAnalyzeButton");
-  if (!output || !status || !button) return;
-
   const plan = result && result.plan;
   if (!plan || !Array.isArray(plan.weekPlan)) {
-    status.textContent = "Сохранённого плана пока нет. Добавь данные минимум за 7 дней и запусти анализ.";
-    button.textContent = "Анализ питания";
+    if (status) status.textContent = "Сохранённого плана пока нет. Добавь данные минимум за 7 дней и запусти анализ.";
+    if (button) button.textContent = "Анализ питания";
+    athleteNutritionPlanCache = null;
+    athleteRenderNutritionTargets(null);
     return;
   }
+  athleteNutritionPlanCache = plan;
+  athleteRenderNutritionTargets(plan);
+  ["athleteNutritionIntroCard", "athleteNutritionProgressCard", "athleteNutritionCompletionMessage"]
+    .forEach(function(id) {
+      const element = document.getElementById(id);
+      if (element) element.hidden = true;
+    });
+
+  if (!output || !status || !button) return;
 
   const dayNames = [
     "Понедельник", "Вторник", "Среда", "Четверг",
@@ -2653,19 +2686,20 @@ function athleteRenderNutritionPlan(result) {
 
 async function athleteLoadNutritionPlan() {
   const status = document.getElementById("athleteNutritionPlanStatus");
-  if (!status) return;
 
   try {
     const result = await athleteNutritionRequest("load_plan");
-    if (document.getElementById("athleteNutritionPlanStatus") !== status) return;
+    if (status && document.getElementById("athleteNutritionPlanStatus") !== status) return;
 
     if (result.plan) athleteRenderNutritionPlan(result);
     else {
-      status.textContent = "После 7 дней записей можно сформировать недельный план КБЖУ.";
+      athleteNutritionPlanCache = null;
+      athleteRenderNutritionTargets(null);
+      if (status) status.textContent = "После 7 дней записей можно сформировать недельный план КБЖУ.";
     }
   } catch (error) {
     console.error("TRENZO nutrition plan load failed:", error);
-    if (document.getElementById("athleteNutritionPlanStatus") === status) {
+    if (status && document.getElementById("athleteNutritionPlanStatus") === status) {
       status.textContent = "Не удалось загрузить план. Попробуй открыть раздел позже.";
     }
   }
@@ -2747,70 +2781,6 @@ if (daysProgress) {
     segment.style.background =
       index < count ? "#ff7846" : "#414141";
   });
-}
-    const statsSlot = document.getElementById("athleteNutritionCurrentStats");
-
-if (statsSlot && entries.length) {
-  const totals = entries.reduce(function(sum, entry) {
-    sum.calories += Number(entry.calories) || 0;
-    sum.protein += Number(entry.protein_g) || 0;
-    sum.fat += Number(entry.fat_g) || 0;
-    sum.carbs += Number(entry.carbs_g) || 0;
-
-    return sum;
-  }, {
-    calories: 0,
-    protein: 0,
-    fat: 0,
-    carbs: 0
-  });
-
-  const count = entries.length;
-
-  const calories = totals.calories / count;
-  const protein = totals.protein / count;
-  const fat = totals.fat / count;
-  const carbs = totals.carbs / count;
-
-  statsSlot.innerHTML = `
-    <div style="
-      display:grid;
-      grid-template-columns:1.35fr repeat(3,minmax(0,1fr));
-      gap:8px;
-    ">
-      <div>
-        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Калории</div>
-        <div style="white-space:nowrap;">
-          <strong style="font-size:22px;">${Math.round(calories)}</strong>
-          <span style="color:#aaa;font-size:11px;"> ккал</span>
-        </div>
-      </div>
-
-      <div>
-        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Белки</div>
-        <div style="white-space:nowrap;">
-          <strong>${protein.toFixed(1).replace(".", ",")}</strong>
-          <span style="color:#aaa;font-size:11px;"> г</span>
-        </div>
-      </div>
-
-      <div>
-        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Жиры</div>
-        <div style="white-space:nowrap;">
-          <strong>${fat.toFixed(1).replace(".", ",")}</strong>
-          <span style="color:#aaa;font-size:11px;"> г</span>
-        </div>
-      </div>
-
-      <div>
-        <div style="color:#aaa;font-size:12px;margin-bottom:6px;">Углеводы</div>
-        <div style="white-space:nowrap;">
-          <strong>${carbs.toFixed(1).replace(".", ",")}</strong>
-          <span style="color:#aaa;font-size:11px;"> г</span>
-        </div>
-      </div>
-    </div>
-  `;
 }
     if (!entries.length) {
       slot.innerHTML = `
