@@ -1420,59 +1420,6 @@ function athleteOpenCabinetSection(section) {
   Добавлено дней: 0 из 7
 </p>
     </div>
-<button
-  id="athleteFatSecretConnectButton"
-  class="info-card"
-  type="button"
-  onclick="athleteConnectFatSecret()"
-  style="
-    display:block;
-    width:100%;
-    margin-bottom:16px;
-    text-align:left;
-    color:#fff;
-    cursor:pointer;
-  "
->
-  <strong>Подключить FatSecret</strong>
-  <p style="color:#aaa;margin:8px 0 0;">
-    Получать калории и БЖУ без скриншотов
-  </p>
-</button>
-<div class="info-card" style="margin-bottom:16px;">
-  <strong>Проверка FatSecret</strong>
-
-  <p style="color:#aaa;margin:8px 0 16px;">
-    Выбери день, за который ты записывал питание в FatSecret.
-  </p>
-
-  <input
-    id="athleteFatSecretTestDate"
-    type="month"
-    style="
-      display:block;
-      width:100%;
-      box-sizing:border-box;
-      padding:12px;
-      margin-bottom:12px;
-      border:1px solid #414141;
-      border-radius:12px;
-      background:#333;
-      color:#fff;
-      font:inherit;
-      color-scheme:dark;
-    "
-  >
-
-  <button
-    class="primary-btn"
-    type="button"
-    onclick="athleteTestFatSecretDay()"
-    style="width:100%;"
-  >
-    Проверить данные FatSecret
-  </button>
-</div>
     <button
       class="info-card"
       type="button"
@@ -1595,23 +1542,166 @@ function athleteOpenCabinetSection(section) {
   class="primary-btn"
   type="button"
   style="margin-bottom:16px;"
-  onclick="document.getElementById('nutritionUploadSheet').showModal()"
+  onclick="document.getElementById('nutritionEntryMethodSheet').showModal()"
 >
-  + Загрузить отчёт питания
+  + Внести КБЖУ
 </button>
+
+<dialog
+  id="nutritionEntryMethodSheet"
+  style="
+    position:fixed;
+    inset:auto 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+    width:100%;
+    max-width:520px;
+    box-sizing:border-box;
+    max-height:calc(100vh - 32px);
+    max-height:calc(100dvh - 32px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    margin:0 auto;
+    padding:24px;
+    padding-bottom:24px;
+    border:1px solid #414141;
+    border-radius:24px;
+    background:#262626;
+    color:#fff;
+    box-shadow:0 -12px 50px #0008;
+  "
+>
+  <div style="
+    width:44px;
+    height:5px;
+    margin:0 auto 24px;
+    border-radius:999px;
+    background:#555;
+  "></div>
+
+  <div style="
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:20px;
+  ">
+    <h3 style="margin:0;">Как внести КБЖУ?</h3>
+    <button type="button" onclick="this.closest('dialog').close()"
+      aria-label="Закрыть"
+      style="width:36px;height:36px;flex-shrink:0;border:1px solid #484848;
+        border-radius:10px;background:#303030;color:#fff;font-size:24px;cursor:pointer;">
+      ×
+    </button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    <button class="info-card" type="button"
+      onclick="this.closest('dialog').close();document.getElementById('nutritionFatSecretSheet').showModal()"
+      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+      <strong>FatSecret</strong>
+      <p style="color:#aaa;margin:6px 0 0;">
+        Подключить аккаунт или импортировать данные за месяц
+      </p>
+    </button>
+
+    <button class="info-card" type="button"
+      onclick="this.closest('dialog').close();athleteOpenNutritionUpload()"
+      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+      <strong>Загрузить скриншот</strong>
+      <p style="color:#aaa;margin:6px 0 0;">
+        Распознать итоговые калории и БЖУ за день
+      </p>
+    </button>
+
+    <button class="info-card" type="button"
+      onclick="this.closest('dialog').close();athleteOpenManualNutrition()"
+      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+      <strong>Внести вручную</strong>
+      <p style="color:#aaa;margin:6px 0 0;">
+        Указать дату, калории, белки, жиры и углеводы
+      </p>
+    </button>
+  </div>
+</dialog>
+
+<dialog
+  id="nutritionFatSecretSheet"
+  style="
+    position:fixed;
+    inset:auto 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+    width:100%;
+    max-width:520px;
+    box-sizing:border-box;
+    max-height:calc(100vh - 32px);
+    max-height:calc(100dvh - 32px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    margin:0 auto;
+    padding:24px;
+    padding-bottom:24px;
+    border:1px solid #414141;
+    border-radius:24px;
+    background:#262626;
+    color:#fff;
+    box-shadow:0 -12px 50px #0008;
+  "
+>
+  <div style="
+    width:44px;
+    height:5px;
+    margin:0 auto 24px;
+    border-radius:999px;
+    background:#555;
+  "></div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:20px;">
+    <h3 style="margin:0;">FatSecret</h3>
+    <button type="button" onclick="this.closest('dialog').close()"
+      aria-label="Закрыть"
+      style="width:36px;height:36px;flex-shrink:0;border:1px solid #484848;
+        border-radius:10px;background:#303030;color:#fff;font-size:24px;cursor:pointer;">
+      ×
+    </button>
+  </div>
+
+  <button id="athleteFatSecretConnectButton"
+    class="secondary-btn" type="button"
+    onclick="athleteConnectFatSecret()" style="margin:0 0 20px;">
+    Подключить FatSecret
+  </button>
+
+  <label class="field-title" for="athleteFatSecretTestDate">
+    Месяц импорта
+  </label>
+  <input class="text-input" id="athleteFatSecretTestDate"
+    type="month" style="color-scheme:dark;">
+
+  <button class="primary-btn" type="button"
+    onclick="athleteTestFatSecretDay()" style="width:100%;margin-top:20px;">
+    Импортировать данные за месяц
+  </button>
+</dialog>
 
 <dialog
   id="nutritionUploadSheet"
   style="
     position:fixed;
-    inset:auto 0 0;
+    inset:auto 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
     width:100%;
     max-width:520px;
     box-sizing:border-box;
+    max-height:calc(100vh - 32px);
+    max-height:calc(100dvh - 32px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
     margin:0 auto;
     padding:24px;
+    padding-bottom:24px;
     border:1px solid #414141;
-    border-radius:24px 24px 0 0;
+    border-radius:24px;
     background:#262626;
     color:#fff;
     box-shadow:0 -12px 50px #0008;
@@ -1736,6 +1826,117 @@ function athleteOpenCabinetSection(section) {
   >
     Распознать и сохранить
   </button>
+</dialog>
+
+<dialog
+  id="nutritionManualSheet"
+  style="
+    position:fixed;
+    inset:auto 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
+    width:100%;
+    max-width:520px;
+    box-sizing:border-box;
+    max-height:calc(100vh - 32px);
+    max-height:calc(100dvh - 32px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    margin:0 auto;
+    padding:24px;
+    padding-bottom:24px;
+    border:1px solid #414141;
+    border-radius:24px;
+    background:#262626;
+    color:#fff;
+    box-shadow:0 -12px 50px #0008;
+  "
+>
+  <div style="
+    width:44px;
+    height:5px;
+    margin:0 auto 24px;
+    border-radius:999px;
+    background:#555;
+  "></div>
+
+  <div style="
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:24px;
+  ">
+    <h3 style="margin:0;">Внести КБЖУ вручную</h3>
+
+    <button
+      type="button"
+      onclick="this.closest('dialog').close()"
+      aria-label="Закрыть"
+      style="
+        width:36px;
+        height:36px;
+        flex-shrink:0;
+        border:1px solid #484848;
+        border-radius:10px;
+        background:#303030;
+        color:#fff;
+        font-size:24px;
+        cursor:pointer;
+      "
+    >×</button>
+  </div>
+
+  <form id="athleteNutritionManualForm"
+    onsubmit="event.preventDefault();athleteSaveManualNutrition();">
+    <div class="field">
+      <label class="field-title" for="nutritionManualDate">
+        Дата
+      </label>
+      <input class="text-input" id="nutritionManualDate"
+        type="date" required style="color-scheme:dark;">
+    </div>
+
+    <div class="field">
+      <label class="field-title" for="nutritionManualCalories">
+        Калории, ккал
+      </label>
+      <input class="text-input" id="nutritionManualCalories"
+        type="number" inputmode="decimal" min="0" max="10000"
+        step="1" required placeholder="Например, 2100">
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+      <div>
+        <label class="field-title" for="nutritionManualProtein">
+          Белки, г
+        </label>
+        <input class="text-input" id="nutritionManualProtein"
+          type="number" inputmode="decimal" min="0" max="1000"
+          step="0.1" required placeholder="120">
+      </div>
+      <div>
+        <label class="field-title" for="nutritionManualFat">
+          Жиры, г
+        </label>
+        <input class="text-input" id="nutritionManualFat"
+          type="number" inputmode="decimal" min="0" max="1000"
+          step="0.1" required placeholder="70">
+      </div>
+      <div>
+        <label class="field-title" for="nutritionManualCarbs">
+          Углеводы, г
+        </label>
+        <input class="text-input" id="nutritionManualCarbs"
+          type="number" inputmode="decimal" min="0" max="1000"
+          step="0.1" required placeholder="240">
+      </div>
+    </div>
+
+    <button class="primary-btn" type="submit"
+      style="width:100%;margin-top:24px;">
+      Сохранить
+    </button>
+  </form>
 </dialog>
 
     <div class="info-card" style="margin-top:16px;">
@@ -2219,7 +2420,13 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 403) {
-      throw new Error("Доступ к распознаванию питания пока не открыт.");
+      throw new Error("Доступ к дневнику питания пока не открыт.");
+    }
+
+    if (response.status === 409) {
+      throw new Error(
+        "За эту дату данные уже сохранены. Выбери другую дату."
+      );
     }
 
     if (response.status === 413) {
@@ -2233,6 +2440,10 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 400) {
+      if (action === "save_manual") {
+        throw new Error("Проверь дату и значения КБЖУ.");
+      }
+
       throw new Error("Проверь дату отчёта и формат изображения.");
     }
 
@@ -2639,10 +2850,99 @@ async function athleteTestFatSecretDay() {
   } finally {
     if (button) {
       button.disabled = false;
-      button.textContent = "Проверить данные FatSecret";
+      button.textContent = "Импортировать данные за месяц";
     }
   }
 }
+
+function athleteOpenNutritionUpload() {
+  const sheet = document.getElementById("nutritionUploadSheet");
+  const dateInput = document.getElementById("nutritionReportDate");
+
+  if (!sheet || !dateInput) return;
+
+  const today = athleteLocalDate();
+  dateInput.max = today;
+  if (!dateInput.value) dateInput.value = today;
+  sheet.showModal();
+}
+
+function athleteOpenManualNutrition() {
+  const sheet = document.getElementById("nutritionManualSheet");
+  const dateInput = document.getElementById("nutritionManualDate");
+
+  if (!sheet || !dateInput) return;
+
+  const today = athleteLocalDate();
+  dateInput.max = today;
+  if (!dateInput.value) dateInput.value = today;
+  sheet.showModal();
+}
+
+function athleteRememberNutritionEntry(entry) {
+  if (!entry || !Array.isArray(athleteNutritionCache)) {
+    athleteNutritionCache = null;
+    return;
+  }
+
+  athleteNutritionCache = athleteNutritionCache
+    .filter(function(row) {
+      return row.report_date !== entry.report_date;
+    })
+    .concat(entry)
+    .sort(function(a, b) {
+      return a.report_date.localeCompare(b.report_date);
+    });
+}
+
+async function athleteSaveManualNutrition() {
+  const sheet = document.getElementById("nutritionManualSheet");
+  const form = document.getElementById("athleteNutritionManualForm");
+
+  if (!sheet || !form || !form.reportValidity()) return;
+
+  const button = form.querySelector('button[type="submit"]');
+  const dateInput = document.getElementById("nutritionManualDate");
+  const caloriesInput = document.getElementById("nutritionManualCalories");
+  const proteinInput = document.getElementById("nutritionManualProtein");
+  const fatInput = document.getElementById("nutritionManualFat");
+  const carbsInput = document.getElementById("nutritionManualCarbs");
+
+  if (
+    !button || !dateInput || !caloriesInput || !proteinInput ||
+    !fatInput || !carbsInput
+  ) return;
+
+  button.disabled = true;
+  button.textContent = "Сохраняем...";
+
+  try {
+    const saved = await athleteNutritionRequest("save_manual", {
+      reportDate: dateInput.value,
+      nutrition: {
+        calories: Number(caloriesInput.value),
+        protein_g: Number(proteinInput.value),
+        fat_g: Number(fatInput.value),
+        carbs_g: Number(carbsInput.value)
+      }
+    });
+
+    athleteRememberNutritionEntry(saved.entry);
+    form.reset();
+    sheet.close();
+    athleteOpenCabinetSection("nutrition-diary");
+    showMessage("Данные КБЖУ сохранены.");
+
+  } catch (error) {
+    console.error("TRENZO manual nutrition save failed:", error);
+    showMessage(error.message || "Не удалось сохранить данные КБЖУ.");
+
+  } finally {
+    button.disabled = false;
+    button.textContent = "Сохранить";
+  }
+}
+
 async function athleteSaveNutritionReport() {
   const sheet = document.getElementById("nutritionUploadSheet");
   const dateInput = document.getElementById("nutritionReportDate");
@@ -2687,25 +2987,16 @@ async function athleteSaveNutritionReport() {
       reader.readAsDataURL(file);
     });
 
-   const saved = await athleteNutritionRequest("save", {
-  reportDate: dateInput.value,
-  imageDataUrl
-});
-
-if (saved.entry && Array.isArray(athleteNutritionCache)) {
-  athleteNutritionCache = athleteNutritionCache
-    .filter(function(row) {
-      return row.report_date !== saved.entry.report_date;
-    })
-    .concat(saved.entry)
-    .sort(function(a, b) {
-      return a.report_date.localeCompare(b.report_date);
+    const saved = await athleteNutritionRequest("save", {
+      reportDate: dateInput.value,
+      imageDataUrl
     });
-}
+
+    athleteRememberNutritionEntry(saved.entry);
 
     sheet.close();
     imageInput.value = "";
-
+    athleteOpenCabinetSection("nutrition-diary");
     showMessage("Отчёт питания сохранён.");
 
   } catch (error) {
