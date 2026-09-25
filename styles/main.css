@@ -379,7 +379,7 @@ h1 {
   display: grid;
   grid-template-columns: minmax(130px, 0.9fr) minmax(0, 2.4fr);
   gap: 16px;
-  align-items: center;
+  align-items: stretch;
 }
 
 .nutrition-calorie-ring {
@@ -387,6 +387,7 @@ h1 {
   width: min(100%, 190px);
   aspect-ratio: 1;
   margin: 0 auto;
+  align-self: center;
 }
 
 .nutrition-calorie-ring svg {
@@ -427,19 +428,13 @@ h1 {
   font-size: clamp(21px, 6vw, 34px);
 }
 
-.nutrition-calorie-value span,
-.nutrition-calorie-value small {
+.nutrition-calorie-value span {
   color: var(--muted);
 }
 
 .nutrition-calorie-value span {
   margin-top: 5px;
   font-size: 13px;
-}
-
-.nutrition-calorie-value small {
-  margin-top: 4px;
-  font-size: 11px;
 }
 
 .nutrition-macro-grid {
@@ -450,6 +445,7 @@ h1 {
 
 .nutrition-macro-card {
   min-width: 0;
+  margin-block: 4px;
   padding: 12px;
   border: 1px solid #30343a;
   border-radius: 16px;
@@ -491,14 +487,6 @@ h1 {
   height: 100%;
   border-radius: inherit;
   transition: width 260ms ease;
-}
-
-.nutrition-macro-percent {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 10px;
-  text-align: right;
 }
 
 .visually-hidden {
@@ -586,10 +574,6 @@ h1 {
     font-size: 11px;
   }
 
-  .nutrition-calorie-value small {
-    font-size: 9px;
-  }
-
   .nutrition-macro-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
@@ -629,10 +613,6 @@ h1 {
     height: 6px;
   }
 
-  .nutrition-macro-percent {
-    margin-top: 3px;
-    font-size: 9px;
-  }
 }
 
 @media (max-width: 360px) {
