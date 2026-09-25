@@ -2794,24 +2794,37 @@ function athleteRenderNutritionPlan(result) {
 
   if (!output || !status || !button) return;
 
-  const dayNames = [
-    "Понедельник", "Вторник", "Среда", "Четверг",
-    "Пятница", "Суббота", "Воскресенье"
-  ];
-  const week = plan.weekPlan.map(function(day) {
-    const dayName = dayNames[Number(day.dayIndex) - 1];
-    if (!dayName) return "";
-
-    return `<div style="padding:12px 0;border-top:1px solid #414141;">
-      <strong>${dayName}</strong>
-      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:8px;">
-        <span><small style="display:block;color:#aaa;">ккал</small><b>${athleteNutritionFormat(day.calories)}</b></span>
-        <span><small style="display:block;color:#aaa;">Белки</small><b>${athleteNutritionFormat(day.protein_g, 1)} г</b></span>
-        <span><small style="display:block;color:#aaa;">Жиры</small><b>${athleteNutritionFormat(day.fat_g, 1)} г</b></span>
-        <span><small style="display:block;color:#aaa;">Углеводы</small><b>${athleteNutritionFormat(day.carbs_g, 1)} г</b></span>
-      </div>
-    </div>`;
-  }).join("");
+  const dailyValues = plan.weekPlan.map(function(day) {
+    return {
+      calories: Number(day.calories),
+      protein: Number(day.protein_g),
+      fat: Number(day.fat_g),
+      carbs: Number(day.carbs_g)
+    };
+  });
+  const hasDailyValues = !plan.reviewRequired && dailyValues.length === 7 &&
+    dailyValues.every(function(day) {
+      return Object.values(day).every(Number.isFinite);
+    });
+  const dailyTarget = hasDailyValues
+    ? {
+      calories: dailyValues.reduce((sum, day) => sum + day.calories, 0) / 7,
+      protein: dailyValues.reduce((sum, day) => sum + day.protein, 0) / 7,
+      fat: dailyValues.reduce((sum, day) => sum + day.fat, 0) / 7,
+      carbs: dailyValues.reduce((sum, day) => sum + day.carbs, 0) / 7
+    }
+    : null;
+  const dailyTargetMarkup = dailyTarget
+    ? `<div style="padding:12px 0;border-top:1px solid #414141;">
+        <strong>Придерживайся этих значений каждый день на этой неделе</strong>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:10px;">
+          <span><small style="display:block;color:#aaa;">Калории</small><b>${athleteNutritionFormat(dailyTarget.calories)} ккал</b></span>
+          <span><small style="display:block;color:#aaa;">Белки</small><b>${athleteNutritionFormat(dailyTarget.protein, 1)} г</b></span>
+          <span><small style="display:block;color:#aaa;">Жиры</small><b>${athleteNutritionFormat(dailyTarget.fat, 1)} г</b></span>
+          <span><small style="display:block;color:#aaa;">Углеводы</small><b>${athleteNutritionFormat(dailyTarget.carbs, 1)} г</b></span>
+        </div>
+      </div>`
+    : "";
 
   const recommendations = Array.isArray(plan.recommendations)
     ? plan.recommendations.slice(0, 5)
@@ -2825,7 +2838,7 @@ function athleteRenderNutritionPlan(result) {
     <div style="margin:12px 0;padding:14px;border:1px solid #414141;border-radius:14px;background:#202020;">
       <strong>${needsReview ? "Нужна проверка специалиста" : "Твой план на неделю"}</strong>
       <p style="color:#ccc;margin:8px 0 14px;">${athleteEscape(plan.summary || "План сформирован по данным анкеты и дневника.")}</p>
-      ${needsReview ? `<p style="color:#ff8959;margin:8px 0 14px;">${athleteEscape(plan.reviewReason || "По имеющимся данным нельзя безопасно рассчитать числовые цели. Обсуди их с тренером или медицинским специалистом.")}</p>` : week}
+      ${needsReview ? `<p style="color:#ff8959;margin:8px 0 14px;">${athleteEscape(plan.reviewReason || "По имеющимся данным нельзя безопасно рассчитать числовые цели. Обсуди их с тренером или медицинским специалистом.")}</p>` : dailyTargetMarkup}
       ${recommendations.length ? `<div style="margin-top:16px;">
         <strong>Рекомендации</strong>
         <ul style="padding-left:20px;margin:8px 0 0;color:#ccc;">
