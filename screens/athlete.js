@@ -1524,7 +1524,7 @@ function athleteOpenCabinetSection(section) {
   </p>
 </div>
 
-    <div class="info-card" style="margin-bottom:16px;">
+<div class="info-card" style="margin-bottom:16px;">
   <h3 style="margin:0 0 8px;">Текущие показатели</h3>
 
   <p style="color:#aaa;margin:0 0 20px;">
@@ -1536,6 +1536,11 @@ function athleteOpenCabinetSection(section) {
       Пока нет данных.
     </p>
   </div>
+</div>
+
+<div id="athleteNutritionBaselineAnalysis" class="info-card" hidden>
+  <h3 style="margin:0 0 14px;">Исходный анализ</h3>
+  <div id="athleteNutritionBaselineAnalysisContent"></div>
 </div>
 
   <button
@@ -2504,6 +2509,106 @@ function athleteUpdateNutritionIntroduction(entries) {
   }
 }
 
+function athleteRenderNutritionBaselineAnalysis(entries) {
+  const card = document.getElementById(
+    "athleteNutritionBaselineAnalysis"
+  );
+  const content = document.getElementById(
+    "athleteNutritionBaselineAnalysisContent"
+  );
+
+  if (!card || !content) return;
+
+  const uniqueEntries = Array.from(new Map(
+    (Array.isArray(entries) ? entries : [])
+      .filter(function(entry) {
+        return entry && typeof entry.report_date === "string";
+      })
+      .map(function(entry) { return [entry.report_date, entry]; })
+  ).values()).sort(function(a, b) {
+    return a.report_date.localeCompare(b.report_date);
+  });
+
+  if (uniqueEntries.length < 7) {
+    card.hidden = true;
+    return;
+  }
+
+  const metrics = [
+    { key: "calories", label: "Калории", unit: "ккал", digits: 0 },
+    { key: "protein_g", label: "Белки", unit: "г", digits: 1 },
+    { key: "fat_g", label: "Жиры", unit: "г", digits: 1 },
+    { key: "carbs_g", label: "Углеводы", unit: "г", digits: 1 }
+  ];
+
+  function formatMetric(value, digits) {
+    return Number(value).toLocaleString("ru-RU", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
+  function formatDate(value) {
+    const parts = value.split("-");
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  }
+
+  const rangeRows = metrics.map(function(metric) {
+    const values = uniqueEntries.map(function(entry) {
+      return Number(entry[metric.key]) || 0;
+    });
+    const minimum = Math.min(...values);
+    const maximum = Math.max(...values);
+
+    return `<div class="summary-row">
+      <small>${metric.label}</small>
+      <strong>${formatMetric(minimum, metric.digits)}–${formatMetric(maximum, metric.digits)} ${metric.unit}</strong>
+    </div>`;
+  }).join("");
+
+  const goalLabels = {
+    lose: "Снижение веса",
+    muscle: "Набор мышечной массы",
+    recomp: "Изменение состава тела",
+    strength: "Развитие силы",
+    fitness: "Улучшение формы",
+    other: "Индивидуальная цель"
+  };
+  const answers = athleteSafeAnswers();
+  const goal = goalLabels[answers.goal] || "Не указана";
+  const notes = typeof answers.nutritionNotes === "string"
+    ? answers.nutritionNotes.trim()
+    : "";
+  const firstDate = uniqueEntries[0].report_date;
+  const lastDate = uniqueEntries[uniqueEntries.length - 1].report_date;
+  const periodDays = Math.floor(
+    (Date.parse(`${lastDate}T12:00:00Z`) -
+      Date.parse(`${firstDate}T12:00:00Z`)) / 86400000
+  ) + 1;
+
+  content.innerHTML = `
+    <p style="margin:0 0 8px;color:#aaa;">
+      В расчёт вошло ${uniqueEntries.length} дней с записью
+      за период ${periodDays} ${periodDays === 1 ? "день" : "дн."}
+      (${formatDate(firstDate)}–${formatDate(lastDate)}).
+    </p>
+    <div style="margin:10px 0 16px;">
+      ${rangeRows}
+    </div>
+    <p style="margin:0 0 8px;">
+      <strong>Цель из анкеты:</strong> ${athleteEscape(goal)}.
+    </p>
+    <p style="margin:0;color:#aaa;">
+      <strong style="color:#fff;">Особенности питания:</strong>
+      ${notes ? athleteEscape(notes) : "В анкете не указаны."}
+    </p>
+    <p class="small-note">
+      Это сводка загруженных дней. Она не меняет твой рацион.
+    </p>
+  `;
+  card.hidden = false;
+}
+
 async function athleteEnsureNutritionLoaded() {
   if (Array.isArray(athleteNutritionCache)) {
     return athleteNutritionCache;
@@ -2585,6 +2690,7 @@ if (
       ? result.entries.slice().reverse()
       : [];
 athleteUpdateNutritionIntroduction(entries);
+athleteRenderNutritionBaselineAnalysis(entries);
 const daysCount = document.getElementById("athleteNutritionDaysCount");
 
 if (daysCount) {
