@@ -2471,6 +2471,7 @@ async function athleteNutritionRequest(action, extra = {}) {
 }
 let athleteNutritionCache = null;
 let athleteNutritionPlanCache = null;
+let athleteNutritionPlanEffectiveFrom = "";
 let athleteNutritionPending = null;
 
 function athleteNutritionDayCount(entries) {
@@ -2555,6 +2556,27 @@ function athleteNutritionFormat(value, digits = 0) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
+}
+
+function athleteNutritionPlanStartDate(generatedAt, sourceReportThrough) {
+  let start = new Date(generatedAt || Date.now());
+  if (Number.isNaN(start.getTime())) start = new Date();
+
+  if (start.getDay() === 0) {
+    start.setDate(start.getDate() + 1);
+  }
+
+  let startDate = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, "0"),
+    String(start.getDate()).padStart(2, "0")].join("-");
+
+  if (typeof sourceReportThrough === "string" && sourceReportThrough >= startDate) {
+    const sourceDate = new Date(`${sourceReportThrough}T12:00:00`);
+    sourceDate.setDate(sourceDate.getDate() + 1);
+    startDate = [sourceDate.getFullYear(), String(sourceDate.getMonth() + 1).padStart(2, "0"),
+      String(sourceDate.getDate()).padStart(2, "0")].join("-");
+  }
+
+  return startDate;
 }
 
 function athleteNutritionWeekStart(dateValue) {
@@ -2679,17 +2701,52 @@ function athleteRenderNutritionTargets(plan) {
     fat: values.reduce((sum, day) => sum + day.fat, 0) / values.length,
     carbs: values.reduce((sum, day) => sum + day.carbs, 0) / values.length
   };
+  const today = athleteLocalDate();
+  const entry = today >= athleteNutritionPlanEffectiveFrom
+    ? (athleteNutritionCache || []).find(function(row) {
+      return row && row.report_date === today;
+    })
+    : null;
+  const goals = [
+    { key: "protein_g", label: "Белки", unit: "г", goal: average.protein, color: "#ff806d", bg: "#3b292b", icon: "🥩" },
+    { key: "fat_g", label: "Жиры", unit: "г", goal: average.fat, color: "#ffc54f", bg: "#393326", icon: "💧" },
+    { key: "carbs_g", label: "Углеводы", unit: "г", goal: average.carbs, color: "#b77aff", bg: "#30283d", icon: "🌾" }
+  ];
+  const percentFor = function(actual, goal) {
+    return goal > 0 ? Math.max(0, actual / goal * 100) : 0;
+  };
+  const caloriesPercent = percentFor(Number(entry?.calories) || 0, average.calories);
+  const radius = 51;
+  const circumference = 2 * Math.PI * radius;
+  const circleOffset = circumference * (1 - Math.min(100, caloriesPercent) / 100);
+  const macroMarkup = goals.map(function(item) {
+    const actual = Number(entry?.[item.key]) || 0;
+    const percent = percentFor(actual, item.goal);
+    const width = Math.min(100, percent);
+    return `<div class="nutrition-macro-card">
+      <span class="nutrition-macro-icon" style="color:${item.color};background:${item.bg};">${item.icon}</span>
+      <span class="nutrition-macro-label">${item.label}</span>
+      <strong class="nutrition-macro-target">${athleteNutritionFormat(item.goal)} ${item.unit}</strong>
+      <div class="nutrition-macro-track" role="progressbar" aria-label="${item.label}: ${Math.round(percent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}">
+        <div class="nutrition-macro-progress" style="width:${width}%;background:${item.color};"></div>
+      </div>
+      <small class="nutrition-macro-percent">${Math.round(percent)}%</small>
+    </div>`;
+  }).join("");
   const markup = `
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:center;">
-      <div style="min-width:0;line-height:1.1;white-space:nowrap;">
-        <strong style="font-size:32px;">${athleteNutritionFormat(average.calories)}</strong>
-        <span style="color:#aaa;font-size:13px;"> ккал</span>
+    <div class="nutrition-targets-layout">
+      <div class="nutrition-calorie-ring" role="progressbar" aria-label="Калории: ${Math.round(caloriesPercent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, caloriesPercent))}">
+        <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+          <circle class="nutrition-calorie-track" cx="60" cy="60" r="${radius}"></circle>
+          <circle class="nutrition-calorie-progress" cx="60" cy="60" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="${circleOffset}"></circle>
+        </svg>
+        <div class="nutrition-calorie-value">
+          <strong>${athleteNutritionFormat(average.calories)}</strong>
+          <span>ккал</span>
+          <small>${Math.round(caloriesPercent)}% за сегодня</small>
+        </div>
       </div>
-      <div style="display:grid;gap:5px;font-size:13px;">
-        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Белки</span><strong>${athleteNutritionFormat(average.protein)} г</strong></div>
-        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Жиры</span><strong>${athleteNutritionFormat(average.fat)} г</strong></div>
-        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Углеводы</span><strong>${athleteNutritionFormat(average.carbs)} г</strong></div>
-      </div>
+      <div class="nutrition-macro-grid">${macroMarkup}</div>
     </div>`;
 
   slots.forEach(function(slot) {
@@ -2710,6 +2767,10 @@ function athleteRenderNutritionPlan(result) {
     return;
   }
   athleteNutritionPlanCache = plan;
+  athleteNutritionPlanEffectiveFrom = athleteNutritionPlanStartDate(
+    result.generatedAt,
+    result.sourceReportThrough
+  );
   athleteRenderNutritionTargets(plan);
   ["athleteNutritionIntroCard", "athleteNutritionProgressCard", "athleteNutritionCompletionMessage"]
     .forEach(function(id) {
@@ -2776,7 +2837,14 @@ async function athleteLoadNutritionPlan() {
     const result = await athleteNutritionRequest("load_plan");
     if (status && document.getElementById("athleteNutritionPlanStatus") !== status) return;
 
-    if (result.plan) athleteRenderNutritionPlan(result);
+    if (result.plan) {
+      try {
+        await athleteEnsureNutritionLoaded();
+      } catch (nutritionError) {
+        console.error("TRENZO nutrition progress load failed:", nutritionError);
+      }
+      athleteRenderNutritionPlan(result);
+    }
     else {
       athleteNutritionPlanCache = null;
       athleteRenderNutritionTargets(null);
@@ -2842,6 +2910,7 @@ if (
 ) {
   athleteNutritionCache = result.entries.slice();
 }
+    athleteRenderNutritionTargets(athleteNutritionPlanCache);
 
     if (document.getElementById("athleteNutritionHistory") !== slot) {
       return;
@@ -3032,6 +3101,7 @@ function athleteOpenManualNutrition() {
 function athleteRememberNutritionEntry(entry) {
   if (!entry || !Array.isArray(athleteNutritionCache)) {
     athleteNutritionCache = null;
+    athleteRenderNutritionTargets(athleteNutritionPlanCache);
     return;
   }
 
@@ -3043,6 +3113,7 @@ function athleteRememberNutritionEntry(entry) {
     .sort(function(a, b) {
       return a.report_date.localeCompare(b.report_date);
     });
+  athleteRenderNutritionTargets(athleteNutritionPlanCache);
 }
 
 async function athleteSaveManualNutrition() {
