@@ -1407,8 +1407,8 @@ function athleteOpenCabinetSection(section) {
 
   content = `
     <div class="info-card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 8px;">Контроль питания</h3>
-      <p style="color:#aaa;margin:0 0 14px;">Твоя дневная цель на эту неделю</p>
+      <h3 style="margin:0 0 2px;">Контроль питания</h3>
+      <p style="color:#aaa;margin:0 0 8px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
         <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
       </div>
@@ -1531,9 +1531,9 @@ function athleteOpenCabinetSection(section) {
 </div>
 
 <div class="info-card" style="margin-bottom:16px;">
-  <h3 style="margin:0 0 8px;">Контроль питания</h3>
+  <h3 style="margin:0 0 2px;">Контроль питания</h3>
 
-  <p style="color:#aaa;margin:0 0 20px;">
+  <p style="color:#aaa;margin:0 0 8px;">
     Твоя дневная цель на эту неделю
   </p>
 
