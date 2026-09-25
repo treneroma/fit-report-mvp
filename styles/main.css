@@ -375,6 +375,201 @@ h1 {
   line-height: 1.4;
 }
 
+.nutrition-targets-layout {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.9fr) minmax(0, 2.4fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.nutrition-calorie-ring {
+  position: relative;
+  width: min(100%, 190px);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.nutrition-calorie-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.nutrition-calorie-track,
+.nutrition-calorie-progress {
+  fill: none;
+  stroke-width: 8;
+}
+
+.nutrition-calorie-track {
+  stroke: #343a40;
+}
+
+.nutrition-calorie-progress {
+  stroke: #32d6a0;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 260ms ease;
+}
+
+.nutrition-calorie-value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.nutrition-calorie-value strong {
+  font-size: clamp(21px, 6vw, 34px);
+}
+
+.nutrition-calorie-value span,
+.nutrition-calorie-value small {
+  color: var(--muted);
+}
+
+.nutrition-calorie-value span {
+  margin-top: 5px;
+  font-size: 13px;
+}
+
+.nutrition-calorie-value small {
+  margin-top: 4px;
+  font-size: 11px;
+}
+
+.nutrition-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nutrition-macro-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #30343a;
+  border-radius: 16px;
+  background: #202226;
+}
+
+.nutrition-macro-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 10px;
+  place-items: center;
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.nutrition-macro-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.nutrition-macro-target {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.nutrition-macro-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #343a40;
+}
+
+.nutrition-macro-progress {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 260ms ease;
+}
+
+.nutrition-macro-percent {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+@media (max-width: 420px) {
+  .nutrition-targets-layout {
+    grid-template-columns: minmax(88px, 0.8fr) minmax(0, 1.7fr);
+    gap: 8px;
+  }
+
+  .nutrition-calorie-ring {
+    width: min(100%, 118px);
+  }
+
+  .nutrition-calorie-track,
+  .nutrition-calorie-progress {
+    stroke-width: 9;
+  }
+
+  .nutrition-calorie-value strong {
+    font-size: clamp(18px, 5.5vw, 25px);
+  }
+
+  .nutrition-calorie-value span {
+    font-size: 11px;
+  }
+
+  .nutrition-calorie-value small {
+    font-size: 9px;
+  }
+
+  .nutrition-macro-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .nutrition-macro-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(56px, 0.9fr);
+    gap: 2px 8px;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .nutrition-macro-icon {
+    display: none;
+  }
+
+  .nutrition-macro-label {
+    margin: 0;
+    font-size: 11px;
+  }
+
+  .nutrition-macro-target {
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .nutrition-macro-track {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .nutrition-macro-percent {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+  }
+}
+
 @media (max-width: 360px) {
   .page {
     padding-left: 16px;
