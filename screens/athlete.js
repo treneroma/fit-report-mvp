@@ -1408,7 +1408,7 @@ function athleteOpenCabinetSection(section) {
   content = `
     <div class="info-card" style="margin-bottom:16px;">
       <h3 style="margin:0 0 18px;">Контроль питания</h3>
-      <p style="color:#aaa;margin:0 0 14px;">Твоя средняя дневная цель на эту неделю</p>
+      <p style="color:#aaa;margin:0 0 14px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
         <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
       </div>
@@ -1534,7 +1534,7 @@ function athleteOpenCabinetSection(section) {
   <h3 style="margin:0 0 8px;">Контроль питания</h3>
 
   <p style="color:#aaa;margin:0 0 20px;">
-    Твоя средняя дневная цель на эту неделю
+    Твоя дневная цель на эту неделю
   </p>
 
   <div id="athleteNutritionDiaryTargets">
@@ -2594,17 +2594,16 @@ function athleteRenderNutritionTargets(plan) {
     carbs: values.reduce((sum, day) => sum + day.carbs, 0) / values.length
   };
   const markup = `
-    <div style="margin-bottom:14px;">
-      <div style="color:#aaa;font-size:13px;margin-bottom:4px;">Калории в день</div>
-      <div style="line-height:1.1;">
-        <strong style="font-size:36px;">${athleteNutritionFormat(average.calories)}</strong>
-        <span style="color:#aaa;font-size:14px;"> ккал</span>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:12px;align-items:center;">
+      <div style="min-width:0;line-height:1.1;white-space:nowrap;">
+        <strong style="font-size:32px;">${athleteNutritionFormat(average.calories)}</strong>
+        <span style="color:#aaa;font-size:13px;"> ккал</span>
       </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
-      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Белки</small><strong>${athleteNutritionFormat(average.protein)} г</strong></div>
-      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Жиры</small><strong>${athleteNutritionFormat(average.fat)} г</strong></div>
-      <div><small style="display:block;color:#aaa;margin-bottom:3px;">Углеводы</small><strong>${athleteNutritionFormat(average.carbs)} г</strong></div>
+      <div style="display:grid;gap:5px;font-size:13px;">
+        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Белки</span><strong>${athleteNutritionFormat(average.protein)} г</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Жиры</span><strong>${athleteNutritionFormat(average.fat)} г</strong></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;"><span style="color:#aaa;">Углеводы</span><strong>${athleteNutritionFormat(average.carbs)} г</strong></div>
+      </div>
     </div>`;
 
   slots.forEach(function(slot) {
