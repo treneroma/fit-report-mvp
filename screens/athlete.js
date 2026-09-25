@@ -1433,9 +1433,22 @@ function athleteOpenCabinetSection(section) {
     </button>
 
     <div class="info-card">
-      <strong>Отчёты по питанию</strong>
-      <p style="color:#aaa;margin:8px 0 0;">
-        Еженедельный анализ ИИ · Скоро
+      <h3 style="margin:0 0 8px;">План питания</h3>
+      <p style="color:#aaa;margin:0 0 14px;">
+        ИИ учтёт дневник питания, вес, цель, особенности питания и доступные сведения о тренировках.
+      </p>
+      <p id="athleteNutritionPlanStatus" role="status"
+        style="color:#aaa;margin:0 0 12px;">
+        Проверяем сохранённый план...
+      </p>
+      <div id="athleteNutritionPlanOutput"></div>
+      <button id="athleteNutritionAnalyzeButton" class="primary-btn"
+        type="button" onclick="athleteGenerateNutritionPlan()"
+        style="width:100%;">
+        Анализ питания
+      </button>
+      <p class="small-note">
+        Это предварительный ориентир по КБЖУ. Обсуди изменения с тренером и соблюдай назначения врача.
       </p>
     </div>
   `;
@@ -1536,11 +1549,6 @@ function athleteOpenCabinetSection(section) {
       Пока нет данных.
     </p>
   </div>
-</div>
-
-<div id="athleteNutritionBaselineAnalysis" class="info-card" hidden>
-  <h3 style="margin:0 0 14px;">Исходный анализ</h3>
-  <div id="athleteNutritionBaselineAnalysisContent"></div>
 </div>
 
   <button
@@ -2308,7 +2316,8 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
 }
   if (section === "nutrition") {
   athleteRenderNutritionOverview();
-}
+  athleteLoadNutritionPlan();
+  }
 }
 
 // История веса: отдельная защищённая Edge Function с проверкой Telegram.
@@ -2425,6 +2434,9 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 403) {
+      if (action === "generate_plan" || action === "load_plan") {
+        throw new Error("Анализ питания пока доступен только тестовому аккаунту.");
+      }
       throw new Error("Доступ к дневнику питания пока не открыт.");
     }
 
@@ -2439,9 +2451,16 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 422) {
+      if (action === "generate_plan") {
+        throw new Error(result.message || "Для анализа не хватает данных анкеты или дневника.");
+      }
       throw new Error(
         "Не удалось распознать все показатели. Проверь, что на скриншоте видны итоговые калории и БЖУ за день."
       );
+    }
+
+    if (response.status === 429) {
+      throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
     }
 
     if (response.status === 400) {
@@ -2509,106 +2528,6 @@ function athleteUpdateNutritionIntroduction(entries) {
   }
 }
 
-function athleteRenderNutritionBaselineAnalysis(entries) {
-  const card = document.getElementById(
-    "athleteNutritionBaselineAnalysis"
-  );
-  const content = document.getElementById(
-    "athleteNutritionBaselineAnalysisContent"
-  );
-
-  if (!card || !content) return;
-
-  const uniqueEntries = Array.from(new Map(
-    (Array.isArray(entries) ? entries : [])
-      .filter(function(entry) {
-        return entry && typeof entry.report_date === "string";
-      })
-      .map(function(entry) { return [entry.report_date, entry]; })
-  ).values()).sort(function(a, b) {
-    return a.report_date.localeCompare(b.report_date);
-  });
-
-  if (uniqueEntries.length < 7) {
-    card.hidden = true;
-    return;
-  }
-
-  const metrics = [
-    { key: "calories", label: "Калории", unit: "ккал", digits: 0 },
-    { key: "protein_g", label: "Белки", unit: "г", digits: 1 },
-    { key: "fat_g", label: "Жиры", unit: "г", digits: 1 },
-    { key: "carbs_g", label: "Углеводы", unit: "г", digits: 1 }
-  ];
-
-  function formatMetric(value, digits) {
-    return Number(value).toLocaleString("ru-RU", {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    });
-  }
-
-  function formatDate(value) {
-    const parts = value.split("-");
-    return `${parts[2]}.${parts[1]}.${parts[0]}`;
-  }
-
-  const rangeRows = metrics.map(function(metric) {
-    const values = uniqueEntries.map(function(entry) {
-      return Number(entry[metric.key]) || 0;
-    });
-    const minimum = Math.min(...values);
-    const maximum = Math.max(...values);
-
-    return `<div class="summary-row">
-      <small>${metric.label}</small>
-      <strong>${formatMetric(minimum, metric.digits)}–${formatMetric(maximum, metric.digits)} ${metric.unit}</strong>
-    </div>`;
-  }).join("");
-
-  const goalLabels = {
-    lose: "Снижение веса",
-    muscle: "Набор мышечной массы",
-    recomp: "Изменение состава тела",
-    strength: "Развитие силы",
-    fitness: "Улучшение формы",
-    other: "Индивидуальная цель"
-  };
-  const answers = athleteSafeAnswers();
-  const goal = goalLabels[answers.goal] || "Не указана";
-  const notes = typeof answers.nutritionNotes === "string"
-    ? answers.nutritionNotes.trim()
-    : "";
-  const firstDate = uniqueEntries[0].report_date;
-  const lastDate = uniqueEntries[uniqueEntries.length - 1].report_date;
-  const periodDays = Math.floor(
-    (Date.parse(`${lastDate}T12:00:00Z`) -
-      Date.parse(`${firstDate}T12:00:00Z`)) / 86400000
-  ) + 1;
-
-  content.innerHTML = `
-    <p style="margin:0 0 8px;color:#aaa;">
-      В расчёт вошло ${uniqueEntries.length} дней с записью
-      за период ${periodDays} ${periodDays === 1 ? "день" : "дн."}
-      (${formatDate(firstDate)}–${formatDate(lastDate)}).
-    </p>
-    <div style="margin:10px 0 16px;">
-      ${rangeRows}
-    </div>
-    <p style="margin:0 0 8px;">
-      <strong>Цель из анкеты:</strong> ${athleteEscape(goal)}.
-    </p>
-    <p style="margin:0;color:#aaa;">
-      <strong style="color:#fff;">Особенности питания:</strong>
-      ${notes ? athleteEscape(notes) : "В анкете не указаны."}
-    </p>
-    <p class="small-note">
-      Это сводка загруженных дней. Она не меняет твой рацион.
-    </p>
-  `;
-  card.hidden = false;
-}
-
 async function athleteEnsureNutritionLoaded() {
   if (Array.isArray(athleteNutritionCache)) {
     return athleteNutritionCache;
@@ -2661,6 +2580,129 @@ async function athleteRenderNutritionOverview() {
     }
   }
 }
+
+function athleteNutritionFormat(value, digits = 0) {
+  return Number(value).toLocaleString("ru-RU", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits
+  });
+}
+
+function athleteRenderNutritionPlan(result) {
+  const output = document.getElementById("athleteNutritionPlanOutput");
+  const status = document.getElementById("athleteNutritionPlanStatus");
+  const button = document.getElementById("athleteNutritionAnalyzeButton");
+  if (!output || !status || !button) return;
+
+  const plan = result && result.plan;
+  if (!plan || !Array.isArray(plan.weekPlan)) {
+    status.textContent = "Сохранённого плана пока нет. Добавь данные минимум за 7 дней и запусти анализ.";
+    button.textContent = "Анализ питания";
+    return;
+  }
+
+  const dayNames = [
+    "Понедельник", "Вторник", "Среда", "Четверг",
+    "Пятница", "Суббота", "Воскресенье"
+  ];
+  const week = plan.weekPlan.map(function(day) {
+    const dayName = dayNames[Number(day.dayIndex) - 1];
+    if (!dayName) return "";
+
+    return `<div style="padding:12px 0;border-top:1px solid #414141;">
+      <strong>${dayName}</strong>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:8px;">
+        <span><small style="display:block;color:#aaa;">ккал</small><b>${athleteNutritionFormat(day.calories)}</b></span>
+        <span><small style="display:block;color:#aaa;">Белки</small><b>${athleteNutritionFormat(day.protein_g, 1)} г</b></span>
+        <span><small style="display:block;color:#aaa;">Жиры</small><b>${athleteNutritionFormat(day.fat_g, 1)} г</b></span>
+        <span><small style="display:block;color:#aaa;">Углеводы</small><b>${athleteNutritionFormat(day.carbs_g, 1)} г</b></span>
+      </div>
+    </div>`;
+  }).join("");
+
+  const recommendations = Array.isArray(plan.recommendations)
+    ? plan.recommendations.slice(0, 5)
+    : [];
+  const needsReview = plan.reviewRequired === true;
+  const formattedDate = result.sourceReportThrough
+    ? result.sourceReportThrough.split("-").reverse().join(".")
+    : "";
+
+  output.innerHTML = `
+    <div style="margin:12px 0;padding:14px;border:1px solid #414141;border-radius:14px;background:#202020;">
+      <strong>${needsReview ? "Нужна проверка специалиста" : "Твой план на неделю"}</strong>
+      <p style="color:#ccc;margin:8px 0 14px;">${athleteEscape(plan.summary || "План сформирован по данным анкеты и дневника.")}</p>
+      ${needsReview ? `<p style="color:#ff8959;margin:8px 0 14px;">${athleteEscape(plan.reviewReason || "По имеющимся данным нельзя безопасно рассчитать числовые цели. Обсуди их с тренером или медицинским специалистом.")}</p>` : week}
+      ${recommendations.length ? `<div style="margin-top:16px;">
+        <strong>Рекомендации</strong>
+        <ul style="padding-left:20px;margin:8px 0 0;color:#ccc;">
+          ${recommendations.map(function(item) {
+            return `<li style="margin:0 0 7px;">${athleteEscape(item)}</li>`;
+          }).join("")}
+        </ul>
+      </div>` : ""}
+    </div>
+  `;
+
+  const count = Number(result.sourceReportCount) || 0;
+  status.textContent = needsReview
+    ? `Анализ основан на ${count} днях дневника${formattedDate ? ` · данные по ${formattedDate}` : ""}; числовой план пока не сформирован.`
+    : `Основан на ${count} днях дневника${formattedDate ? ` · данные по ${formattedDate}` : ""}.`;
+  button.textContent = "Обновить план питания";
+}
+
+async function athleteLoadNutritionPlan() {
+  const status = document.getElementById("athleteNutritionPlanStatus");
+  if (!status) return;
+
+  try {
+    const result = await athleteNutritionRequest("load_plan");
+    if (document.getElementById("athleteNutritionPlanStatus") !== status) return;
+
+    if (result.plan) athleteRenderNutritionPlan(result);
+    else {
+      status.textContent = "После 7 дней записей можно сформировать недельный план КБЖУ.";
+    }
+  } catch (error) {
+    console.error("TRENZO nutrition plan load failed:", error);
+    if (document.getElementById("athleteNutritionPlanStatus") === status) {
+      status.textContent = "Не удалось загрузить план. Попробуй открыть раздел позже.";
+    }
+  }
+}
+
+async function athleteGenerateNutritionPlan() {
+  const button = document.getElementById("athleteNutritionAnalyzeButton");
+  const status = document.getElementById("athleteNutritionPlanStatus");
+  if (!button || !status) return;
+
+  try {
+    const entries = await athleteEnsureNutritionLoaded();
+    if (athleteNutritionDayCount(entries) < 7) {
+      showMessage("Для анализа добавь данные минимум за 7 разных дней.");
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Анализируем рацион...";
+    status.textContent = "Учитываем записи дневника, анкету, цель и доступную историю веса.";
+
+    const result = await athleteNutritionRequest("generate_plan");
+    athleteRenderNutritionPlan(result);
+
+  } catch (error) {
+    console.error("TRENZO nutrition plan generation failed:", error);
+    status.textContent = error.message || "Не удалось сформировать план питания.";
+    showMessage(error.message || "Не удалось сформировать план питания.");
+
+  } finally {
+    button.disabled = false;
+    if (button.textContent === "Анализируем рацион...") {
+      button.textContent = "Анализ питания";
+    }
+  }
+}
+
 async function athleteLoadNutritionHistory() {
   const slot = document.getElementById("athleteNutritionHistory");
 
@@ -2690,7 +2732,6 @@ if (
       ? result.entries.slice().reverse()
       : [];
 athleteUpdateNutritionIntroduction(entries);
-athleteRenderNutritionBaselineAnalysis(entries);
 const daysCount = document.getElementById("athleteNutritionDaysCount");
 
 if (daysCount) {
