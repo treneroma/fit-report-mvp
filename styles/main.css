@@ -842,51 +842,110 @@ h3 {
 .nutrition-history-week-picker {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin: 0 0 8px;
   padding-bottom: 8px;
   border-bottom: 1px solid #414141;
 }
 
-.nutrition-history-week-select {
+.nutrition-history-week-control {
+  position: relative;
+  display: flex;
   flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  border: 1px solid #414141;
-  border-radius: 10px;
-  background: #202020;
-  color: #fff;
-  font-size: 13px;
+  align-items: center;
 }
 
-.nutrition-history-week-count {
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 12px;
+.nutrition-history-week-icon {
+  position: absolute;
+  display: flex;
+  left: 11px;
+  z-index: 1;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.nutrition-history-week-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+.nutrition-history-week-select {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 34px 9px 36px;
+  appearance: none;
+  border: 1px solid #484848;
+  border-radius: 11px;
+  outline: none;
+  background: linear-gradient(135deg, #2d2d2d, #222222);
+  color: #fff;
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.nutrition-history-week-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgb(255 120 70 / 18%);
+}
+
+.nutrition-history-week-chevron {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #c2c2c2;
+  border-bottom: 2px solid #c2c2c2;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
 }
 
 .nutrition-history-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: center;
-  font-size: 11px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .nutrition-history-table th {
-  padding: 5px 2px;
+  padding: 6px 4px;
   border-bottom: 1px solid #414141;
   color: var(--muted);
+  font-weight: 700;
 }
 
 .nutrition-history-table td {
-  padding: 6px 2px;
+  padding: 7px 4px;
   border-bottom: 1px solid #383838;
 }
 
 .nutrition-history-table th:first-child,
 .nutrition-history-table td:first-child {
+  width: 33%;
+  padding-left: 2px;
+  padding-right: 10px;
+  border-right: 1px solid #414141;
   text-align: left;
+}
+
+.nutrition-history-table th:nth-child(2),
+.nutrition-history-table td:nth-child(2) {
+  width: 19%;
+  padding-left: 10px;
+}
+
+.nutrition-history-table th:nth-child(n + 3),
+.nutrition-history-table td:nth-child(n + 3) {
+  width: 16%;
 }
 
 .nutrition-plan-status:empty {
