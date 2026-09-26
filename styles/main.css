@@ -382,6 +382,13 @@ h1 {
   align-items: stretch;
 }
 
+.nutrition-targets-status {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .nutrition-calorie-ring {
   position: relative;
   width: min(100%, 190px);
@@ -560,6 +567,10 @@ h1 {
   .nutrition-targets-layout {
     grid-template-columns: minmax(88px, 0.8fr) minmax(0, 1.7fr);
     gap: 8px;
+  }
+
+  .nutrition-targets-status {
+    font-size: 11px;
   }
 
   .nutrition-calorie-ring {
