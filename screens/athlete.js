@@ -1429,25 +1429,28 @@ function athleteOpenCabinetSection(section) {
       </p>
     </button>
 
-    <div class="info-card">
-      <h3 style="margin:0 0 8px;">План питания</h3>
-      <p style="color:#aaa;margin:0 0 14px;">
-        ИИ учтёт дневник питания, вес, цель, особенности питания и доступные сведения о тренировках.
-      </p>
-      <p id="athleteNutritionPlanStatus" role="status"
-        style="color:#aaa;margin:0 0 12px;">
-        Проверяем сохранённый план...
-      </p>
-      <div id="athleteNutritionPlanOutput"></div>
-      <button id="athleteNutritionAnalyzeButton" class="primary-btn"
-        type="button" onclick="athleteGenerateNutritionPlan()"
-        style="width:100%;">
-        Анализ питания
-      </button>
-      <p class="small-note">
-        Это предварительный ориентир по КБЖУ. Обсуди изменения с тренером и соблюдай назначения врача.
-      </p>
-    </div>
+    <button class="info-card nutrition-plan-link" type="button"
+      onclick="athleteOpenCabinetSection('nutrition-plan')"
+      aria-label="Открыть план питания и рекомендации">
+      <span class="nutrition-plan-link-copy">
+        <strong>План питания</strong>
+        <span id="athleteNutritionPlanCardStatus">Цели на неделю и рекомендации</span>
+      </span>
+      <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+    </button>
+  `;
+
+} else if (section === "nutrition-plan") {
+  title = "План питания";
+  content = `
+    <p id="athleteNutritionPlanStatus" class="nutrition-plan-status" role="status">
+      Загружаем план питания...
+    </p>
+    <div id="athleteNutritionPlanOutput"></div>
+    <button id="athleteNutritionAnalyzeButton" class="primary-btn"
+      type="button" onclick="athleteGenerateNutritionPlan()" disabled>
+      Сформировать план питания
+    </button>
   `;
 
 } else if (section === "nutrition-diary") {
@@ -2233,6 +2236,9 @@ let backAction = "athleteRenderCabinet()";
 if (section === "nutrition-diary") {
   backAction = "athleteOpenCabinetSection('nutrition')";
 
+} else if (section === "nutrition-plan") {
+  backAction = "athleteOpenCabinetSection('nutrition')";
+
 } else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
   backLabel = "В замеры тела";
@@ -2279,7 +2285,7 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
   athleteLoadNutritionHistory();
   athleteLoadNutritionPlan();
 }
-  if (section === "nutrition") {
+  if (section === "nutrition" || section === "nutrition-plan") {
   athleteLoadNutritionPlan();
   }
 }
@@ -2445,7 +2451,6 @@ let athleteNutritionPlanCache = null;
 let athleteNutritionPlanResultCache = null;
 let athleteNutritionPlanLoadedWeek = "";
 let athleteNutritionPlanLoadPending = null;
-let athleteNutritionPlanEffectiveFrom = "";
 let athleteNutritionPending = null;
 
 function athleteNutritionDayCount(entries) {
@@ -2530,27 +2535,6 @@ function athleteNutritionFormat(value, digits = 0) {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
   });
-}
-
-function athleteNutritionPlanStartDate(generatedAt, sourceReportThrough) {
-  let start = new Date(generatedAt || Date.now());
-  if (Number.isNaN(start.getTime())) start = new Date();
-
-  if (start.getDay() === 0) {
-    start.setDate(start.getDate() + 1);
-  }
-
-  let startDate = [start.getFullYear(), String(start.getMonth() + 1).padStart(2, "0"),
-    String(start.getDate()).padStart(2, "0")].join("-");
-
-  if (typeof sourceReportThrough === "string" && sourceReportThrough >= startDate) {
-    const sourceDate = new Date(`${sourceReportThrough}T12:00:00`);
-    sourceDate.setDate(sourceDate.getDate() + 1);
-    startDate = [sourceDate.getFullYear(), String(sourceDate.getMonth() + 1).padStart(2, "0"),
-      String(sourceDate.getDate()).padStart(2, "0")].join("-");
-  }
-
-  return startDate;
 }
 
 function athleteNutritionWeekStart(dateValue) {
@@ -2776,22 +2760,34 @@ function athleteRenderNutritionPlan(result) {
   athleteNutritionPlanResultCache = result;
   athleteNutritionPlanLoadedWeek = athleteNutritionWeekStart(athleteLocalDate());
 
+  const cardStatus = document.getElementById("athleteNutritionPlanCardStatus");
   const output = document.getElementById("athleteNutritionPlanOutput");
   const status = document.getElementById("athleteNutritionPlanStatus");
   const button = document.getElementById("athleteNutritionAnalyzeButton");
   const plan = result && result.plan;
-  if (!plan || !Array.isArray(plan.weekPlan)) {
-    if (status) status.textContent = "Сохранённого плана пока нет. Добавь данные минимум за 7 дней и запусти анализ.";
-    if (button) button.textContent = "Анализ питания";
+
+  if (!plan) {
+    if (cardStatus) cardStatus.textContent = "Недельный план ещё не сформирован";
+    if (status) status.textContent = "";
+    if (output) {
+      output.innerHTML = `
+        <div class="info-card nutrition-plan-empty">
+          <strong>План пока не сформирован</strong>
+          <p>Добавь записи за 7 разных дней, чтобы получить цели и рекомендации.</p>
+        </div>
+      `;
+    }
+    if (button) {
+      button.hidden = false;
+      button.disabled = false;
+      button.textContent = "Сформировать план питания";
+    }
     athleteNutritionPlanCache = null;
     athleteRenderNutritionTargets(null);
     return;
   }
+
   athleteNutritionPlanCache = plan;
-  athleteNutritionPlanEffectiveFrom = athleteNutritionPlanStartDate(
-    result.generatedAt,
-    result.sourceReportThrough
-  );
   athleteRenderNutritionTargets(plan);
   ["athleteNutritionIntroCard", "athleteNutritionProgressCard", "athleteNutritionCompletionMessage"]
     .forEach(function(id) {
@@ -2799,9 +2795,18 @@ function athleteRenderNutritionPlan(result) {
       if (element) element.hidden = true;
     });
 
+  const hasWeekPlan = Array.isArray(plan.weekPlan);
+  if (cardStatus) {
+    cardStatus.textContent = plan.reviewRequired
+      ? "Нужна проверка специалиста"
+      : hasWeekPlan && plan.weekPlan.length === 7
+        ? "Ежедневные цели и рекомендации на эту неделю"
+        : "Недельный план ещё не сформирован";
+  }
+
   if (!output || !status || !button) return;
 
-  const dailyValues = plan.weekPlan.map(function(day) {
+  const dailyValues = (hasWeekPlan ? plan.weekPlan : []).map(function(day) {
     return {
       calories: Number(day.calories),
       protein: Number(day.protein_g),
@@ -2813,6 +2818,33 @@ function athleteRenderNutritionPlan(result) {
     dailyValues.every(function(day) {
       return Object.values(day).every(Number.isFinite);
     });
+
+  if (plan.reviewRequired) {
+    if (cardStatus) cardStatus.textContent = "Нужна проверка специалиста";
+    status.textContent = "";
+    output.innerHTML = `
+      <div class="info-card nutrition-plan-detail">
+        <strong>Нужна проверка специалиста</strong>
+        <p class="nutrition-plan-review-reason">${athleteEscape(plan.reviewReason || "По имеющимся данным нельзя безопасно рассчитать числовые цели.")}</p>
+      </div>
+    `;
+    button.hidden = true;
+    return;
+  }
+
+  if (!hasDailyValues) {
+    if (cardStatus) cardStatus.textContent = "Недельный план ещё не сформирован";
+    status.textContent = "Не удалось получить числовые цели. Попробуй сформировать план ещё раз.";
+    output.innerHTML = "";
+    button.hidden = false;
+    button.disabled = false;
+    button.textContent = "Сформировать план питания";
+    return;
+  }
+
+  if (cardStatus) cardStatus.textContent = "Ежедневные цели и рекомендации на эту неделю";
+  status.textContent = "";
+
   const dailyTarget = hasDailyValues
     ? {
       calories: dailyValues.reduce((sum, day) => sum + day.calories, 0) / 7,
@@ -2823,12 +2855,12 @@ function athleteRenderNutritionPlan(result) {
     : null;
   const dailyTargetMarkup = dailyTarget
     ? `<div style="padding:12px 0;border-top:1px solid #414141;">
-        <strong>Придерживайся этих значений каждый день на этой неделе</strong>
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:10px;">
-          <span><small style="display:block;color:#aaa;">Калории</small><b>${athleteNutritionFormat(dailyTarget.calories)} ккал</b></span>
-          <span><small style="display:block;color:#aaa;">Белки</small><b>${athleteNutritionFormat(dailyTarget.protein, 1)} г</b></span>
-          <span><small style="display:block;color:#aaa;">Жиры</small><b>${athleteNutritionFormat(dailyTarget.fat, 1)} г</b></span>
-          <span><small style="display:block;color:#aaa;">Углеводы</small><b>${athleteNutritionFormat(dailyTarget.carbs, 1)} г</b></span>
+        <strong>Твои цели на каждый день этой недели</strong>
+        <div class="nutrition-daily-targets">
+          <span><small>Калории</small><b>${athleteNutritionFormat(dailyTarget.calories)} ккал</b></span>
+          <span><small>Белки</small><b>${athleteNutritionFormat(dailyTarget.protein, 1)} г</b></span>
+          <span><small>Жиры</small><b>${athleteNutritionFormat(dailyTarget.fat, 1)} г</b></span>
+          <span><small>Углеводы</small><b>${athleteNutritionFormat(dailyTarget.carbs, 1)} г</b></span>
         </div>
       </div>`
     : "";
@@ -2836,32 +2868,25 @@ function athleteRenderNutritionPlan(result) {
   const recommendations = Array.isArray(plan.recommendations)
     ? plan.recommendations.slice(0, 5)
     : [];
-  const needsReview = plan.reviewRequired === true;
-  const formattedDate = result.sourceReportThrough
-    ? result.sourceReportThrough.split("-").reverse().join(".")
-    : "";
 
   output.innerHTML = `
-    <div style="margin:12px 0;padding:14px;border:1px solid #414141;border-radius:14px;background:#202020;">
-      <strong>${needsReview ? "Нужна проверка специалиста" : "Твой план на неделю"}</strong>
-      <p style="color:#ccc;margin:8px 0 14px;">${athleteEscape(plan.summary || "План сформирован по данным анкеты и дневника.")}</p>
-      ${needsReview ? `<p style="color:#ff8959;margin:8px 0 14px;">${athleteEscape(plan.reviewReason || "По имеющимся данным нельзя безопасно рассчитать числовые цели. Обсуди их с тренером или медицинским специалистом.")}</p>` : dailyTargetMarkup}
-      ${recommendations.length ? `<div style="margin-top:16px;">
+    <div class="info-card nutrition-plan-detail">
+      <p class="nutrition-plan-context">
+        По итогам анализа прошлых данных и с учётом твоей цели мы скорректировали питание на эту неделю.
+      </p>
+      ${dailyTargetMarkup}
+      ${recommendations.length ? `<div class="nutrition-plan-recommendations">
         <strong>Рекомендации</strong>
-        <ul style="padding-left:20px;margin:8px 0 0;color:#ccc;">
+        <ul>
           ${recommendations.map(function(item) {
-            return `<li style="margin:0 0 7px;">${athleteEscape(item)}</li>`;
+            return `<li>${athleteEscape(item)}</li>`;
           }).join("")}
         </ul>
       </div>` : ""}
     </div>
   `;
 
-  const count = Number(result.sourceReportCount) || 0;
-  status.textContent = needsReview
-    ? `Анализ основан на ${count} днях дневника${formattedDate ? ` · данные по ${formattedDate}` : ""}; числовой план пока не сформирован.`
-    : `Основан на ${count} днях дневника${formattedDate ? ` · данные по ${formattedDate}` : ""}.`;
-  button.textContent = "Обновить план питания";
+  button.hidden = true;
 }
 
 async function athleteLoadNutritionPlan() {
@@ -2905,6 +2930,14 @@ async function athleteLoadNutritionPlan() {
       if (status && document.getElementById("athleteNutritionPlanStatus") === status) {
         status.textContent = "Не удалось загрузить план. Попробуй открыть раздел позже.";
       }
+      const cardStatus = document.getElementById("athleteNutritionPlanCardStatus");
+      if (cardStatus) cardStatus.textContent = "Не удалось загрузить план";
+      const button = document.getElementById("athleteNutritionAnalyzeButton");
+      if (button) {
+        button.hidden = false;
+        button.disabled = false;
+        button.textContent = "Сформировать план питания";
+      }
     }
   })();
 
@@ -2926,7 +2959,7 @@ async function athleteGenerateNutritionPlan() {
   try {
     const entries = await athleteEnsureNutritionLoaded();
     if (athleteNutritionDayCount(entries) < 7) {
-      showMessage("Для анализа добавь данные минимум за 7 разных дней.");
+      showMessage("Чтобы сформировать план, добавь данные минимум за 7 разных дней.");
       return;
     }
 
@@ -2945,7 +2978,7 @@ async function athleteGenerateNutritionPlan() {
   } finally {
     button.disabled = false;
     if (button.textContent === "Анализируем рацион...") {
-      button.textContent = "Анализ питания";
+      button.textContent = "Сформировать план питания";
     }
   }
 }
