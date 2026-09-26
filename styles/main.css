@@ -6,6 +6,7 @@
   --text: #ffffff;
   --muted: #aaaaaa;
   --accent: #ff7846;
+  --progress-fill: #32d6a0;
   --font-ui: Arial, sans-serif;
   --text-logo: 28px;
   --text-page-title: clamp(27px, 7vw, 32px);
@@ -738,7 +739,7 @@ h3 {
 }
 
 .nutrition-calorie-progress {
-  stroke: #32d6a0;
+  stroke: var(--progress-fill);
   stroke-linecap: round;
   transition: stroke-dashoffset 260ms ease;
 }
@@ -824,6 +825,84 @@ h3 {
 .nutrition-macro-progress {
   height: 100%;
   border-radius: inherit;
+  background: var(--progress-fill);
+  transition: width 260ms ease;
+}
+
+.training-targets-layout {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.9fr) minmax(0, 2.4fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.training-workout-ring .nutrition-calorie-value strong {
+  font-size: clamp(19px, 5.3vw, 30px);
+  white-space: nowrap;
+}
+
+.training-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.training-metric-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 8px;
+  border: 1px solid #383b40;
+  border-radius: 13px;
+  background: #222428;
+}
+
+.training-metric-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 6px;
+  place-items: center;
+  border-radius: 9px;
+  background: #293a35;
+  color: var(--progress-fill);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.training-metric-label {
+  min-height: 2.25em;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.training-metric-value {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-size: clamp(12px, 1.8vw, 17px);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.training-metric-track {
+  height: 5px;
+  flex-shrink: 0;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #343a40;
+}
+
+.training-metric-progress {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--progress-fill);
   transition: width 260ms ease;
 }
 
@@ -1066,6 +1145,37 @@ h3 {
     margin-top: 9px;
   }
 
+  .training-targets-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .training-workout-ring {
+    width: min(100%, 116px);
+  }
+
+  .training-workout-ring .nutrition-calorie-value strong {
+    font-size: 18px;
+  }
+
+  .training-metric-grid {
+    gap: 8px;
+  }
+
+  .training-metric-card {
+    padding: 7px;
+    border-radius: 12px;
+  }
+
+  .training-metric-label {
+    min-height: 2.3em;
+    font-size: 10px;
+  }
+
+  .training-metric-value {
+    font-size: clamp(11px, 3.1vw, 14px);
+  }
+
 }
 
 @media (max-width: 360px) {
@@ -1085,6 +1195,14 @@ h3 {
 
   .nutrition-macro-target {
     font-size: 12px;
+  }
+
+  .training-metric-card {
+    padding: 5px;
+  }
+
+  .training-metric-value {
+    font-size: 10px;
   }
 
   .page {
