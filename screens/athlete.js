@@ -2476,6 +2476,9 @@ async function athleteNutritionRequest(action, extra = {}) {
 }
 let athleteNutritionCache = null;
 let athleteNutritionPlanCache = null;
+let athleteNutritionPlanResultCache = null;
+let athleteNutritionPlanLoadedWeek = "";
+let athleteNutritionPlanLoadPending = null;
 let athleteNutritionPlanEffectiveFrom = "";
 let athleteNutritionPending = null;
 
@@ -2797,6 +2800,9 @@ function athleteRenderNutritionTargets(plan) {
 }
 
 function athleteRenderNutritionPlan(result) {
+  athleteNutritionPlanResultCache = result;
+  athleteNutritionPlanLoadedWeek = athleteNutritionWeekStart(athleteLocalDate());
+
   const output = document.getElementById("athleteNutritionPlanOutput");
   const status = document.getElementById("athleteNutritionPlanStatus");
   const button = document.getElementById("athleteNutritionAnalyzeButton");
@@ -2887,28 +2893,54 @@ function athleteRenderNutritionPlan(result) {
 
 async function athleteLoadNutritionPlan() {
   const status = document.getElementById("athleteNutritionPlanStatus");
+  const currentWeek = athleteNutritionWeekStart(athleteLocalDate());
 
-  try {
-    const result = await athleteNutritionRequest("load_plan");
-    if (status && document.getElementById("athleteNutritionPlanStatus") !== status) return;
-
-    if (result.plan) {
+  if (
+    athleteNutritionPlanResultCache &&
+    athleteNutritionPlanLoadedWeek === currentWeek
+  ) {
+    if (athleteNutritionPlanResultCache.plan && athleteNutritionCache === null) {
       try {
         await athleteEnsureNutritionLoaded();
       } catch (nutritionError) {
         console.error("TRENZO nutrition progress load failed:", nutritionError);
       }
+    }
+    athleteRenderNutritionPlan(athleteNutritionPlanResultCache);
+    return;
+  }
+
+  if (athleteNutritionPlanLoadPending) {
+    return athleteNutritionPlanLoadPending;
+  }
+
+  const loadPromise = (async function() {
+    try {
+      const result = await athleteNutritionRequest("load_plan");
+
+      if (result.plan) {
+        try {
+          await athleteEnsureNutritionLoaded();
+        } catch (nutritionError) {
+          console.error("TRENZO nutrition progress load failed:", nutritionError);
+        }
+      }
+
       athleteRenderNutritionPlan(result);
+    } catch (error) {
+      console.error("TRENZO nutrition plan load failed:", error);
+      if (status && document.getElementById("athleteNutritionPlanStatus") === status) {
+        status.textContent = "Не удалось загрузить план. Попробуй открыть раздел позже.";
+      }
     }
-    else {
-      athleteNutritionPlanCache = null;
-      athleteRenderNutritionTargets(null);
-      if (status) status.textContent = "После 7 дней записей можно сформировать недельный план КБЖУ.";
-    }
-  } catch (error) {
-    console.error("TRENZO nutrition plan load failed:", error);
-    if (status && document.getElementById("athleteNutritionPlanStatus") === status) {
-      status.textContent = "Не удалось загрузить план. Попробуй открыть раздел позже.";
+  })();
+
+  athleteNutritionPlanLoadPending = loadPromise;
+  try {
+    await loadPromise;
+  } finally {
+    if (athleteNutritionPlanLoadPending === loadPromise) {
+      athleteNutritionPlanLoadPending = null;
     }
   }
 }
@@ -2951,47 +2983,36 @@ async function athleteLoadNutritionHistory() {
   if (!slot) return;
 
   if (athleteNutritionCache === null) {
-  slot.innerHTML = `<p style="color:#aaa;">Загружаем историю питания...</p>`;
-}
+    slot.innerHTML = `<p style="color:#aaa;">Загружаем историю питания...</p>`;
+  }
 
   try {
-    const result = athleteNutritionCache === null
-  ? await athleteNutritionRequest("load")
-  : { entries: athleteNutritionCache };
-
-if (
-  athleteNutritionCache === null &&
-  Array.isArray(result.entries)
-) {
-  athleteNutritionCache = result.entries.slice();
-}
+    const entries = await athleteEnsureNutritionLoaded();
     athleteRenderNutritionTargets(athleteNutritionPlanCache);
 
     if (document.getElementById("athleteNutritionHistory") !== slot) {
       return;
     }
 
-    const entries = Array.isArray(result.entries)
-      ? result.entries.slice().reverse()
-      : [];
-athleteUpdateNutritionIntroduction(entries);
-const daysCount = document.getElementById("athleteNutritionDaysCount");
+    const reversedEntries = entries.slice().reverse();
+    athleteUpdateNutritionIntroduction(reversedEntries);
+    const daysCount = document.getElementById("athleteNutritionDaysCount");
 
-if (daysCount) {
-  const count = Math.min(athleteNutritionDayCount(entries), 7);
-  daysCount.textContent = `${count} из 7`;
-}
+    if (daysCount) {
+      const count = Math.min(athleteNutritionDayCount(reversedEntries), 7);
+      daysCount.textContent = `${count} из 7`;
+    }
     const daysProgress = document.getElementById("athleteNutritionDaysProgress");
 
-if (daysProgress) {
-  const count = Math.min(athleteNutritionDayCount(entries), 7);
+    if (daysProgress) {
+      const count = Math.min(athleteNutritionDayCount(reversedEntries), 7);
 
-  Array.from(daysProgress.children).forEach(function(segment, index) {
-    segment.style.background =
-      index < count ? "#ff7846" : "#414141";
-  });
-}
-    athleteRenderNutritionHistoryWeeks(slot, entries);
+      Array.from(daysProgress.children).forEach(function(segment, index) {
+        segment.style.background =
+          index < count ? "#ff7846" : "#414141";
+      });
+    }
+    athleteRenderNutritionHistoryWeeks(slot, reversedEntries);
 
   } catch (error) {
     console.error("TRENZO nutrition history failed:", error);
