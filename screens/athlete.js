@@ -1924,32 +1924,24 @@ ${athleteNutritionProgressHelpMarkup()}
   `;
   } else if (section === "training") {
     title = "Тренировочный план";
-    content = athleteCabinetCard("Твой режим из анкеты",
-      athleteCabinetRow("Опыт", d.experience, {
-        new: "Только начинаю", under1: "До 1 года", "1to3": "От 1 до 3 лет",
-        "3to5": "От 3 до 5 лет", "5plus": "Более 5 лет"
-      }) +
-      athleteCabinetRow("Последние 3 месяца", d.recentTraining, {
-        none: "Почти не тренировался", irregular: "Нерегулярно",
-        "1to2": "1–2 раза в неделю", "3plus": "3 и более раз в неделю",
-        program: "Регулярно по программе"
-      }) +
-      athleteCabinetRow("Тренировок в неделю", d.frequency) +
-      athleteCabinetRow("Длительность", d.duration, {
-        under45: "До 45 минут", "45to60": "45–60 минут",
-        "60to90": "60–90 минут", over90: "Более 90 минут"
-      }) +
-      athleteCabinetRow("Формат занятий", d.trainingMode, {
-        alone: "Самостоятельно", coach: "С тренером",
-        mixed: "Самостоятельно и с тренером", starting: "Планирую начать"
-      }) +
-      athleteCabinetRow("Наличие программы", d.programStatus, {
-        yes: "Есть действующая программа", partial: "Есть отдельные упражнения",
-        no: "Программы пока нет"
-      })) +
-      athleteCabinetCard("Тренировки и отчёты",
-        `<p>Расписание, предстоящие и прошедшие тренировки,
-        программа и отчёты появятся здесь после настройки модуля.</p>`);
+    content = `
+      <section class="info-card nutrition-control-card training-control-card" aria-labelledby="trainingControlTitle">
+        <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы тренировок?" onclick="document.getElementById('athleteTrainingHelpDialog').showModal()"><span>?</span></button>
+        <div class="nutrition-control-heading">
+          <h3 id="trainingControlTitle" style="margin:0;">Контроль тренировок</h3>
+          <p class="nutrition-control-subtitle">Твоя тренировочная цель на эту неделю</p>
+        </div>
+        ${athleteTrainingControlMarkup()}
+      </section>
+      <dialog id="athleteTrainingHelpDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingHelpTitle">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteTrainingHelpTitle">Как считаются шкалы?</h3>
+          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+        </div>
+        <p>Здесь показывается, сколько тренировок, упражнений, подходов и повторений выполнено от плана на эту неделю.</p>
+        <p>Например, 1 из 4 тренировок — это четверть недельной цели. Шкалы заполняются по мере того, как ты отмечаешь тренировки.</p>
+        <button class="primary-btn nutrition-help-done" type="button" onclick="this.closest('dialog').close()">Понятно</button>
+      </dialog>`;
   } else if (section === "progress") {
     title = "Прогресс";
     content = `
@@ -2648,6 +2640,77 @@ function athleteNutritionProgressHelpMarkup() {
   `;
 }
 
+function athleteTrainingControlMarkup(metrics) {
+  const source = metrics && typeof metrics === "object" ? metrics : {};
+  const items = [
+    { key: "exercises", label: "Упражнения", icon: "✦" },
+    { key: "sets", label: "Подходы", icon: "▤" },
+    { key: "repetitions", label: "Повторения", icon: "↻" }
+  ];
+  const metricValues = {};
+  items.forEach(function(item) {
+    const value = source[item.key] || {};
+    const completed = Number(value.completed);
+    const target = Number(value.target);
+    const valid = Number.isFinite(completed) && Number.isFinite(target) && target > 0;
+    metricValues[item.key] = {
+      valid: valid,
+      completed: valid ? Math.max(0, completed) : null,
+      target: valid ? target : null,
+      percent: valid ? Math.min(100, Math.max(0, completed / target * 100)) : 0
+    };
+  });
+
+  const workoutValue = source.workouts || {};
+  const workoutCompleted = Number(workoutValue.completed);
+  const workoutTarget = Number(workoutValue.target);
+  const workoutValid = Number.isFinite(workoutCompleted) && Number.isFinite(workoutTarget) && workoutTarget > 0;
+  const workoutPercent = workoutValid
+    ? Math.min(100, Math.max(0, workoutCompleted / workoutTarget * 100))
+    : 0;
+  const radius = 51;
+  const circumference = 2 * Math.PI * radius;
+  const circleOffset = circumference * (1 - workoutPercent / 100);
+  const workoutAria = workoutValid
+    ? `role="progressbar" aria-label="Выполнено тренировок за неделю" aria-valuemin="0" aria-valuemax="${workoutTarget}" aria-valuenow="${Math.min(workoutTarget, workoutCompleted)}"`
+    : `aria-label="Цель по тренировкам появится после загрузки тренировок"`;
+
+  const metricCards = items.map(function(item) {
+    const value = metricValues[item.key];
+    const progressRole = value.valid
+      ? `role="progressbar" aria-label="Выполнено: ${item.label.toLowerCase()} за неделю" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(value.percent)}"`
+      : `aria-hidden="true"`;
+    const ratio = value.valid
+      ? `${athleteNutritionFormat(value.completed)} / ${athleteNutritionFormat(value.target)}`
+      : "— / —";
+    return `<div class="training-metric-card">
+      <span class="training-metric-icon" aria-hidden="true">${item.icon}</span>
+      <span class="training-metric-label">${item.label}</span>
+      <strong class="training-metric-value">${ratio}</strong>
+      <div class="training-metric-track" ${progressRole}>
+        <div class="training-metric-progress" style="width:${value.percent}%;"></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const workoutRatio = workoutValid
+    ? `${athleteNutritionFormat(workoutCompleted)} / ${athleteNutritionFormat(workoutTarget)}`
+    : "— / —";
+  return `<div class="training-targets-layout">
+    <div class="nutrition-calorie-ring training-workout-ring" ${workoutAria}>
+      <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+        <circle class="nutrition-calorie-track" cx="60" cy="60" r="${radius}"></circle>
+        <circle class="nutrition-calorie-progress" cx="60" cy="60" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="${circleOffset}"></circle>
+      </svg>
+      <div class="nutrition-calorie-value">
+        <strong>${workoutRatio}</strong>
+        <span>тренировки</span>
+      </div>
+    </div>
+    <div class="training-metric-grid">${metricCards}</div>
+  </div>`;
+}
+
 function athleteRenderNutritionTargets(plan) {
   const slots = [
     document.getElementById("athleteNutritionOverviewTargets"),
@@ -2727,7 +2790,7 @@ function athleteRenderNutritionTargets(plan) {
       <span class="nutrition-macro-label">${item.label}</span>
       <strong class="nutrition-macro-target">${athleteNutritionFormat(item.goal)} ${item.unit}</strong>
       <div class="nutrition-macro-track" role="progressbar" aria-label="Среднее выполнение цели по показателю «${item.label.toLowerCase()}» за неделю" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}">
-        <div class="nutrition-macro-progress" style="width:${width}%;background:${item.color};"></div>
+        <div class="nutrition-macro-progress" style="width:${width}%;"></div>
       </div>
     </div>`;
   }).join("");
