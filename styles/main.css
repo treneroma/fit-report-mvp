@@ -466,6 +466,7 @@ h1 {
   margin: auto;
   padding: 20px;
   overflow-y: auto;
+  outline: none;
   border: 1px solid #484848;
   border-radius: 22px;
   background: #242424;
@@ -508,6 +509,33 @@ h1 {
 .nutrition-help-done {
   min-height: 44px;
   margin-top: 4px;
+}
+
+.nutrition-entry-method-dialog {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nutrition-entry-method-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nutrition-entry-method-options .info-card {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  text-align: left;
+  color: #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nutrition-entry-method-options .info-card:focus-visible {
+  outline: 2px solid var(--accent, #ff7848);
+  outline-offset: 2px;
 }
 
 .nutrition-calorie-ring {
