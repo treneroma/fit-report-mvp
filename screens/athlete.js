@@ -2718,11 +2718,26 @@ function athleteRenderNutritionTargets(plan) {
     carbs: values.reduce((sum, day) => sum + day.carbs, 0) / values.length
   };
   const today = athleteLocalDate();
-  const entry = today >= athleteNutritionPlanEffectiveFrom
-    ? (athleteNutritionCache || []).find(function(row) {
+  const nutritionLoaded = Array.isArray(athleteNutritionCache);
+  const todayEntry = nutritionLoaded
+    ? athleteNutritionCache.find(function(row) {
       return row && row.report_date === today;
     })
     : null;
+  const planStartsLater = Boolean(
+    athleteNutritionPlanEffectiveFrom && today < athleteNutritionPlanEffectiveFrom
+  );
+  const entry = planStartsLater ? null : todayEntry;
+  const hasEntry = Boolean(entry);
+  const effectiveDateLabel = athleteNutritionPlanEffectiveFrom
+    .split("-").reverse().join(".");
+  const progressStatus = !nutritionLoaded
+    ? "Не удалось загрузить запись за сегодня."
+    : planStartsLater
+      ? `Эта цель начнёт действовать ${effectiveDateLabel}.`
+      : hasEntry
+        ? "Сегодня · шкалы показывают съеденное относительно цели"
+        : "Нет записи за сегодня — шкалы обновятся после внесения КБЖУ.";
   const goals = [
     { key: "protein_g", label: "Белки", unit: "г", goal: average.protein, color: "#ff806d", bg: "#3b292b", icon: "🥩" },
     { key: "fat_g", label: "Жиры", unit: "г", goal: average.fat, color: "#ffc54f", bg: "#393326", icon: "💧" },
@@ -2743,14 +2758,15 @@ function athleteRenderNutritionTargets(plan) {
       <span class="nutrition-macro-icon" style="color:${item.color};background:${item.bg};">${item.icon}</span>
       <span class="nutrition-macro-label">${item.label}</span>
       <strong class="nutrition-macro-target">${athleteNutritionFormat(item.goal)} ${item.unit}</strong>
-      <div class="nutrition-macro-track" role="progressbar" aria-label="${item.label}: ${Math.round(percent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}">
+      <div class="nutrition-macro-track" ${hasEntry ? `role="progressbar" aria-label="${item.label}: ${Math.round(percent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}"` : "aria-hidden=\"true\""}>
         <div class="nutrition-macro-progress" style="width:${width}%;background:${item.color};"></div>
       </div>
     </div>`;
   }).join("");
   const markup = `
+    <p class="nutrition-targets-status" role="status">${progressStatus}</p>
     <div class="nutrition-targets-layout">
-      <div class="nutrition-calorie-ring" role="progressbar" aria-label="Калории: ${Math.round(caloriesPercent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, caloriesPercent))}">
+      <div class="nutrition-calorie-ring" ${hasEntry ? `role="progressbar" aria-label="Калории: ${Math.round(caloriesPercent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, caloriesPercent))}"` : "aria-label=\"Цель по калориям за день\""}>
         <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
           <circle class="nutrition-calorie-track" cx="60" cy="60" r="${radius}"></circle>
           <circle class="nutrition-calorie-progress" cx="60" cy="60" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="${circleOffset}"></circle>
