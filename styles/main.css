@@ -383,7 +383,7 @@ h1 {
 }
 
 .nutrition-control-heading {
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .nutrition-control-heading h3 {
@@ -399,6 +399,10 @@ h1 {
 
 .nutrition-control-card {
   position: relative;
+}
+
+#athleteScreen .info-card.nutrition-control-card {
+  padding-bottom: 8px;
 }
 
 .nutrition-help-button,
