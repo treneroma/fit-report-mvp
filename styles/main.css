@@ -575,7 +575,11 @@ h1 {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  padding: 0 2px;
+  aspect-ratio: 4 / 5;
+  padding: 8px;
+  border: 1px solid #383b40;
+  border-radius: 13px;
+  background: #222428;
 }
 
 .nutrition-macro-icon {
@@ -711,7 +715,9 @@ h1 {
 
   .nutrition-macro-card {
     align-items: stretch;
-    padding: 0 2px;
+    aspect-ratio: 4 / 5;
+    padding: 6px;
+    border-radius: 12px;
   }
 
   .nutrition-macro-icon {
@@ -742,6 +748,24 @@ h1 {
 }
 
 @media (max-width: 360px) {
+  .nutrition-macro-card {
+    padding: 4px;
+  }
+
+  .nutrition-macro-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+  }
+
+  .nutrition-macro-label {
+    font-size: 10px;
+  }
+
+  .nutrition-macro-target {
+    font-size: 12px;
+  }
+
   .page {
     padding-left: 16px;
     padding-right: 16px;
