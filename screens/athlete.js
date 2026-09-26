@@ -1418,15 +1418,16 @@ function athleteOpenCabinetSection(section) {
     </div>
     ${athleteNutritionProgressHelpMarkup()}
     <button
-      class="info-card"
+      class="info-card nutrition-plan-link"
       type="button"
       onclick="athleteOpenCabinetSection('nutrition-diary')"
-      style="display:block;width:100%;margin-bottom:16px;text-align:left;cursor:pointer;color:#fff;"
+      aria-label="Открыть дневник питания"
     >
-      <strong>Дневник питания</strong>
-      <p style="color:#aaa;margin:8px 0 0;">
-        Загрузка питания и история по дням
-      </p>
+      <span class="nutrition-plan-link-copy">
+        <strong>Дневник питания</strong>
+        <span>Загрузка питания и история по дням</span>
+      </span>
+      <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
     </button>
 
     <button class="info-card nutrition-plan-link" type="button"
