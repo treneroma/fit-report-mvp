@@ -1933,13 +1933,35 @@ ${athleteNutritionProgressHelpMarkup()}
         </div>
         ${athleteTrainingControlMarkup()}
       </section>
+      <button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="document.getElementById('athleteTrainingUploadDialog').showModal()">
+        <span class="training-module-card-copy">
+          <strong>Загрузить тренировки</strong>
+          <span>Добавь минимум 3 тренировки, чтобы мы составили план</span>
+        </span>
+        <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+      </button>
+      <section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
+        <strong>План тренировок</strong>
+        <span>Появится после загрузки и анализа тренировок</span>
+      </section>
+      <section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
+        <strong>История тренировок</strong>
+        <span>Здесь будут храниться прошедшие тренировки</span>
+      </section>
       <dialog id="athleteTrainingHelpDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingHelpTitle">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingHelpTitle">Как считаются шкалы?</h3>
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
-        <p>Здесь показывается, сколько тренировок, упражнений, подходов и повторений выполнено от плана на эту неделю.</p>
-        <p>Например, 1 из 4 тренировок — это четверть недельной цели. Шкалы заполняются по мере того, как ты отмечаешь тренировки.</p>
+      </dialog>`;
+    content += `
+      <dialog id="athleteTrainingUploadDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingUploadTitle">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteTrainingUploadTitle">Загрузить тренировки</h3>
+          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+        </div>
+        <p>Первый этап — добавить минимум 3 тренировки с датами. После загрузки мы сможем разобрать их и подготовить план.</p>
+        <p class="training-upload-notice">Загрузка и сохранение тренировок пока не подключены.</p>
         <button class="primary-btn nutrition-help-done" type="button" onclick="this.closest('dialog').close()">Понятно</button>
       </dialog>`;
   } else if (section === "progress") {
@@ -2643,9 +2665,27 @@ function athleteNutritionProgressHelpMarkup() {
 function athleteTrainingControlMarkup(metrics) {
   const source = metrics && typeof metrics === "object" ? metrics : {};
   const items = [
-    { key: "exercises", label: "Упражнения", icon: "✦" },
-    { key: "sets", label: "Подходы", icon: "▤" },
-    { key: "repetitions", label: "Повторения", icon: "↻" }
+    {
+      key: "exercises",
+      label: "Упражнения",
+      color: "#ff806d",
+      background: "#3b292b",
+      icon: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6m4-9v12m8-12v12m4-9v6M8 12h8"/></svg>`
+    },
+    {
+      key: "sets",
+      label: "Подходы",
+      color: "#69aaff",
+      background: "#223247",
+      icon: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg>`
+    },
+    {
+      key: "repetitions",
+      label: "Повторения",
+      color: "#43d082",
+      background: "#213a2d",
+      icon: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"/></svg>`
+    }
   ];
   const metricValues = {};
   items.forEach(function(item) {
@@ -2684,7 +2724,7 @@ function athleteTrainingControlMarkup(metrics) {
       ? `${athleteNutritionFormat(value.completed)} / ${athleteNutritionFormat(value.target)}`
       : "— / —";
     return `<div class="training-metric-card">
-      <span class="training-metric-icon" aria-hidden="true">${item.icon}</span>
+      <span class="training-metric-icon" style="--training-icon-color:${item.color};--training-icon-background:${item.background};" aria-hidden="true">${item.icon}</span>
       <span class="training-metric-label">${item.label}</span>
       <strong class="training-metric-value">${ratio}</strong>
       <div class="training-metric-track" ${progressRole}>
