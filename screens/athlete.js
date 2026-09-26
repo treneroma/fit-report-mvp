@@ -1256,7 +1256,7 @@ function athleteCabinetRow(label, value, labels = {}) {
 
 function athleteCabinetCard(title, rows) {
   return `<div class="info-card">
-    <strong>${athleteEscape(title)}</strong>
+    <strong class="card-title">${athleteEscape(title)}</strong>
     <div style="margin-top: 14px;">${rows}</div>
   </div>`;
 }
@@ -1275,22 +1275,15 @@ function athleteCabinetHeader(label, title) {
 
 function athleteCabinetNavButton(section, symbol, title, detail) {
   // section, symbol и подписи заданы разработчиком, не приходят от пользователя.
-  return `<button class="info-card" type="button"
+  return `<button class="info-card cabinet-nav-button" type="button"
     onclick="athleteOpenCabinetSection('${section}')"
-    style="display:flex;width:100%;align-items:center;gap:12px;
-      margin:0 !important;min-height:0 !important;height:auto !important;
-      padding:12px 14px;text-align:left;color:inherit;
-      font:inherit;cursor:pointer;box-sizing:border-box;">
-      <span aria-hidden="true" style="display:flex;align-items:center;
-        justify-content:center;flex:none;width:40px;height:40px;
-        border-radius:12px;background:#39302b;color:#ff7846;
-        font-weight:700;font-size:18px;">${symbol}</span>
-      <span style="flex:1;min-width:0;">
-        <strong style="display:block;font-size:18px;">${title}</strong>
-        <span style="display:block;margin-top:6px;font-size:13px;
-          line-height:1.45;color:#aaa;">${detail}</span>
+    >
+      <span class="cabinet-nav-icon" aria-hidden="true">${symbol}</span>
+      <span class="cabinet-nav-copy">
+        <strong class="cabinet-nav-title">${title}</strong>
+        <span class="cabinet-nav-detail">${detail}</span>
       </span>
-      <span aria-hidden="true" style="color:#ff7846;font-size:24px;">›</span>
+      <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
     </button>`;
 }
 
@@ -1315,7 +1308,7 @@ function athleteRenderCabinet() {
       <h1 style="margin:0 0 16px;">Личный кабинет</h1>
       <div class="info-card" style="margin:0 !important;">
         <div class="step-label">ТВОЯ ЦЕЛЬ</div>
-        <strong style="display:block;font-size:20px;margin:8px 0;">${goal}</strong>
+        <strong class="cabinet-goal">${goal}</strong>
         <p style="margin:0;">${weights}${target}</p>
         <p id="athleteCabinetLatestWeight" style="margin:6px 0 0;color:#bbb;">Последний вес: загружаем...</p>
       </div>
@@ -1960,30 +1953,25 @@ ${athleteNutritionProgressHelpMarkup()}
   } else if (section === "progress") {
     title = "Прогресс";
     content = `
-      <div class="info-card" style="margin:0 !important;padding:16px;">
+      <div class="info-card cabinet-history-card" style="margin:0 !important;">
         <div class="step-label" style="margin:0 0 8px;">ТВОЯ ИСТОРИЯ</div>
-        <strong style="display:block;font-size:18px;">Каждая тренировка — часть прогресса</strong>
-        <p style="margin:8px 0 0;color:#aaa;font-size:14px;line-height:1.45;">
+        <strong class="card-title">Каждая тренировка — часть прогресса</strong>
+        <p class="card-copy" style="margin:8px 0 0;">
           Вес уже сохраняется. Силовые результаты и тренировки появятся здесь,
           когда подключим тренировочные отчёты.
         </p>
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
-<button class="info-card" type="button" onclick="athleteOpenCabinetSection('progress-body')"
-          style="display:flex;width:100%;align-items:center;gap:12px;margin:0 !important;
-          min-height:0 !important;height:auto !important;padding:14px;text-align:left;
-          color:inherit;font:inherit;cursor:pointer;box-sizing:border-box;">
-          <span aria-hidden="true" style="flex:none;width:40px;height:40px;
-            display:flex;align-items:center;justify-content:center;border-radius:12px;
-            background:#39302b;color:#ff7846;font-size:22px;">↗</span>
-          <span style="flex:1;min-width:0;">
-            <strong style="display:block;font-size:18px;">Вес и тело</strong>
+        <button class="info-card cabinet-nav-button cabinet-nav-button-comfortable" type="button" onclick="athleteOpenCabinetSection('progress-body')">
+          <span class="cabinet-nav-icon cabinet-nav-icon-large" aria-hidden="true">↗</span>
+          <span class="cabinet-nav-copy">
+            <strong class="cabinet-nav-title">Вес и тело</strong>
             <span id="athleteProgressWeightPreview" role="status"
-              style="display:block;margin-top:4px;color:#aaa;font-size:13px;line-height:1.4;">
+              class="cabinet-nav-detail cabinet-nav-detail-compact">
               История измерений и график
             </span>
           </span>
-          <span aria-hidden="true" style="color:#ff7846;font-size:24px;">›</span>
+          <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
         </button>
         ${athleteCabinetNavButton("progress-strength", "↗", "Силовые показатели",
           "Результаты и личные рекорды по упражнениям")}
@@ -2091,17 +2079,17 @@ title = "Вес";
 <div class="info-card"
   style="margin:16px 0 0 !important;padding:16px;">
 
-  <strong style="display:block;font-size:18px;">
+  <strong class="card-title">
     Динамика изменений
   </strong>
 
-  <p style="margin:6px 0 16px;color:#aaa;font-size:13px;">
+  <p class="card-copy card-copy-support" style="margin:6px 0 16px;">
     Сравнение с первым замером
   </p>
 
   <div id="athleteMeasurementsDynamics"
     role="status"
-    style="color:#aaa;font-size:14px;line-height:1.5;">
+    class="card-copy">
 
     Для сравнения нужны минимум два замера.
 
@@ -2856,7 +2844,7 @@ function athleteRenderNutritionPlan(result) {
     : null;
   const dailyTargetMarkup = dailyTarget
     ? `<div style="padding:12px 0;border-top:1px solid #414141;">
-        <strong>Твои цели на каждый день этой недели</strong>
+        <strong class="nutrition-plan-section-title">Твои цели на каждый день этой недели</strong>
         <div class="nutrition-daily-targets">
           <span><small>Калории</small><b>${athleteNutritionFormat(dailyTarget.calories)} ккал</b></span>
           <span><small>Белки</small><b>${athleteNutritionFormat(dailyTarget.protein, 1)} г</b></span>
@@ -2877,7 +2865,7 @@ function athleteRenderNutritionPlan(result) {
       </p>
       ${dailyTargetMarkup}
       ${recommendations.length ? `<div class="nutrition-plan-recommendations">
-        <strong>Рекомендации</strong>
+        <strong class="nutrition-plan-section-title">Рекомендации</strong>
         <ul>
           ${recommendations.map(function(item) {
             return `<li>${athleteEscape(item)}</li>`;
