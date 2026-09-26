@@ -1407,12 +1407,16 @@ function athleteOpenCabinetSection(section) {
 
   content = `
     <div class="info-card" style="margin-bottom:16px;">
-      <h3 style="margin:0 0 2px;">Контроль питания</h3>
+      <div class="nutrition-card-title-row">
+        <h3 style="margin:0 0 2px;">Контроль питания</h3>
+        <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()">?</button>
+      </div>
       <p style="color:#aaa;margin:0 0 8px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
         <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
       </div>
     </div>
+    ${athleteNutritionProgressHelpMarkup()}
     <button
       class="info-card"
       type="button"
@@ -1531,7 +1535,10 @@ function athleteOpenCabinetSection(section) {
 </div>
 
 <div class="info-card" style="margin-bottom:16px;">
-  <h3 style="margin:0 0 2px;">Контроль питания</h3>
+  <div class="nutrition-card-title-row">
+    <h3 style="margin:0 0 2px;">Контроль питания</h3>
+    <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()">?</button>
+  </div>
 
   <p style="color:#aaa;margin:0 0 8px;">
     Твоя дневная цель на эту неделю
@@ -1543,6 +1550,7 @@ function athleteOpenCabinetSection(section) {
     </p>
   </div>
 </div>
+${athleteNutritionProgressHelpMarkup()}
 
   <button
   class="primary-btn"
@@ -2681,6 +2689,20 @@ function athleteRenderNutritionHistoryWeeks(slot, entries) {
   `;
 }
 
+function athleteNutritionProgressHelpMarkup() {
+  return `
+    <dialog id="athleteNutritionHelpDialog" class="nutrition-help-dialog" aria-labelledby="athleteNutritionHelpTitle">
+      <div class="nutrition-help-dialog-heading">
+        <h3 id="athleteNutritionHelpTitle">Как считаются шкалы?</h3>
+        <button class="nutrition-help-close" type="button" aria-label="Закрыть" onclick="this.closest('dialog').close()">×</button>
+      </div>
+      <p>Здесь показывается средний процент выполнения норм по заданным показателям.</p>
+      <p>Среднее считается за дни этой недели, за которые ты уже внёс данные. Например, если по белкам получилось 90%, 100% и 75%, среднее за эти три дня — 88%.</p>
+      <button class="primary-btn nutrition-help-done" type="button" onclick="this.closest('dialog').close()">Понятно</button>
+    </dialog>
+  `;
+}
+
 function athleteRenderNutritionTargets(plan) {
   const slots = [
     document.getElementById("athleteNutritionOverviewTargets"),
@@ -2719,54 +2741,47 @@ function athleteRenderNutritionTargets(plan) {
   };
   const today = athleteLocalDate();
   const nutritionLoaded = Array.isArray(athleteNutritionCache);
-  const todayEntry = nutritionLoaded
-    ? athleteNutritionCache.find(function(row) {
-      return row && row.report_date === today;
+  const weekStart = athleteNutritionWeekStart(today);
+  const weekDates = athleteNutritionWeekDates(weekStart);
+  const firstTrackedDate = athleteNutritionPlanEffectiveFrom && athleteNutritionPlanEffectiveFrom > weekStart
+    ? athleteNutritionPlanEffectiveFrom
+    : weekStart;
+  const weekEntries = nutritionLoaded
+    ? athleteNutritionCache.filter(function(row) {
+      return row && row.report_date >= firstTrackedDate && row.report_date <= today && row.report_date <= weekDates[6];
     })
-    : null;
-  const planStartsLater = Boolean(
-    athleteNutritionPlanEffectiveFrom && today < athleteNutritionPlanEffectiveFrom
-  );
-  const entry = planStartsLater ? null : todayEntry;
-  const hasEntry = Boolean(entry);
-  const effectiveDateLabel = athleteNutritionPlanEffectiveFrom
-    .split("-").reverse().join(".");
-  const progressStatus = !nutritionLoaded
-    ? "Не удалось загрузить запись за сегодня."
-    : planStartsLater
-      ? `Эта цель начнёт действовать ${effectiveDateLabel}.`
-      : hasEntry
-        ? "Сегодня · шкалы показывают съеденное относительно цели"
-        : "Нет записи за сегодня — шкалы обновятся после внесения КБЖУ.";
+    : [];
   const goals = [
     { key: "protein_g", label: "Белки", unit: "г", goal: average.protein, color: "#ff806d", bg: "#3b292b", icon: "🥩" },
     { key: "fat_g", label: "Жиры", unit: "г", goal: average.fat, color: "#ffc54f", bg: "#393326", icon: "💧" },
     { key: "carbs_g", label: "Углеводы", unit: "г", goal: average.carbs, color: "#b77aff", bg: "#30283d", icon: "🌾" }
   ];
-  const percentFor = function(actual, goal) {
-    return goal > 0 ? Math.max(0, actual / goal * 100) : 0;
+  const averagePercentFor = function(key, goal) {
+    if (!weekEntries.length || goal <= 0) return 0;
+    return weekEntries.reduce(function(sum, row) {
+      return sum + Math.max(0, (Number(row[key]) || 0) / goal * 100);
+    }, 0) / weekEntries.length;
   };
-  const caloriesPercent = percentFor(Number(entry?.calories) || 0, average.calories);
+  const caloriesPercent = averagePercentFor("calories", average.calories);
   const radius = 51;
   const circumference = 2 * Math.PI * radius;
-  const circleOffset = circumference * (1 - Math.min(100, caloriesPercent) / 100);
+  const caloriesWidth = Math.min(100, caloriesPercent);
+  const circleOffset = circumference * (1 - caloriesWidth / 100);
   const macroMarkup = goals.map(function(item) {
-    const actual = Number(entry?.[item.key]) || 0;
-    const percent = percentFor(actual, item.goal);
+    const percent = averagePercentFor(item.key, item.goal);
     const width = Math.min(100, percent);
     return `<div class="nutrition-macro-card">
       <span class="nutrition-macro-icon" style="color:${item.color};background:${item.bg};">${item.icon}</span>
       <span class="nutrition-macro-label">${item.label}</span>
       <strong class="nutrition-macro-target">${athleteNutritionFormat(item.goal)} ${item.unit}</strong>
-      <div class="nutrition-macro-track" ${hasEntry ? `role="progressbar" aria-label="${item.label}: ${Math.round(percent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}"` : "aria-hidden=\"true\""}>
+      <div class="nutrition-macro-track" role="progressbar" aria-label="Среднее выполнение цели по показателю «${item.label.toLowerCase()}» за неделю" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(width)}">
         <div class="nutrition-macro-progress" style="width:${width}%;background:${item.color};"></div>
       </div>
     </div>`;
   }).join("");
   const markup = `
-    <p class="nutrition-targets-status" role="status">${progressStatus}</p>
     <div class="nutrition-targets-layout">
-      <div class="nutrition-calorie-ring" ${hasEntry ? `role="progressbar" aria-label="Калории: ${Math.round(caloriesPercent)}% от цели" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, caloriesPercent))}"` : "aria-label=\"Цель по калориям за день\""}>
+      <div class="nutrition-calorie-ring" role="progressbar" aria-label="Среднее выполнение цели по калориям за неделю" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(caloriesWidth)}">
         <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
           <circle class="nutrition-calorie-track" cx="60" cy="60" r="${radius}"></circle>
           <circle class="nutrition-calorie-progress" cx="60" cy="60" r="${radius}" stroke-dasharray="${circumference}" stroke-dashoffset="${circleOffset}"></circle>
