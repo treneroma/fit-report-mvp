@@ -2587,25 +2587,31 @@ function athleteRenderNutritionHistoryWeeks(slot, entries) {
     const startYear = dates[0].slice(0, 4);
     const endYear = end.slice(0, 4);
     const prefix = weekStart === currentWeekStart ? "Эта неделя · " : "";
-    const count = (weeks.get(weekStart) || new Map()).size;
     const range = `${monthDay(dates[0])}${startYear !== endYear ? `.${startYear}` : ""}–${monthDay(end)}.${endYear}`;
-    return `${prefix}${range}${weekStart === currentWeekStart ? "" : ` · ${count} из 7 дней`}`;
+    return `${prefix}${range}`;
   };
   const formatValue = function(value) {
     return Number(value).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
   };
 
-  const recordedCount = selectedWeekEntries.size;
   slot.innerHTML = `
     <div class="nutrition-history-week-picker">
       <label class="visually-hidden" for="athleteNutritionWeekPicker">Выбрать неделю</label>
-      <select id="athleteNutritionWeekPicker" class="nutrition-history-week-select"
-        aria-label="Выбрать неделю" onchange="athleteSelectNutritionWeek(this.value)">
-        ${weekStarts.map(function(weekStart) {
-          return `<option value="${weekStart}" ${weekStart === selectedWeekStart ? "selected" : ""}>${athleteEscape(weekLabel(weekStart))}</option>`;
-        }).join("")}
-      </select>
-      <span class="nutrition-history-week-count">${recordedCount} из 7</span>
+      <span class="nutrition-history-week-control">
+        <span class="nutrition-history-week-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="none" focusable="false">
+            <rect x="3" y="5" width="14" height="12" rx="2" />
+            <path d="M7 3v4M13 3v4M3 9h14" />
+          </svg>
+        </span>
+        <select id="athleteNutritionWeekPicker" class="nutrition-history-week-select"
+          aria-label="Выбрать неделю" onchange="athleteSelectNutritionWeek(this.value)">
+          ${weekStarts.map(function(weekStart) {
+            return `<option value="${weekStart}" ${weekStart === selectedWeekStart ? "selected" : ""}>${athleteEscape(weekLabel(weekStart))}</option>`;
+          }).join("")}
+        </select>
+        <span class="nutrition-history-week-chevron" aria-hidden="true"></span>
+      </span>
     </div>
     <div style="overflow-x:auto;">
       <table class="nutrition-history-table">
