@@ -2709,14 +2709,20 @@ function athleteRenderNutritionTargets(plan) {
   const nutritionLoaded = Array.isArray(athleteNutritionCache);
   const weekStart = athleteNutritionWeekStart(today);
   const weekDates = athleteNutritionWeekDates(weekStart);
-  const firstTrackedDate = athleteNutritionPlanEffectiveFrom && athleteNutritionPlanEffectiveFrom > weekStart
-    ? athleteNutritionPlanEffectiveFrom
-    : weekStart;
-  const weekEntries = nutritionLoaded
-    ? athleteNutritionCache.filter(function(row) {
-      return row && row.report_date >= firstTrackedDate && row.report_date <= today && row.report_date <= weekDates[6];
-    })
-    : [];
+  const currentWeekEntriesByDate = new Map();
+  if (nutritionLoaded) {
+    athleteNutritionCache.forEach(function(row) {
+      if (
+        row &&
+        row.report_date >= weekStart &&
+        row.report_date <= today &&
+        row.report_date <= weekDates[6]
+      ) {
+        currentWeekEntriesByDate.set(row.report_date, row);
+      }
+    });
+  }
+  const weekEntries = Array.from(currentWeekEntriesByDate.values());
   const goals = [
     { key: "protein_g", label: "Белки", unit: "г", goal: average.protein, color: "#ff806d", bg: "#3b292b", icon: "🥩" },
     { key: "fat_g", label: "Жиры", unit: "г", goal: average.fat, color: "#ffc54f", bg: "#393326", icon: "💧" },
@@ -2724,9 +2730,10 @@ function athleteRenderNutritionTargets(plan) {
   ];
   const averagePercentFor = function(key, goal) {
     if (!weekEntries.length || goal <= 0) return 0;
-    return weekEntries.reduce(function(sum, row) {
-      return sum + Math.max(0, (Number(row[key]) || 0) / goal * 100);
+    const averageIntake = weekEntries.reduce(function(sum, row) {
+      return sum + Math.max(0, Number(row[key]) || 0);
     }, 0) / weekEntries.length;
+    return averageIntake / goal * 100;
   };
   const caloriesPercent = averagePercentFor("calories", average.calories);
   const radius = 51;
