@@ -1560,55 +1560,21 @@ ${athleteNutritionProgressHelpMarkup()}
 
 <dialog
   id="nutritionEntryMethodSheet"
-  style="
-    position:fixed;
-    inset:auto 0 calc(env(safe-area-inset-bottom, 0px) + 16px);
-    width:100%;
-    max-width:520px;
-    box-sizing:border-box;
-    max-height:calc(100vh - 32px);
-    max-height:calc(100dvh - 32px);
-    overflow-y:auto;
-    overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch;
-    margin:0 auto;
-    padding:24px;
-    padding-bottom:24px;
-    border:1px solid #414141;
-    border-radius:24px;
-    background:#262626;
-    color:#fff;
-    box-shadow:0 -12px 50px #0008;
-  "
+  class="nutrition-help-dialog nutrition-entry-method-dialog"
+  aria-labelledby="nutritionEntryMethodTitle"
 >
-  <div style="
-    width:44px;
-    height:5px;
-    margin:0 auto 24px;
-    border-radius:999px;
-    background:#555;
-  "></div>
-
-  <div style="
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:20px;
-  ">
-    <h3 style="margin:0;">Как внести КБЖУ?</h3>
-    <button type="button" onclick="this.closest('dialog').close()"
-      aria-label="Закрыть"
-      style="width:36px;height:36px;flex-shrink:0;border:1px solid #484848;
-        border-radius:10px;background:#303030;color:#fff;font-size:24px;cursor:pointer;">
+  <div class="nutrition-help-dialog-heading">
+    <h3 id="nutritionEntryMethodTitle">Как внести КБЖУ?</h3>
+    <button class="nutrition-help-close" type="button"
+      onclick="this.closest('dialog').close()" aria-label="Закрыть">
       ×
     </button>
   </div>
 
-  <div style="display:flex;flex-direction:column;gap:10px;">
+  <div class="nutrition-entry-method-options">
     <button class="info-card" type="button"
       onclick="this.closest('dialog').close();document.getElementById('nutritionFatSecretSheet').showModal()"
-      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+    >
       <strong>FatSecret</strong>
       <p style="color:#aaa;margin:6px 0 0;">
         Подключить аккаунт или импортировать данные за месяц
@@ -1617,7 +1583,7 @@ ${athleteNutritionProgressHelpMarkup()}
 
     <button class="info-card" type="button"
       onclick="this.closest('dialog').close();athleteOpenNutritionUpload()"
-      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+    >
       <strong>Загрузить скриншот</strong>
       <p style="color:#aaa;margin:6px 0 0;">
         Распознать итоговые калории и БЖУ за день
@@ -1626,7 +1592,7 @@ ${athleteNutritionProgressHelpMarkup()}
 
     <button class="info-card" type="button"
       onclick="this.closest('dialog').close();athleteOpenManualNutrition()"
-      style="display:block;width:100%;margin:0;text-align:left;color:#fff;cursor:pointer;">
+    >
       <strong>Внести вручную</strong>
       <p style="color:#aaa;margin:6px 0 0;">
         Указать дату, калории, белки, жиры и углеводы
