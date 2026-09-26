@@ -401,6 +401,44 @@ h1 {
   position: relative;
 }
 
+.nutrition-plan-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nutrition-plan-link-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.nutrition-plan-link-copy strong {
+  color: #fff;
+  font-size: 18px;
+}
+
+.nutrition-plan-link-copy > span {
+  color: #aaa;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.nutrition-plan-link-arrow {
+  flex: 0 0 auto;
+  color: var(--accent, #ff7848);
+  font-size: 28px;
+  line-height: 1;
+}
+
 #athleteScreen .info-card.nutrition-control-card {
   padding-bottom: 8px;
 }
@@ -713,6 +751,59 @@ h1 {
 .nutrition-history-table th:first-child,
 .nutrition-history-table td:first-child {
   text-align: left;
+}
+
+.nutrition-plan-status:empty {
+  display: none;
+}
+
+.nutrition-plan-detail,
+.nutrition-plan-empty {
+  margin: 0 0 16px;
+}
+
+.nutrition-plan-context {
+  color: #ccc;
+}
+
+.nutrition-daily-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.nutrition-daily-targets span {
+  min-width: 0;
+}
+
+.nutrition-daily-targets small {
+  display: block;
+  margin-bottom: 3px;
+  color: #aaa;
+}
+
+.nutrition-plan-recommendations {
+  margin-top: 18px;
+}
+
+.nutrition-plan-recommendations ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: #ccc;
+}
+
+.nutrition-plan-recommendations li {
+  margin-bottom: 7px;
+}
+
+.nutrition-plan-review-reason {
+  margin: 8px 0 0;
+  color: #ff8959;
+}
+
+#athleteNutritionAnalyzeButton[hidden] {
+  display: none;
 }
 
 @media (max-width: 420px) {
