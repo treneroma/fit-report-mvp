@@ -1406,12 +1406,14 @@ function athleteOpenCabinetSection(section) {
   title = "Питание";
 
   content = `
-    <div class="info-card" style="margin-bottom:16px;">
-      <div class="nutrition-card-title-row">
-        <h3 style="margin:0 0 2px;">Контроль питания</h3>
-        <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
+    <div class="info-card nutrition-control-card" style="margin-bottom:16px;">
+      <div class="nutrition-control-heading">
+        <div class="nutrition-card-title-row">
+          <h3 style="margin:0;">Контроль питания</h3>
+          <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
+        </div>
+        <p class="nutrition-control-subtitle">Твоя дневная цель на эту неделю</p>
       </div>
-      <p style="color:#aaa;margin:0 0 8px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
         <p style="color:#aaa;margin:0;">Показатели появятся после анализа питания.</p>
       </div>
@@ -1534,15 +1536,14 @@ function athleteOpenCabinetSection(section) {
   </p>
 </div>
 
-<div class="info-card" style="margin-bottom:16px;">
-  <div class="nutrition-card-title-row">
-    <h3 style="margin:0 0 2px;">Контроль питания</h3>
-    <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
+<div class="info-card nutrition-control-card" style="margin-bottom:16px;">
+  <div class="nutrition-control-heading">
+    <div class="nutrition-card-title-row">
+      <h3 style="margin:0;">Контроль питания</h3>
+      <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
+    </div>
+    <p class="nutrition-control-subtitle">Твоя дневная цель на эту неделю</p>
   </div>
-
-  <p style="color:#aaa;margin:0 0 8px;">
-    Твоя дневная цель на эту неделю
-  </p>
 
   <div id="athleteNutritionDiaryTargets">
     <p style="color:#aaa;margin:0;">
