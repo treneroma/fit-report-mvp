@@ -1409,7 +1409,7 @@ function athleteOpenCabinetSection(section) {
     <div class="info-card" style="margin-bottom:16px;">
       <div class="nutrition-card-title-row">
         <h3 style="margin:0 0 2px;">Контроль питания</h3>
-        <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()">?</button>
+        <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
       </div>
       <p style="color:#aaa;margin:0 0 8px;">Твоя дневная цель на эту неделю</p>
       <div id="athleteNutritionOverviewTargets">
@@ -1537,7 +1537,7 @@ function athleteOpenCabinetSection(section) {
 <div class="info-card" style="margin-bottom:16px;">
   <div class="nutrition-card-title-row">
     <h3 style="margin:0 0 2px;">Контроль питания</h3>
-    <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()">?</button>
+    <button class="nutrition-help-button" type="button" aria-label="Как считаются шкалы питания?" onclick="document.getElementById('athleteNutritionHelpDialog').showModal()"><span>?</span></button>
   </div>
 
   <p style="color:#aaa;margin:0 0 8px;">
