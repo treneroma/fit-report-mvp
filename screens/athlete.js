@@ -10,6 +10,8 @@ let athleteStep = 0;
 let athleteSaving = false;
 let athleteRestoreNotice = "";
 let athleteTrainingSetupMode = "upload";
+let athleteTrainingWorkoutCount = null;
+let athleteTrainingUploadStateError = "";
 
 // Должен совпадать со списком allowedFields в Edge Function.
 const athleteServerFields = [
@@ -1973,28 +1975,16 @@ ${athleteNutritionProgressHelpMarkup()}
   } else if (section === "training-upload") {
     title = "Загрузка тренировок";
     content = `
-      <div class="training-upload-paths">
-        <section class="info-card training-upload-path">
-          <div class="training-upload-path-copy">
-            <strong>Есть актуальная программа тренировок?</strong>
-            <p>Добавь минимум 3 тренировки — мы учтём упражнения и нагрузку.</p>
-          </div>
-          <button class="primary-btn training-upload-start" type="button"
-            onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
-            Загрузить программу
-          </button>
-        </section>
-        <section class="info-card training-upload-path training-upload-adaptation-path">
-          <div class="training-upload-path-copy">
-            <strong>Нет актуальной программы?</strong>
-            <p>Начни с тренировочной адаптации — учтём твою цель и опыт.</p>
-          </div>
-          <button class="training-adaptation-start" type="button"
-            onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">
-            Начать адаптацию
-          </button>
-        </section>
+      <div id="athleteTrainingUploadPaths" class="training-upload-paths">
+        ${athleteTrainingUploadPathsMarkup()}
       </div>
+      <dialog id="athleteTrainingProgramHelpDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingProgramHelpTitle">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteTrainingProgramHelpTitle">Загрузка тренировок</h3>
+          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+        </div>
+        <p>Добавь минимум 3 тренировки из своей актуальной программы. Чем больше занятий ты загрузишь, тем точнее мы сможем оценить упражнения и нагрузку и составить план тренировок на неделю.</p>
+      </dialog>
       <dialog id="athleteTrainingEntryMethodDialog" class="nutrition-help-dialog nutrition-entry-method-dialog" aria-labelledby="athleteTrainingEntryMethodTitle">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingEntryMethodTitle">Как добавить тренировки?</h3>
@@ -2397,6 +2387,54 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
   if (section === "training-history") {
     athleteLoadTrainingHistory();
   }
+  if (section === "training-upload") {
+    athleteRefreshTrainingUploadState();
+  }
+}
+
+function athleteTrainingUploadPathsMarkup() {
+  const enoughWorkouts = athleteTrainingWorkoutCount !== null && athleteTrainingWorkoutCount >= 3;
+  const workoutCount = athleteTrainingWorkoutCount || 0;
+  const uploadDescription = enoughWorkouts
+    ? `Загружено тренировок: ${workoutCount}. Можно добавить ещё — это поможет точнее оценить упражнения и нагрузку.`
+    : `Добавь минимум 3 тренировки — мы учтём упражнения и нагрузку.${workoutCount ? ` Сейчас загружено: ${workoutCount}.` : ""}`;
+
+  return `<section class="info-card training-upload-path${enoughWorkouts ? " training-upload-path-ready" : ""}">
+      <div class="training-upload-path-heading">
+        <strong>Есть актуальная программа тренировок?</strong>
+        <button class="nutrition-help-button training-upload-help" type="button" aria-label="Зачем загружать тренировки?" onclick="document.getElementById('athleteTrainingProgramHelpDialog').showModal()"><span>?</span></button>
+      </div>
+      <div class="training-upload-path-copy"><p>${uploadDescription}</p></div>
+      ${enoughWorkouts
+        ? `<button class="primary-btn training-upload-start" type="button" disabled aria-describedby="athleteTrainingAnalysisHint">Анализировать тренировочный план</button>
+           <p id="athleteTrainingAnalysisHint" class="training-analysis-hint">Анализ и составление плана подключим следующим шагом.</p>
+           <button class="training-adaptation-start training-upload-add-more" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Добавить ещё тренировки</button>`
+        : `<button class="primary-btn training-upload-start" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Загрузить программу</button>`}
+    </section>
+    ${enoughWorkouts ? "" : `<section class="info-card training-upload-path training-upload-adaptation-path">
+      <div class="training-upload-path-copy">
+        <strong>Нет актуальной программы?</strong>
+        <p>Начни с тренировочной адаптации — учтём твою цель и опыт.</p>
+      </div>
+      <button class="training-adaptation-start" type="button" onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">Начать адаптацию</button>
+    </section>`}
+    ${athleteTrainingUploadStateError ? `<p class="training-upload-state-error" role="status">${athleteEscape(athleteTrainingUploadStateError)}</p>` : ""}`;
+}
+
+async function athleteRefreshTrainingUploadState() {
+  try {
+    const result = await athleteTrainingRequest("load_history");
+    athleteTrainingWorkoutCount = Array.isArray(result.workouts) ? result.workouts.length : 0;
+    if (result.hasMore === true) athleteTrainingWorkoutCount = Math.max(51, athleteTrainingWorkoutCount);
+    athleteTrainingUploadStateError = "";
+  } catch (error) {
+    console.error("TRENZO training upload status failed:", error);
+    athleteTrainingWorkoutCount = null;
+    athleteTrainingUploadStateError = "Не удалось проверить загруженные тренировки. Попробуй обновить экран.";
+  }
+
+  const slot = document.getElementById("athleteTrainingUploadPaths");
+  if (slot) slot.innerHTML = athleteTrainingUploadPathsMarkup();
 }
 
 // История веса: отдельная защищённая Edge Function с проверкой Telegram.
@@ -3008,6 +3046,9 @@ async function athleteSaveManualTraining() {
     form.reset();
     dialog.close();
     showMessage("Тренировка сохранена.");
+    if (document.getElementById("athleteTrainingUploadPaths")) {
+      await athleteRefreshTrainingUploadState();
+    }
   } catch (saveError) {
     console.error("TRENZO manual training save failed:", saveError);
     error.textContent = saveError.message || "Не удалось сохранить тренировку. Попробуй ещё раз.";
