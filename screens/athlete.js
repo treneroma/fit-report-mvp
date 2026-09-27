@@ -1998,7 +1998,8 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
         <div class="nutrition-entry-method-options">
-          <button class="info-card" type="button" aria-disabled="true">
+          <button class="info-card" type="button"
+            onclick="this.closest('dialog').close();athleteOpenManualTraining()">
             <strong>Ввести вручную</strong>
             <p>Указать дату, упражнения, подходы и повторения</p>
           </button>
@@ -2007,6 +2008,20 @@ ${athleteNutritionProgressHelpMarkup()}
             <p>Выбрать изображение из телефона или сделать снимок камерой</p>
           </button>
         </div>
+      </dialog>
+      <dialog id="athleteTrainingManualDialog" class="nutrition-help-dialog training-manual-dialog" aria-labelledby="athleteTrainingManualTitle">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteTrainingManualTitle">Новая тренировка</h3>
+          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+        </div>
+        <form id="athleteTrainingManualForm" onsubmit="event.preventDefault();athleteSaveManualTraining();">
+          <label class="training-manual-date-label" for="athleteTrainingManualDate">Дата тренировки</label>
+          <input class="text-input training-manual-date" id="athleteTrainingManualDate" name="workoutDate" type="date" required style="color-scheme:dark;">
+          <div id="athleteTrainingExercises" class="training-exercise-list"></div>
+          <button class="training-add-exercise" type="button" onclick="athleteAddTrainingExercise()">＋ Добавить упражнение <span>1 из 15</span></button>
+          <p id="athleteTrainingManualError" class="training-manual-error" role="alert" hidden></p>
+          <button id="athleteTrainingManualSave" class="primary-btn training-manual-save" type="submit">Сохранить тренировку</button>
+        </form>
       </dialog>
       <dialog id="athleteTrainingAdaptationDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingAdaptationTitle">
         <div class="nutrition-help-dialog-heading">
@@ -2357,6 +2372,8 @@ const ATHLETE_WEIGHT_URL =
   "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/weight-history";
 const ATHLETE_MEASUREMENTS_URL =
   "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/body-measurements";
+const ATHLETE_TRAINING_URL =
+  "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/training-report";
 let athleteWeightEntries = [];
 let athleteWeightLoaded = false;
 let athleteWeightPending = null;
@@ -2507,6 +2524,184 @@ async function athleteNutritionRequest(action, extra = {}) {
 
   return result;
 }
+
+let athleteTrainingSaving = false;
+
+async function athleteTrainingRequest(action, extra = {}) {
+  if (!tg || !tg.initData) {
+    throw new Error("Открой TRENZO через Telegram и попробуй снова.");
+  }
+
+  const response = await fetch(ATHLETE_TRAINING_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, initData: tg.initData, ...extra })
+  });
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error("Сервер вернул некорректный ответ.");
+  }
+
+  if (!response.ok || result.ok !== true) {
+    if (response.status === 401) {
+      throw new Error("Сессия Telegram устарела. Закрой Mini App и открой его заново.");
+    }
+    if (response.status === 400) {
+      throw new Error(result.message || "Проверь дату и данные тренировки.");
+    }
+    throw new Error("Не удалось сохранить тренировку. Попробуй ещё раз.");
+  }
+
+  return result;
+}
+
+function athleteTrainingSetMarkup(number) {
+  return `<div class="training-set-row">
+    <div class="training-set-heading"><strong>Подход ${number}</strong><button class="training-remove-set" type="button" onclick="athleteRemoveTrainingSet(this)" aria-label="Удалить подход">×</button></div>
+    <div class="training-set-fields">
+      <label>Вес, кг<input class="text-input training-set-weight" type="number" inputmode="decimal" min="0" max="1000" step="0.1" placeholder="Свой вес" aria-label="Вес, килограммы, необязательно"></label>
+      <label>Повторения<input class="text-input training-set-reps" type="number" inputmode="numeric" min="1" max="300" step="1" required placeholder="Например, 12"></label>
+      <label class="training-failure-toggle"><input class="training-set-failure" type="checkbox"><span>Отказ</span></label>
+    </div>
+  </div>`;
+}
+
+function athleteTrainingExerciseMarkup(number) {
+  return `<section class="training-exercise-card">
+    <div class="training-exercise-heading"><h4>Упражнение ${number}</h4><button class="training-remove-exercise" type="button" onclick="athleteRemoveTrainingExercise(this)" aria-label="Удалить упражнение">×</button></div>
+    <label class="training-exercise-name-label">Название упражнения<input class="text-input training-exercise-name" type="text" maxlength="120" required autocomplete="off" placeholder="Например, тяга верхнего блока"></label>
+    <div class="training-sets-list">${athleteTrainingSetMarkup(1)}</div>
+    <button class="training-add-set" type="button" onclick="athleteAddTrainingSet(this)">＋ Добавить подход</button>
+  </section>`;
+}
+
+function athleteUpdateTrainingExerciseControls() {
+  const list = document.getElementById("athleteTrainingExercises");
+  if (!list) return;
+  const cards = [...list.querySelectorAll(".training-exercise-card")];
+  const addButton = document.querySelector(".training-add-exercise");
+  const countLabel = addButton?.querySelector("span");
+  if (countLabel) countLabel.textContent = `${cards.length} из 15`;
+  if (addButton) addButton.disabled = cards.length >= 15;
+
+  cards.forEach(function(card, index) {
+    card.querySelector(".training-exercise-heading h4").textContent = `Упражнение ${index + 1}`;
+    card.querySelector(".training-remove-exercise").hidden = cards.length === 1;
+    const setRows = [...card.querySelectorAll(".training-set-row")];
+    const addSetButton = card.querySelector(".training-add-set");
+    if (addSetButton) addSetButton.disabled = setRows.length >= 50;
+    setRows.forEach(function(row, setIndex) {
+      row.querySelector(".training-set-heading strong").textContent = `Подход ${setIndex + 1}`;
+      row.querySelector(".training-remove-set").hidden = setRows.length === 1;
+    });
+  });
+}
+
+function athleteOpenManualTraining() {
+  const dialog = document.getElementById("athleteTrainingManualDialog");
+  const dateInput = document.getElementById("athleteTrainingManualDate");
+  const exerciseList = document.getElementById("athleteTrainingExercises");
+  const error = document.getElementById("athleteTrainingManualError");
+  if (!dialog || !dateInput || !exerciseList) return;
+
+  dateInput.value = athleteLocalDate();
+  dateInput.max = athleteLocalDate();
+  exerciseList.innerHTML = athleteTrainingExerciseMarkup(1);
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
+  }
+  athleteUpdateTrainingExerciseControls();
+  dialog.showModal();
+}
+
+function athleteAddTrainingExercise() {
+  const list = document.getElementById("athleteTrainingExercises");
+  if (!list || list.querySelectorAll(".training-exercise-card").length >= 15) return;
+  list.insertAdjacentHTML("beforeend", athleteTrainingExerciseMarkup(list.children.length + 1));
+  athleteUpdateTrainingExerciseControls();
+  list.lastElementChild?.querySelector(".training-exercise-name")?.focus();
+}
+
+function athleteRemoveTrainingExercise(button) {
+  button.closest(".training-exercise-card")?.remove();
+  athleteUpdateTrainingExerciseControls();
+}
+
+function athleteAddTrainingSet(button) {
+  const card = button.closest(".training-exercise-card");
+  const list = card?.querySelector(".training-sets-list");
+  if (!list || list.children.length >= 50) return;
+  list.insertAdjacentHTML("beforeend", athleteTrainingSetMarkup(list.children.length + 1));
+  athleteUpdateTrainingExerciseControls();
+  list.lastElementChild?.querySelector(".training-set-weight")?.focus();
+}
+
+function athleteRemoveTrainingSet(button) {
+  button.closest(".training-set-row")?.remove();
+  athleteUpdateTrainingExerciseControls();
+}
+
+async function athleteSaveManualTraining() {
+  if (athleteTrainingSaving) return;
+  const form = document.getElementById("athleteTrainingManualForm");
+  const dialog = document.getElementById("athleteTrainingManualDialog");
+  const dateInput = document.getElementById("athleteTrainingManualDate");
+  const submit = document.getElementById("athleteTrainingManualSave");
+  const error = document.getElementById("athleteTrainingManualError");
+  const exerciseCards = [...document.querySelectorAll("#athleteTrainingExercises .training-exercise-card")];
+  if (!form || !dialog || !dateInput || !submit || !error) return;
+
+  if (!form.reportValidity()) return;
+  if (!exerciseCards.length || exerciseCards.length > 15) return;
+
+  const exercises = exerciseCards.map(function(card) {
+    return {
+      name: card.querySelector(".training-exercise-name").value.trim(),
+      sets: [...card.querySelectorAll(".training-set-row")].map(function(row) {
+        const weightValue = row.querySelector(".training-set-weight").value;
+        return {
+          weight_kg: weightValue === "" ? null : Number(weightValue),
+          reps: Number(row.querySelector(".training-set-reps").value),
+          is_failure: row.querySelector(".training-set-failure").checked
+        };
+      })
+    };
+  });
+
+  if (exercises.some(function(exercise) { return !exercise.name || !exercise.sets.length; })) {
+    error.textContent = "Укажи название упражнения и хотя бы один заполненный подход для каждого упражнения.";
+    error.hidden = false;
+    return;
+  }
+
+  athleteTrainingSaving = true;
+  error.hidden = true;
+  submit.disabled = true;
+  submit.textContent = "Сохраняем…";
+
+  try {
+    await athleteTrainingRequest("save_manual", {
+      workoutDate: dateInput.value,
+      exercises
+    });
+    form.reset();
+    dialog.close();
+    showMessage("Тренировка сохранена.");
+  } catch (saveError) {
+    console.error("TRENZO manual training save failed:", saveError);
+    error.textContent = saveError.message || "Не удалось сохранить тренировку. Попробуй ещё раз.";
+    error.hidden = false;
+  } finally {
+    athleteTrainingSaving = false;
+    submit.disabled = false;
+    submit.textContent = "Сохранить тренировку";
+  }
+}
+
 let athleteNutritionCache = null;
 let athleteNutritionPlanCache = null;
 let athleteNutritionPlanResultCache = null;
