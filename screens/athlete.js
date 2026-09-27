@@ -1970,19 +1970,27 @@ ${athleteNutritionProgressHelpMarkup()}
   } else if (section === "training-upload") {
     title = "Загрузка тренировок";
     content = `
-      <div id="trainingUploadSetup">
-        <section class="info-card training-upload-intro">
-          <strong>Для начала достаточно 3 тренировок</strong>
-          <p>Добавь свою программу, чтобы мы подготовили данные для анализа.</p>
+      <div class="training-upload-paths">
+        <section class="info-card training-upload-path">
+          <div class="training-upload-path-copy">
+            <strong>Есть актуальная программа тренировок?</strong>
+            <p>Добавь минимум 3 тренировки — мы учтём упражнения и нагрузку.</p>
+          </div>
+          <button class="primary-btn training-upload-start" type="button"
+            onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
+            Загрузить программу
+          </button>
         </section>
-        <button class="primary-btn training-upload-start" type="button"
-          onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
-          Загрузить тренировочную программу
-        </button>
-        <button class="training-upload-no-program" type="button"
-          onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">
-          Нет программы тренировок? Составить адаптационный план
-        </button>
+        <section class="info-card training-upload-path training-upload-adaptation-path">
+          <div class="training-upload-path-copy">
+            <strong>Нет актуальной программы?</strong>
+            <p>Начни с тренировочной адаптации — учтём твою цель и опыт.</p>
+          </div>
+          <button class="training-adaptation-start" type="button"
+            onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">
+            Начать адаптацию
+          </button>
+        </section>
       </div>
       <dialog id="athleteTrainingEntryMethodDialog" class="nutrition-help-dialog nutrition-entry-method-dialog" aria-labelledby="athleteTrainingEntryMethodTitle">
         <div class="nutrition-help-dialog-heading">
