@@ -597,6 +597,32 @@ h3 {
   font-size: var(--text-support);
 }
 
+.training-upload-intro {
+  margin-bottom: 14px !important;
+}
+
+.training-upload-intro strong {
+  display: block;
+  font-size: var(--text-card-title);
+  line-height: 1.3;
+}
+
+.training-upload-intro p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.45;
+}
+
+.training-upload-start {
+  margin-bottom: 12px;
+}
+
+.nutrition-entry-method-options .info-card[aria-disabled="true"] {
+  cursor: default;
+  text-align: left;
+}
+
 .nutrition-plan-link-arrow {
   flex: 0 0 auto;
   color: var(--accent, #ff7848);
