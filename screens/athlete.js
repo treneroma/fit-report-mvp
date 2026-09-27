@@ -2703,6 +2703,18 @@ function athleteTrainingPlanMarkup(plan) {
     const exercises = Array.isArray(session.exercises) ? session.exercises : [];
     const completed = session.completed === true;
     const exerciseCount = exercises.length;
+    const setCount = exercises.reduce((total, exercise) =>
+      total + Math.max(1, Math.min(20, Number.parseInt(exercise.sets, 10) || 1)), 0);
+    const repetitionTotal = athleteTrainingPlanRepetitionTotal(exercises);
+    const sessionMetrics = [
+      athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений"),
+      athleteTrainingCountLabel(setCount, "подход", "подхода", "подходов"),
+      repetitionTotal === null
+        ? "повторения уточняются"
+        : repetitionTotal.min === repetitionTotal.max
+          ? athleteTrainingCountLabel(repetitionTotal.min, "повторение", "повторения", "повторений")
+          : `${repetitionTotal.min}–${repetitionTotal.max} повторений`
+    ].join(" · ");
     const fields = exercises.map((exercise, exerciseIndex) => {
       const setCount = Math.max(1, Math.min(20, Number.parseInt(exercise.sets, 10) || 1));
       const weight = exercise.weightKg === null || exercise.weightKg === undefined
@@ -2714,7 +2726,7 @@ function athleteTrainingPlanMarkup(plan) {
       return `<section class="training-plan-exercise">
         <div class="training-plan-exercise-heading">
           <strong>${athleteEscape(exercise.name || "Упражнение")}</strong>
-          <span>${setCount} ${athleteTrainingCountLabel(setCount, "подход", "подхода", "подходов")}</span>
+          <span>${athleteTrainingCountLabel(setCount, "подход", "подхода", "подходов")}</span>
         </div>
         <div class="training-plan-set-list">
           ${Array.from({ length: setCount }, (_, setIndex) => `<label class="training-plan-set-row">
@@ -2732,9 +2744,9 @@ function athleteTrainingPlanMarkup(plan) {
     return `<details class="info-card training-plan-session${completed ? " is-completed" : ""}">
       <summary class="training-plan-session-summary">
         <span class="training-plan-session-copy">
-          <span class="training-plan-session-day">${athleteEscape(session.day || `Тренировка ${index + 1}`)}</span>
+          <span class="training-plan-session-day">Тренировка ${index + 1}</span>
           <strong>${athleteEscape(session.title || session.type || `Тренировка ${index + 1}`)}</strong>
-          <small>${exerciseCount} ${athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений")} · ${completed ? "Выполнена" : "Нажми, чтобы начать"}</small>
+          <small>${sessionMetrics}${completed ? " · Выполнена" : ""}</small>
         </span>
         <span class="training-plan-session-chevron" aria-hidden="true">⌄</span>
       </summary>
@@ -2897,6 +2909,24 @@ function athleteTrainingCountLabel(count, one, few, many) {
   const word = lastTwo >= 11 && lastTwo <= 14 ? many :
     last === 1 ? one : last >= 2 && last <= 4 ? few : many;
   return `${count} ${word}`;
+}
+
+function athleteTrainingPlanRepetitionTotal(exercises) {
+  let min = 0;
+  let max = 0;
+  for (const exercise of exercises) {
+    const setCount = Math.max(1, Math.min(20, Number.parseInt(exercise.sets, 10) || 1));
+    const reps = String(exercise.reps ?? "").trim();
+    const range = reps.match(/^(\d+)\s*[-–—]\s*(\d+)$/);
+    const exact = reps.match(/^(\d+)$/);
+    if (!range && !exact) return null;
+    const low = Number(range ? range[1] : exact[1]);
+    const high = Number(range ? range[2] : exact[1]);
+    if (!Number.isInteger(low) || !Number.isInteger(high) || low < 1 || high < low) return null;
+    min += low * setCount;
+    max += high * setCount;
+  }
+  return { min, max };
 }
 
 function athleteRenderTrainingHistory(slot, workouts, hasMore = false) {
