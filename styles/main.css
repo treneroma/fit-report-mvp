@@ -903,6 +903,22 @@ h3 {
   font-size: var(--text-support);
 }
 
+.training-photo-note,
+.training-review-note {
+  color: var(--muted, #aaa) !important;
+  font-size: var(--text-support);
+  line-height: 1.45;
+}
+
+.training-review-note {
+  margin: 0 0 14px !important;
+  padding: 11px 12px;
+  border: 1px solid rgb(255 120 72 / 40%);
+  border-radius: 12px;
+  background: rgb(255 120 72 / 8%);
+  color: #f2c1ad !important;
+}
+
 .training-photo-dialog .training-manual-save {
   width: 100%;
 }
