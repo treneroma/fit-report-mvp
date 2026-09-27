@@ -2004,36 +2004,29 @@ ${athleteNutritionProgressHelpMarkup()}
             <p>Указать дату, упражнения, подходы и повторения</p>
           </button>
           <button class="info-card" type="button"
-            onclick="this.closest('dialog').close();athleteOpenTrainingPhotoSource()">
+            onclick="this.closest('dialog').close();athleteOpenTrainingPhoto()">
             <strong>Скриншот или фото</strong>
-            <p>Распознать прошедшую тренировку и проверить данные перед сохранением</p>
+            <p>Распознать упражнения и подходы прошедшей тренировки</p>
           </button>
         </div>
       </dialog>
-      <input id="athleteTrainingCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" onchange="athleteHandleTrainingPhoto(this)">
-      <input id="athleteTrainingGalleryInput" class="visually-hidden" type="file" accept="image/*" onchange="athleteHandleTrainingPhoto(this)">
-      <dialog id="athleteTrainingPhotoSourceDialog" class="nutrition-help-dialog nutrition-entry-method-dialog" aria-labelledby="athleteTrainingPhotoSourceTitle">
+      <input id="athleteTrainingCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" onchange="athleteSelectTrainingPhoto(this)">
+      <input id="athleteTrainingGalleryInput" class="visually-hidden" type="file" accept="image/*" onchange="athleteSelectTrainingPhoto(this)">
+      <dialog id="athleteTrainingPhotoDialog" class="nutrition-help-dialog training-photo-dialog" aria-labelledby="athleteTrainingPhotoTitle">
         <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteTrainingPhotoSourceTitle">Добавить фото тренировки</h3>
-          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+          <h3 id="athleteTrainingPhotoTitle">Добавить тренировку по фото</h3>
+          <button class="nutrition-help-close" type="button" onclick="athleteCloseTrainingPhotoDialog()" aria-label="Закрыть">×</button>
         </div>
-        <p>Выбери фото или скриншот уже проведённой тренировки. После распознавания можно будет проверить и отредактировать упражнения и подходы.</p>
+        <label class="training-manual-date-label" for="athleteTrainingPhotoDate">Дата тренировки</label>
+        <input class="text-input training-manual-date" id="athleteTrainingPhotoDate" type="date" required style="color-scheme:dark;">
         <div class="training-photo-source-actions">
-          <button class="primary-btn" type="button" onclick="athleteChooseTrainingPhoto('camera')">Сделать фото</button>
+          <button class="training-adaptation-start" type="button" onclick="athleteChooseTrainingPhoto('camera')">Сфотографировать тренировку</button>
           <button class="training-adaptation-start" type="button" onclick="athleteChooseTrainingPhoto('gallery')">Выбрать фото или скриншот</button>
         </div>
-      </dialog>
-      <dialog id="athleteTrainingPhotoReviewDialog" class="nutrition-help-dialog training-photo-review-dialog" aria-labelledby="athleteTrainingPhotoReviewTitle">
-        <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteTrainingPhotoReviewTitle">Распознать тренировку?</h3>
-          <button class="nutrition-help-close" type="button" onclick="athleteCancelTrainingPhoto()" aria-label="Закрыть">×</button>
-        </div>
-        <img id="athleteTrainingPhotoPreview" class="training-photo-preview" alt="Выбранное фото тренировки">
-        <p id="athleteTrainingPhotoFilename" class="training-photo-filename"></p>
-        <p class="training-photo-caption">Будет распознана прошедшая тренировка. Перед сохранением ты сможешь изменить дату, упражнения, вес, повторения и отметки отказа.</p>
+        <p id="athleteTrainingPhotoFilename" class="training-photo-filename">Фото ещё не выбрано</p>
+        <p class="training-photo-note">Фото используется только для распознавания. В истории сохранятся упражнения и подходы, не изображение.</p>
         <p id="athleteTrainingPhotoError" class="training-manual-error" role="alert" hidden></p>
-        <button id="athleteTrainingPhotoRecognize" class="primary-btn nutrition-help-done" type="button" onclick="athleteParseTrainingPhoto()">Распознать тренировку</button>
-        <button class="training-upload-cancel" type="button" onclick="athleteCancelTrainingPhoto()">Выбрать другое фото</button>
+        <button id="athleteTrainingPhotoRecognize" class="primary-btn training-manual-save" type="button" onclick="athleteSaveTrainingPhoto()" disabled>Распознать и сохранить</button>
       </dialog>
       <dialog id="athleteTrainingManualDialog" class="nutrition-help-dialog training-manual-dialog" aria-labelledby="athleteTrainingManualTitle">
         <div class="nutrition-help-dialog-heading">
@@ -2041,7 +2034,6 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
         <form id="athleteTrainingManualForm" onsubmit="event.preventDefault();athleteSaveManualTraining();">
-          <p id="athleteTrainingReviewNote" class="training-review-note" hidden>Проверь распознанные данные и исправь неточности перед сохранением.</p>
           <label class="training-manual-date-label" for="athleteTrainingManualDate">Дата тренировки</label>
           <input class="text-input training-manual-date" id="athleteTrainingManualDate" name="workoutDate" type="date" required style="color-scheme:dark;">
           <div id="athleteTrainingExercises" class="training-exercise-list"></div>
@@ -2554,8 +2546,7 @@ async function athleteNutritionRequest(action, extra = {}) {
 
 let athleteTrainingSaving = false;
 let athleteTrainingPhotoFile = null;
-let athleteTrainingPhotoDataUrl = "";
-let athleteTrainingPhotoPreviewUrl = "";
+let athleteTrainingPhotoSaving = false;
 
 async function athleteTrainingRequest(action, extra = {}) {
   if (!tg || !tg.initData) {
@@ -2580,9 +2571,15 @@ async function athleteTrainingRequest(action, extra = {}) {
       throw new Error("Сессия Telegram устарела. Закрой Mini App и открой его заново.");
     }
     if (response.status === 400) {
-      throw new Error(result.message || "Проверь дату и данные тренировки.");
+      throw new Error(result.message || result.error || "Проверь дату и данные тренировки.");
     }
-    throw new Error(action === "parse_image"
+    if (response.status === 413) {
+      throw new Error("Изображение слишком большое. Выбери файл до 4 МБ.");
+    }
+    if (response.status === 422) {
+      throw new Error("Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
+    }
+    throw new Error(action === "save_image"
       ? "Не удалось распознать фото тренировки. Попробуй другое изображение."
       : "Не удалось сохранить тренировку. Попробуй ещё раз.");
   }
@@ -2632,75 +2629,41 @@ function athleteUpdateTrainingExerciseControls() {
   });
 }
 
-function athleteOpenManualTraining(recognizedWorkout = null) {
+function athleteOpenManualTraining() {
   const dialog = document.getElementById("athleteTrainingManualDialog");
   const dateInput = document.getElementById("athleteTrainingManualDate");
   const exerciseList = document.getElementById("athleteTrainingExercises");
   const error = document.getElementById("athleteTrainingManualError");
-  const reviewNote = document.getElementById("athleteTrainingReviewNote");
-  const title = document.getElementById("athleteTrainingManualTitle");
   if (!dialog || !dateInput || !exerciseList) return;
 
-  if (title) title.textContent = recognizedWorkout ? "Проверь тренировку" : "Новая тренировка";
   dateInput.value = athleteLocalDate();
   dateInput.max = athleteLocalDate();
   exerciseList.innerHTML = athleteTrainingExerciseMarkup(1);
-  if (reviewNote) {
-    reviewNote.hidden = !recognizedWorkout;
-    reviewNote.textContent = "Проверь распознанные данные и исправь неточности перед сохранением.";
-  }
   if (error) {
     error.hidden = true;
     error.textContent = "";
   }
-
-  if (recognizedWorkout && Array.isArray(recognizedWorkout.exercises)) {
-    const warnings = Array.isArray(recognizedWorkout.warnings)
-      ? recognizedWorkout.warnings.filter((warning) => typeof warning === "string" && warning.trim()).slice(0, 3)
-      : [];
-    if (reviewNote && warnings.length) {
-      reviewNote.textContent += ` Обрати внимание: ${warnings.join("; ")}`;
-    }
-    const recognizedDate = typeof recognizedWorkout.workout_date === "string"
-      ? recognizedWorkout.workout_date
-      : (typeof recognizedWorkout.date === "string" ? recognizedWorkout.date : "");
-    if (/^\d{4}-\d{2}-\d{2}$/.test(recognizedDate) && recognizedDate <= athleteLocalDate()) {
-      dateInput.value = recognizedDate;
-    }
-
-    const exercises = recognizedWorkout.exercises.slice(0, 15);
-    exerciseList.innerHTML = exercises.length
-      ? exercises.map((_, index) => athleteTrainingExerciseMarkup(index + 1)).join("")
-      : athleteTrainingExerciseMarkup(1);
-
-    [...exerciseList.querySelectorAll(".training-exercise-card")].forEach(function(card, index) {
-      const parsedExercise = exercises[index];
-      if (!parsedExercise) return;
-      card.querySelector(".training-exercise-name").value =
-        typeof parsedExercise.name === "string" ? parsedExercise.name.slice(0, 120) : "";
-
-      const parsedSets = Array.isArray(parsedExercise.sets) ? parsedExercise.sets.slice(0, 50) : [];
-      const setsList = card.querySelector(".training-sets-list");
-      if (parsedSets.length) {
-        setsList.innerHTML = parsedSets.map((_, setIndex) => athleteTrainingSetMarkup(setIndex + 1)).join("");
-        [...setsList.querySelectorAll(".training-set-row")].forEach(function(row, setIndex) {
-          const parsedSet = parsedSets[setIndex] || {};
-          const weight = row.querySelector(".training-set-weight");
-          const reps = row.querySelector(".training-set-reps");
-          weight.value = parsedSet.weight_kg == null || parsedSet.weight_kg === "" ? "" : String(parsedSet.weight_kg);
-          reps.value = parsedSet.reps == null || parsedSet.reps === "" ? "" : String(parsedSet.reps);
-          row.querySelector(".training-set-failure").checked = parsedSet.is_failure === true;
-        });
-      }
-    });
-  }
-
   athleteUpdateTrainingExerciseControls();
   dialog.showModal();
 }
 
-function athleteOpenTrainingPhotoSource() {
-  document.getElementById("athleteTrainingPhotoSourceDialog")?.showModal();
+function athleteOpenTrainingPhoto() {
+  const dialog = document.getElementById("athleteTrainingPhotoDialog");
+  const dateInput = document.getElementById("athleteTrainingPhotoDate");
+  const error = document.getElementById("athleteTrainingPhotoError");
+  const button = document.getElementById("athleteTrainingPhotoRecognize");
+  const filename = document.getElementById("athleteTrainingPhotoFilename");
+  if (!dialog || !dateInput || !error || !button) return;
+
+  dateInput.value = athleteLocalDate();
+  dateInput.max = athleteLocalDate();
+  error.hidden = true;
+  error.textContent = "";
+  button.disabled = true;
+  button.textContent = "Распознать и сохранить";
+  if (filename) filename.textContent = "Фото ещё не выбрано";
+  athleteTrainingPhotoFile = null;
+  dialog.showModal();
 }
 
 function athleteChooseTrainingPhoto(source) {
@@ -2713,112 +2676,85 @@ function athleteChooseTrainingPhoto(source) {
   }
 }
 
-function athleteHandleTrainingPhoto(input) {
+function athleteSelectTrainingPhoto(input) {
   const file = input?.files?.[0];
   if (!file) return;
-  athleteTrainingPhotoFile = file;
-
-  const sourceDialog = document.getElementById("athleteTrainingPhotoSourceDialog");
-  const reviewDialog = document.getElementById("athleteTrainingPhotoReviewDialog");
-  const preview = document.getElementById("athleteTrainingPhotoPreview");
+  const dateInput = document.getElementById("athleteTrainingPhotoDate");
   const filename = document.getElementById("athleteTrainingPhotoFilename");
   const error = document.getElementById("athleteTrainingPhotoError");
   const recognize = document.getElementById("athleteTrainingPhotoRecognize");
-  if (!reviewDialog || !preview || !filename || !error || !recognize) return;
+  if (!dateInput || !filename || !error || !recognize) return;
 
-  if (athleteTrainingPhotoPreviewUrl) URL.revokeObjectURL(athleteTrainingPhotoPreviewUrl);
-  athleteTrainingPhotoPreviewUrl = "";
-  athleteTrainingPhotoDataUrl = "";
+  athleteTrainingPhotoFile = null;
   error.hidden = true;
   error.textContent = "";
-  recognize.disabled = false;
-  recognize.textContent = "Распознать тренировку";
-  filename.textContent = file.name;
 
   if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
-    preview.removeAttribute("src");
     error.textContent = "Подойдут PNG, JPG или WEBP. Если фото в HEIC, сделай скриншот или выбери изображение в другом формате.";
     error.hidden = false;
-    recognize.disabled = true;
   } else if (file.size > 4000000) {
-    preview.removeAttribute("src");
     error.textContent = "Файл слишком большой. Выбери изображение до 4 МБ.";
     error.hidden = false;
-    recognize.disabled = true;
   } else {
-    athleteTrainingPhotoPreviewUrl = URL.createObjectURL(file);
-    preview.src = athleteTrainingPhotoPreviewUrl;
+    athleteTrainingPhotoFile = file;
+    filename.textContent = file.name;
+    recognize.disabled = false;
+    return;
   }
 
-  sourceDialog?.close();
-  reviewDialog.showModal();
+  filename.textContent = "Фото ещё не выбрано";
+  recognize.disabled = true;
 }
 
-function athleteCancelTrainingPhoto() {
-  document.getElementById("athleteTrainingPhotoReviewDialog")?.close();
-  document.getElementById("athleteTrainingPhotoPreview")?.removeAttribute("src");
-  if (athleteTrainingPhotoPreviewUrl) URL.revokeObjectURL(athleteTrainingPhotoPreviewUrl);
-  athleteTrainingPhotoPreviewUrl = "";
+function athleteCloseTrainingPhotoDialog() {
+  document.getElementById("athleteTrainingPhotoDialog")?.close();
   document.getElementById("athleteTrainingCameraInput").value = "";
   document.getElementById("athleteTrainingGalleryInput").value = "";
   athleteTrainingPhotoFile = null;
-  athleteTrainingPhotoDataUrl = "";
 }
 
-async function athleteParseTrainingPhoto() {
-  const reviewDialog = document.getElementById("athleteTrainingPhotoReviewDialog");
+async function athleteSaveTrainingPhoto() {
+  if (athleteTrainingPhotoSaving) return;
+  const dialog = document.getElementById("athleteTrainingPhotoDialog");
+  const dateInput = document.getElementById("athleteTrainingPhotoDate");
   const recognize = document.getElementById("athleteTrainingPhotoRecognize");
   const error = document.getElementById("athleteTrainingPhotoError");
-  if (!reviewDialog || !recognize || !error || recognize.disabled) return;
-
-  recognize.disabled = true;
-  recognize.textContent = "Распознаём…";
-  error.hidden = true;
-
-  if (!athleteTrainingPhotoFile || !athleteTrainingPhotoDataUrl) {
-    const file = athleteTrainingPhotoFile;
-    if (!file) {
-      recognize.disabled = false;
-      recognize.textContent = "Распознать тренировку";
-      return;
-    }
-    try {
-      athleteTrainingPhotoDataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-        reader.onerror = () => reject(new Error("Не удалось прочитать изображение."));
-        reader.readAsDataURL(file);
-      });
-    } catch (readError) {
-      error.textContent = readError.message;
-      error.hidden = false;
-      recognize.disabled = false;
-      recognize.textContent = "Распознать тренировку";
-      return;
-    }
+  if (!dialog || !dateInput || !recognize || !error || !athleteTrainingPhotoFile) return;
+  if (!dateInput.value) {
+    dateInput.reportValidity();
+    return;
   }
 
+  athleteTrainingPhotoSaving = true;
+  recognize.disabled = true;
+  recognize.textContent = "Распознаём и сохраняем…";
+  error.hidden = true;
+
   try {
-    if (!reviewDialog.open) return;
-    const result = await athleteTrainingRequest("parse_image", { imageDataUrl: athleteTrainingPhotoDataUrl });
-    if (!reviewDialog.open) return;
-    const workout = result.workout || result.recognizedWorkout || result;
-    reviewDialog.close();
-    athleteOpenManualTraining(workout);
-    document.getElementById("athleteTrainingPhotoPreview")?.removeAttribute("src");
-    if (athleteTrainingPhotoPreviewUrl) URL.revokeObjectURL(athleteTrainingPhotoPreviewUrl);
-    athleteTrainingPhotoPreviewUrl = "";
-    document.getElementById("athleteTrainingCameraInput").value = "";
-    document.getElementById("athleteTrainingGalleryInput").value = "";
-    athleteTrainingPhotoFile = null;
-    athleteTrainingPhotoDataUrl = "";
-  } catch (parseError) {
-    console.error("TRENZO training photo recognition failed:", parseError);
-    error.textContent = parseError.message || "Не удалось распознать тренировку. Попробуй другое фото.";
+    const imageDataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
+      reader.onerror = () => reject(new Error("Не удалось прочитать изображение."));
+      reader.readAsDataURL(athleteTrainingPhotoFile);
+    });
+
+    await athleteTrainingRequest("save_image", {
+      workoutDate: dateInput.value,
+      imageDataUrl
+    });
+
+    athleteCloseTrainingPhotoDialog();
+    showMessage("Тренировка распознана и сохранена.");
+  } catch (saveError) {
+    console.error("TRENZO training photo save failed:", saveError);
+    error.textContent = saveError.message || "Не удалось распознать и сохранить тренировку.";
     error.hidden = false;
   } finally {
-    recognize.disabled = false;
-    recognize.textContent = "Распознать тренировку";
+    athleteTrainingPhotoSaving = false;
+    if (dialog.open) {
+      recognize.disabled = !athleteTrainingPhotoFile;
+      recognize.textContent = "Распознать и сохранить";
+    }
   }
 }
 
