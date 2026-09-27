@@ -2661,6 +2661,9 @@ async function athleteTrainingRequest(action, extra = {}) {
     if (response.status === 403 && (action === "generate_plan" || action === "load_plan")) {
       throw new Error(result.message || "Анализ тренировок пока доступен только тестовому аккаунту.");
     }
+    if (response.status === 409 && (action === "generate_plan" || action === "complete_plan_session")) {
+      throw new Error(result.message || "План уже обновился. Обнови экран и попробуй снова.");
+    }
     if (response.status === 429) {
       throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
     }
@@ -2675,6 +2678,9 @@ async function athleteTrainingRequest(action, extra = {}) {
     }
     if (action === "load_plan") {
       throw new Error(result.message || "Не удалось загрузить план тренировок.");
+    }
+    if (action === "complete_plan_session") {
+      throw new Error(result.message || "Не удалось сохранить тренировку. Попробуй ещё раз.");
     }
     throw new Error(action === "parse_image"
       ? "Не удалось распознать фото тренировки. Попробуй другое изображение."
@@ -2692,17 +2698,59 @@ function athleteTrainingPlanMarkup(plan) {
       <p>Не выполняй упражнения, которые вызывают боль или противоречат рекомендациям врача.</p></section>`;
   }
   const sessions = Array.isArray(plan.sessions) ? plan.sessions : [];
+  const hasCompletedSession = sessions.some((session) => session.completed === true);
   const sessionCards = sessions.map((session, index) => {
     const exercises = Array.isArray(session.exercises) ? session.exercises : [];
-    return `<article class="info-card training-plan-session">
-      <div class="training-plan-session-heading"><span>${athleteEscape(session.day || `Тренировка ${index + 1}`)}</span><strong>${athleteEscape(session.title || session.type || "Силовая тренировка")}</strong></div>
-      ${session.focus ? `<p class="training-plan-focus">${athleteEscape(session.focus)}</p>` : ""}
-      <ol>${exercises.map((exercise) => `<li><strong>${athleteEscape(exercise.name || "Упражнение")}</strong>
-        <span>${athleteEscape(exercise.sets ?? "—")} × ${athleteEscape(exercise.reps || "по плану")}${exercise.weightKg !== null && exercise.weightKg !== undefined ? ` · ${athleteEscape(exercise.weightKg)} кг` : ""}</span>
-        ${exercise.restSeconds ? `<small>Отдых ${athleteEscape(exercise.restSeconds)} сек.</small>` : ""}
-        ${exercise.notes ? `<small>${athleteEscape(exercise.notes)}</small>` : ""}</li>`).join("")}</ol>
-      ${session.notes ? `<p class="training-plan-session-note">${athleteEscape(session.notes)}</p>` : ""}
-    </article>`;
+    const completed = session.completed === true;
+    const exerciseCount = exercises.length;
+    const fields = exercises.map((exercise, exerciseIndex) => {
+      const setCount = Math.max(1, Math.min(20, Number.parseInt(exercise.sets, 10) || 1));
+      const weight = exercise.weightKg === null || exercise.weightKg === undefined
+        ? null
+        : Number(exercise.weightKg);
+      const weightLabel = weight === null
+        ? "привычный вес"
+        : weight === 0 ? "без доп. веса" : `${athleteEscape(weight)} кг`;
+      return `<section class="training-plan-exercise">
+        <div class="training-plan-exercise-heading">
+          <strong>${athleteEscape(exercise.name || "Упражнение")}</strong>
+          <span>${setCount} ${athleteTrainingCountLabel(setCount, "подход", "подхода", "подходов")}</span>
+        </div>
+        <div class="training-plan-set-list">
+          ${Array.from({ length: setCount }, (_, setIndex) => `<label class="training-plan-set-row">
+            <span class="training-plan-set-number">Подход ${setIndex + 1}</span>
+            <span class="training-plan-set-target"><strong>${athleteEscape(exercise.reps || "по плану")}</strong><small>${weightLabel}</small></span>
+            ${completed
+              ? `<span class="training-plan-set-completed" aria-label="Подход выполнен">✓</span>`
+              : `<input class="training-plan-reps-input" type="number" name="reps-${index}-${exerciseIndex}-${setIndex}" min="1" max="300" step="1" inputmode="numeric" required placeholder="—" aria-label="Фактические повторения, подход ${setIndex + 1}, ${athleteEscape(exercise.name || "упражнение")}">`}
+          </label>`).join("")}
+        </div>
+        ${exercise.restSeconds ? `<p class="training-plan-exercise-note">Отдых между подходами: ${athleteEscape(exercise.restSeconds)} сек.</p>` : ""}
+        ${exercise.notes ? `<p class="training-plan-exercise-note">${athleteEscape(exercise.notes)}</p>` : ""}
+      </section>`;
+    }).join("");
+    return `<details class="info-card training-plan-session${completed ? " is-completed" : ""}">
+      <summary class="training-plan-session-summary">
+        <span class="training-plan-session-copy">
+          <span class="training-plan-session-day">${athleteEscape(session.day || `Тренировка ${index + 1}`)}</span>
+          <strong>${athleteEscape(session.title || session.type || `Тренировка ${index + 1}`)}</strong>
+          <small>${exerciseCount} ${athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений")} · ${completed ? "Выполнена" : "Нажми, чтобы начать"}</small>
+        </span>
+        <span class="training-plan-session-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="training-plan-session-body">
+        ${session.focus ? `<p class="training-plan-focus">${athleteEscape(session.focus)}</p>` : ""}
+        ${completed
+          ? `<p class="training-plan-completed-note">✓ Тренировка сохранена в истории.</p>`
+          : `<form class="training-plan-session-form" onsubmit="event.preventDefault();athleteCompletePlannedSession(event, ${index})">
+              <p class="training-plan-entry-hint">В каждом подходе указан вес и диапазон повторений. После подхода впиши, сколько повторов сделал.</p>
+              <div class="training-plan-exercises">${fields}</div>
+              ${session.notes ? `<p class="training-plan-session-note">${athleteEscape(session.notes)}</p>` : ""}
+              <p class="training-plan-form-error" role="alert" hidden></p>
+              <button class="primary-btn training-plan-complete-button" type="submit">Завершить и сохранить</button>
+            </form>`}
+      </div>
+    </details>`;
   }).join("");
   return `<section class="training-plan-intro info-card">
     <span class="step-label">ПЛАН НА НЕДЕЛЮ</span><h2>${athleteEscape(plan.title || "Тренировочный план")}</h2>
@@ -2713,8 +2761,69 @@ function athleteTrainingPlanMarkup(plan) {
   ${plan.progression ? `<section class="info-card training-plan-guidance"><strong>Как прогрессировать</strong><p>${athleteEscape(plan.progression)}</p></section>` : ""}
   ${plan.recovery ? `<section class="info-card training-plan-guidance"><strong>Восстановление</strong><p>${athleteEscape(plan.recovery)}</p></section>` : ""}
   ${plan.coachNote ? `<p class="small-note">${athleteEscape(plan.coachNote)}</p>` : ""}
-  <button class="primary-btn" type="button" onclick="athleteGenerateTrainingPlan()" ${athleteTrainingPlanLoading ? "disabled" : ""}>${athleteTrainingPlanLoading ? "Обновляем план…" : "Пересоставить план"}</button>
+  ${hasCompletedSession
+    ? `<p class="training-plan-locked-note">План уже начат. Его можно пересоставить на следующей неделе.</p>`
+    : `<button class="training-plan-refresh" type="button" onclick="athleteGenerateTrainingPlan()" ${athleteTrainingPlanLoading ? "disabled" : ""}>${athleteTrainingPlanLoading ? "Обновляем план…" : "Пересоставить план"}</button>`}
   ${athleteTrainingPlanError ? `<p class="training-upload-state-error" role="alert">${athleteEscape(athleteTrainingPlanError)}</p>` : ""}`;
+}
+
+async function athleteCompletePlannedSession(event, sessionIndex) {
+  if (athleteTrainingSaving) return;
+  const form = event.currentTarget;
+  const error = form.querySelector(".training-plan-form-error");
+  const submit = form.querySelector(".training-plan-complete-button");
+  if (!form.reportValidity() || !error || !submit) return;
+
+  const session = athleteTrainingPlan?.sessions?.[sessionIndex];
+  if (!session || session.completed === true) return;
+  const exercises = (Array.isArray(session.exercises) ? session.exercises : []).map((exercise, exerciseIndex) => {
+    const setCount = Math.max(1, Math.min(20, Number.parseInt(exercise.sets, 10) || 1));
+    const weight = exercise.weightKg === null || exercise.weightKg === undefined
+      ? null
+      : Number(exercise.weightKg);
+    return {
+      name: String(exercise.name || "").trim(),
+      superset_with_previous: Boolean(exercise.supersetWithPrevious),
+      sets: Array.from({ length: setCount }, (_, setIndex) => ({
+        weight_kg: weight,
+        reps: Number(form.elements.namedItem(`reps-${sessionIndex}-${exerciseIndex}-${setIndex}`)?.value),
+        is_failure: false,
+      })),
+    };
+  });
+  if (!exercises.length || exercises.some((exercise) => !exercise.name || exercise.sets.some((set) => !Number.isInteger(set.reps) || set.reps < 1 || set.reps > 300))) {
+    error.textContent = "Проверь количество повторений в каждом подходе.";
+    error.hidden = false;
+    return;
+  }
+
+  athleteTrainingSaving = true;
+  error.hidden = true;
+  submit.disabled = true;
+  submit.textContent = "Сохраняем тренировку…";
+  form.querySelectorAll("input").forEach((input) => { input.disabled = true; });
+  try {
+    await athleteTrainingRequest("complete_plan_session", {
+      workoutDate: athleteLocalDate(),
+      exercises,
+      weekStart: athleteTrainingPlan.weekStart,
+      sessionIndex,
+    });
+    session.completed = true;
+    session.completedAt = new Date().toISOString();
+    athleteTrainingPlanLoaded = true;
+    athleteOpenCabinetSection("training-plan");
+    showMessage("Тренировка сохранена в истории.");
+  } catch (saveError) {
+    console.error("TRENZO planned workout completion failed:", saveError);
+    error.textContent = saveError.message || "Не удалось сохранить тренировку. Повторы остались на экране — попробуй ещё раз.";
+    error.hidden = false;
+    form.querySelectorAll("input").forEach((input) => { input.disabled = false; });
+    submit.disabled = false;
+    submit.textContent = "Завершить и сохранить";
+  } finally {
+    athleteTrainingSaving = false;
+  }
 }
 
 async function athleteLoadTrainingPlan(force = false) {
