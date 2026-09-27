@@ -2630,7 +2630,6 @@ function athleteUpdateTrainingExerciseControls() {
       supersetToggle.disabled = index === 0 || Boolean(previousToggle?.checked) || Boolean(nextToggle?.checked);
       if (index === 0) supersetToggle.checked = false;
       card.querySelector(".training-superset-toggle")?.classList.toggle("is-disabled", supersetToggle.disabled);
-      card.classList.toggle("is-superset", supersetToggle.checked);
     }
     const setRows = [...card.querySelectorAll(".training-set-row")];
     const addSetButton = card.querySelector(".training-add-set");
@@ -2643,8 +2642,8 @@ function athleteUpdateTrainingExerciseControls() {
 
   cards.forEach(function(card, index) {
     const currentToggle = card.querySelector(".training-exercise-superset");
-    const previousToggle = cards[index - 1]?.querySelector(".training-exercise-superset");
-    const isPair = Boolean(currentToggle?.checked || previousToggle?.checked);
+    const nextToggle = cards[index + 1]?.querySelector(".training-exercise-superset");
+    const isPair = Boolean(currentToggle?.checked || nextToggle?.checked);
     card.classList.toggle("is-superset", isPair);
   });
 }
