@@ -1957,10 +1957,13 @@ ${athleteNutritionProgressHelpMarkup()}
         <strong>План тренировок</strong>
         <span>Появится после загрузки и анализа тренировок</span>
       </section>
-      <section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
-        <strong>История тренировок</strong>
-        <span>Здесь будут храниться прошедшие тренировки</span>
-      </section>
+      <button class="info-card training-history-card" type="button" onclick="athleteOpenCabinetSection('training-history')">
+        <span class="training-module-card-copy">
+          <strong>История тренировок</strong>
+          <span>Сохранённые тренировки, упражнения и подходы</span>
+        </span>
+        <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+      </button>
       <dialog id="athleteTrainingHelpDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingHelpTitle">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingHelpTitle">Как считаются шкалы?</h3>
@@ -2050,6 +2053,12 @@ ${athleteNutritionProgressHelpMarkup()}
         <button class="primary-btn nutrition-help-done" type="button" onclick="athleteSkipTrainingUpload()">Пропустить загрузку</button>
         <button class="training-upload-cancel" type="button" onclick="this.closest('dialog').close()">Вернуться к загрузке</button>
       </dialog>`;
+  } else if (section === "training-history") {
+    title = "История тренировок";
+    content = `
+      <div id="athleteTrainingHistory" class="training-history-list" aria-live="polite">
+        <p class="training-history-status">Загружаем тренировки…</p>
+      </div>`;
   } else if (section === "progress") {
     title = "Прогресс";
     content = `
@@ -2332,6 +2341,10 @@ if (section === "nutrition-diary") {
   backAction = "athleteOpenCabinetSection('training')";
   backLabel = "К тренировкам";
 
+} else if (section === "training-history") {
+  backAction = "athleteOpenCabinetSection('training')";
+  backLabel = "К тренировкам";
+
 } else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
   backLabel = "В замеры тела";
@@ -2380,6 +2393,9 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
 }
   if (section === "nutrition" || section === "nutrition-plan") {
   athleteLoadNutritionPlan();
+  }
+  if (section === "training-history") {
+    athleteLoadTrainingHistory();
   }
 }
 
@@ -2577,6 +2593,9 @@ async function athleteTrainingRequest(action, extra = {}) {
     if (response.status === 422) {
       throw new Error(result.message || "Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
     }
+    if (action === "load_history") {
+      throw new Error(result.message || "Не удалось загрузить историю тренировок. Попробуй ещё раз.");
+    }
     if (action === "parse_image" && result.message) {
       throw new Error(result.message);
     }
@@ -2586,6 +2605,108 @@ async function athleteTrainingRequest(action, extra = {}) {
   }
 
   return result;
+}
+
+function athleteTrainingDateLabel(value) {
+  const parts = String(value || "").split("-").map(Number);
+  if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part))) return athleteEscape(value || "Дата не указана");
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(parts[0], parts[1] - 1, parts[2], 12));
+}
+
+function athleteTrainingCountLabel(count, one, few, many) {
+  const lastTwo = count % 100;
+  const last = count % 10;
+  const word = lastTwo >= 11 && lastTwo <= 14 ? many :
+    last === 1 ? one : last >= 2 && last <= 4 ? few : many;
+  return `${count} ${word}`;
+}
+
+function athleteRenderTrainingHistory(slot, workouts, hasMore = false) {
+  if (!workouts.length) {
+    slot.innerHTML = `<section class="info-card training-history-empty">
+      <strong>Пока нет сохранённых тренировок</strong>
+      <p>Добавленные тренировки появятся здесь вместе с упражнениями и подходами.</p>
+      <button class="primary-btn" type="button" onclick="athleteOpenCabinetSection('training-upload')">Добавить тренировку</button>
+    </section>`;
+    return;
+  }
+
+  const cards = workouts.map(function(workout) {
+    const exercises = Array.isArray(workout.athlete_training_exercises)
+      ? workout.athlete_training_exercises.slice().sort((a, b) => Number(a.exercise_order) - Number(b.exercise_order))
+      : [];
+    const setsCount = exercises.reduce((total, exercise) =>
+      total + (Array.isArray(exercise.athlete_training_sets) ? exercise.athlete_training_sets.length : 0), 0);
+
+    const exerciseMarkup = exercises.map(function(exercise, index) {
+      const sets = Array.isArray(exercise.athlete_training_sets)
+        ? exercise.athlete_training_sets.slice().sort((a, b) => Number(a.set_number) - Number(b.set_number))
+        : [];
+      const nextExercise = exercises[index + 1];
+      const inSuperset = exercise.superset_with_previous === true || nextExercise?.superset_with_previous === true;
+      const setMarkup = sets.map(function(set, setIndex) {
+        const weight = set.weight_kg === null || set.weight_kg === undefined || set.weight_kg === ""
+          ? "Свой вес"
+          : `${athleteFormatTrainingNumber(set.weight_kg)} кг`;
+        return `<li>
+          <span>Подход ${set.set_number || setIndex + 1}</span>
+          <strong>${weight} × ${athleteEscape(set.reps)} повт.</strong>
+          ${set.is_failure ? "<small>Отказ</small>" : ""}
+        </li>`;
+      }).join("");
+
+      return `<section class="training-history-exercise${inSuperset ? " is-superset" : ""}">
+        <div class="training-history-exercise-heading">
+          <strong>${athleteEscape(exercise.name || "Упражнение без названия")}</strong>
+          ${inSuperset ? "<span>Сет</span>" : ""}
+        </div>
+        <ol>${setMarkup}</ol>
+      </section>`;
+    }).join("");
+
+    return `<details class="training-history-workout">
+      <summary class="training-history-summary">
+        <span class="training-history-summary-copy">
+          <strong>${athleteTrainingDateLabel(workout.workout_date)}</strong>
+          <small>${athleteTrainingCountLabel(exercises.length, "упражнение", "упражнения", "упражнений")} · ${athleteTrainingCountLabel(setsCount, "подход", "подхода", "подходов")}</small>
+        </span>
+        <span class="training-history-chevron" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="training-history-details">${exerciseMarkup}</div>
+    </details>`;
+  }).join("");
+
+  slot.innerHTML = `${cards}${hasMore ? '<p class="training-history-status">Показаны последние 50 тренировок.</p>' : ""}`;
+}
+
+async function athleteLoadTrainingHistory() {
+  const slot = document.getElementById("athleteTrainingHistory");
+  if (!slot) return;
+
+  try {
+    const result = await athleteTrainingRequest("load_history");
+    if (document.getElementById("athleteTrainingHistory") !== slot) return;
+    athleteRenderTrainingHistory(slot, Array.isArray(result.workouts) ? result.workouts : [], result.hasMore === true);
+  } catch (error) {
+    console.error("TRENZO training history failed:", error);
+    if (document.getElementById("athleteTrainingHistory") !== slot) return;
+    slot.innerHTML = `<section class="info-card training-history-empty" role="alert">
+      <strong>Не удалось загрузить тренировки</strong>
+      <p>${athleteEscape(error.message || "Попробуй ещё раз.")}</p>
+      <button class="training-history-retry" type="button" onclick="athleteLoadTrainingHistory()">Повторить</button>
+    </section>`;
+  }
+}
+
+function athleteFormatTrainingNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number)
+    ? number.toLocaleString("ru-RU", { maximumFractionDigits: 1 })
+    : athleteEscape(value);
 }
 
 function athleteTrainingSetMarkup(number) {
