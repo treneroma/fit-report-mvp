@@ -851,6 +851,196 @@ h3 {
   outline-offset: 2px;
 }
 
+.training-manual-dialog {
+  width: min(560px, calc(100% - 24px));
+  max-height: 84dvh;
+  padding: 20px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.training-manual-dialog .nutrition-help-dialog-heading {
+  margin-bottom: 16px;
+}
+
+.training-manual-date-label,
+.training-exercise-name-label {
+  display: block;
+  margin-bottom: 7px;
+  color: #d4d4d4;
+  font-size: var(--text-support);
+  font-weight: 700;
+}
+
+.training-manual-date {
+  min-height: 46px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+
+.training-exercise-list {
+  display: grid;
+  gap: 12px;
+}
+
+.training-exercise-card {
+  padding: 14px;
+  border: 1px solid #414141;
+  border-radius: 16px;
+  background: #202020;
+}
+
+.training-exercise-heading,
+.training-set-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.training-exercise-heading {
+  margin-bottom: 12px;
+}
+
+.training-exercise-heading h4 {
+  margin: 0;
+  font-size: var(--text-subsection-title);
+}
+
+.training-remove-exercise,
+.training-remove-set {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #484848;
+  border-radius: 10px;
+  background: #2a2a2a;
+  color: #c8c8c8;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.training-remove-exercise[hidden],
+.training-remove-set[hidden] {
+  display: none;
+}
+
+.training-exercise-name-label {
+  margin-bottom: 12px;
+}
+
+.training-exercise-name-label .text-input,
+.training-set-fields .text-input {
+  min-height: 42px;
+  margin-top: 6px;
+  padding: 9px 10px;
+  border-radius: 11px;
+  font-size: 16px;
+}
+
+.training-set-row {
+  padding: 10px 0;
+  border-top: 1px solid #3a3a3a;
+}
+
+.training-set-heading {
+  margin-bottom: 8px;
+  color: #bdbdbd;
+  font-size: var(--text-support);
+}
+
+.training-remove-set {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+}
+
+.training-set-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.training-set-fields > label {
+  min-width: 0;
+  color: #bdbdbd;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.training-failure-toggle {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
+.training-failure-toggle input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.training-add-set,
+.training-add-exercise {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--text-support);
+  font-weight: 700;
+}
+
+.training-add-set {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.training-add-exercise {
+  width: 100%;
+  margin: 10px 0 0;
+  border: 1px dashed #555;
+  border-radius: 12px;
+}
+
+.training-add-exercise span {
+  color: #999;
+  font-weight: 400;
+}
+
+.training-add-set:disabled,
+.training-add-exercise:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.training-manual-error {
+  margin: 12px 0 0 !important;
+  color: #ff9b7a !important;
+  font-size: var(--text-support);
+}
+
+.training-manual-save {
+  position: sticky;
+  bottom: -20px;
+  margin-top: 14px;
+}
+
+.training-manual-save:disabled {
+  opacity: 0.65;
+}
+
 .nutrition-calorie-ring {
   position: relative;
   width: min(100%, 190px);
