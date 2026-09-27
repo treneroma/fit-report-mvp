@@ -878,15 +878,20 @@ h3 {
   padding: 10px 12px;
 }
 
-.training-photo-source-actions {
-  display: grid;
-  gap: 10px;
+.training-photo-add {
   margin-top: 18px;
 }
 
-.training-photo-source-actions .primary-btn,
-.training-photo-source-actions .training-adaptation-start {
-  margin: 0;
+.training-photo-add:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.training-photo-source-hint {
+  margin: 8px 0 0 !important;
+  color: var(--muted, #aaa) !important;
+  font-size: var(--text-support);
+  line-height: 1.4;
 }
 
 .training-photo-dialog {
