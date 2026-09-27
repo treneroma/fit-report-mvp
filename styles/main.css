@@ -933,6 +933,12 @@ h3 {
   border: 1px solid #414141;
   border-radius: 16px;
   background: #202020;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.training-exercise-card.is-superset {
+  border-color: rgb(255 120 72 / 66%);
+  box-shadow: inset 3px 0 0 rgb(255 120 72 / 72%);
 }
 
 .training-exercise-heading,
@@ -1031,6 +1037,36 @@ h3 {
   height: 18px;
   margin: 0;
   accent-color: var(--accent);
+}
+
+.training-superset-toggle {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  margin-top: 5px;
+  padding: 0 2px;
+  color: #c5c5c5;
+  font-size: var(--text-support);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.training-superset-toggle input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.training-superset-toggle input:disabled {
+  opacity: 0.42;
+}
+
+.training-superset-toggle.is-disabled {
+  color: #777;
+  cursor: default;
 }
 
 .training-add-set,
