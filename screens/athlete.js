@@ -2608,6 +2608,7 @@ function athleteTrainingExerciseMarkup(number) {
     <label class="training-exercise-name-label">Название упражнения<input class="text-input training-exercise-name" type="text" maxlength="120" required autocomplete="off" placeholder="Например, тяга верхнего блока"></label>
     <div class="training-sets-list">${athleteTrainingSetMarkup(1)}</div>
     <button class="training-add-set" type="button" onclick="athleteAddTrainingSet(this)">＋ Добавить подход</button>
+    <label class="training-superset-toggle"><input class="training-exercise-superset" type="checkbox" onchange="athleteUpdateTrainingExerciseControls()"><span>В сет с предыдущим</span></label>
   </section>`;
 }
 
@@ -2623,6 +2624,17 @@ function athleteUpdateTrainingExerciseControls() {
   cards.forEach(function(card, index) {
     card.querySelector(".training-exercise-heading h4").textContent = `Упражнение ${index + 1}`;
     card.querySelector(".training-remove-exercise").hidden = cards.length === 1;
+    const supersetToggle = card.querySelector(".training-exercise-superset");
+    const previousToggle = cards[index - 1]?.querySelector(".training-exercise-superset");
+    const nextToggle = cards[index + 1]?.querySelector(".training-exercise-superset");
+    if (supersetToggle) {
+      // A superset is a pair of neighboring exercises. The first has no previous
+      // exercise; prevent overlapping pairs such as A-B-C in this first version.
+      supersetToggle.disabled = index === 0 || Boolean(previousToggle?.checked) || Boolean(nextToggle?.checked);
+      if (index === 0) supersetToggle.checked = false;
+      card.querySelector(".training-superset-toggle")?.classList.toggle("is-disabled", supersetToggle.disabled);
+      card.classList.toggle("is-superset", supersetToggle.checked);
+    }
     const setRows = [...card.querySelectorAll(".training-set-row")];
     const addSetButton = card.querySelector(".training-add-set");
     if (addSetButton) addSetButton.disabled = setRows.length >= 50;
@@ -2630,6 +2642,13 @@ function athleteUpdateTrainingExerciseControls() {
       row.querySelector(".training-set-heading strong").textContent = `Подход ${setIndex + 1}`;
       row.querySelector(".training-remove-set").hidden = setRows.length === 1;
     });
+  });
+
+  cards.forEach(function(card, index) {
+    const currentToggle = card.querySelector(".training-exercise-superset");
+    const previousToggle = cards[index - 1]?.querySelector(".training-exercise-superset");
+    const isPair = Boolean(currentToggle?.checked || previousToggle?.checked);
+    card.classList.toggle("is-superset", isPair);
   });
 }
 
@@ -2845,6 +2864,7 @@ async function athleteSaveManualTraining() {
   const exercises = exerciseCards.map(function(card) {
     return {
       name: card.querySelector(".training-exercise-name").value.trim(),
+      superset_with_previous: card.querySelector(".training-exercise-superset").checked,
       sets: [...card.querySelectorAll(".training-set-row")].map(function(row) {
         const weightValue = row.querySelector(".training-set-weight").value;
         return {
