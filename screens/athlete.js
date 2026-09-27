@@ -9,6 +9,7 @@
 let athleteStep = 0;
 let athleteSaving = false;
 let athleteRestoreNotice = "";
+let athleteTrainingSetupMode = "upload";
 
 // Должен совпадать со списком allowedFields в Edge Function.
 const athleteServerFields = [
@@ -1327,6 +1328,13 @@ function athleteRenderCabinet() {
   athleteLoadWeightSummary();
 }
 
+function athleteSkipTrainingUpload() {
+  const dialog = document.getElementById("athleteTrainingAdaptationDialog");
+  if (dialog?.open) dialog.close();
+  athleteTrainingSetupMode = "adaptation_selected";
+  athleteOpenCabinetSection("training");
+}
+
 function athleteOpenCabinetSection(section) {
   const d = athleteSafeAnswers();
   const screen = document.getElementById("athleteScreen");
@@ -1933,13 +1941,18 @@ ${athleteNutritionProgressHelpMarkup()}
         </div>
         ${athleteTrainingControlMarkup()}
       </section>
-      <button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
-        <span class="training-module-card-copy">
-          <strong>Загрузить тренировки</strong>
-          <span>Добавь минимум 3 тренировки, чтобы мы составили план</span>
-        </span>
-        <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
-      </button>
+      ${athleteTrainingSetupMode === "adaptation_selected"
+        ? `<section class="info-card training-adaptation-selected" role="status">
+            <strong>Адаптационный план выбран</strong>
+            <span>Загрузка пропущена. Генерацию плана подключим следующим шагом.</span>
+          </section>`
+        : `<button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
+            <span class="training-module-card-copy">
+              <strong>Загрузить тренировки</strong>
+              <span>Добавь минимум 3 тренировки, чтобы мы составили план</span>
+            </span>
+            <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+          </button>`}
       <section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
         <strong>План тренировок</strong>
         <span>Появится после загрузки и анализа тренировок</span>
@@ -1957,14 +1970,20 @@ ${athleteNutritionProgressHelpMarkup()}
   } else if (section === "training-upload") {
     title = "Загрузка тренировок";
     content = `
-      <section class="info-card training-upload-intro">
-        <strong>Для начала достаточно 3 тренировок</strong>
-        <p>Добавь свою программу, чтобы мы подготовили данные для анализа.</p>
-      </section>
-      <button class="primary-btn training-upload-start" type="button"
-        onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
-        Загрузить тренировочную программу
-      </button>
+      <div id="trainingUploadSetup">
+        <section class="info-card training-upload-intro">
+          <strong>Для начала достаточно 3 тренировок</strong>
+          <p>Добавь свою программу, чтобы мы подготовили данные для анализа.</p>
+        </section>
+        <button class="primary-btn training-upload-start" type="button"
+          onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
+          Загрузить тренировочную программу
+        </button>
+        <button class="training-upload-no-program" type="button"
+          onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">
+          Нет программы тренировок? Составить адаптационный план
+        </button>
+      </div>
       <dialog id="athleteTrainingEntryMethodDialog" class="nutrition-help-dialog nutrition-entry-method-dialog" aria-labelledby="athleteTrainingEntryMethodTitle">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingEntryMethodTitle">Как добавить тренировки?</h3>
@@ -1980,6 +1999,16 @@ ${athleteNutritionProgressHelpMarkup()}
             <p>Выбрать изображение из телефона или сделать снимок камерой</p>
           </button>
         </div>
+      </dialog>
+      <dialog id="athleteTrainingAdaptationDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingAdaptationTitle">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteTrainingAdaptationTitle">Начать без программы?</h3>
+          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
+        </div>
+        <p>Если продолжишь, мы пропустим этап загрузки. Адаптационный план подготовим по твоей анкете, цели и опыту — загружать прошлые тренировки не понадобится.</p>
+        <p class="training-upload-notice">Сейчас это только выбор сценария. Генерацию плана подключим следующим шагом.</p>
+        <button class="primary-btn nutrition-help-done" type="button" onclick="athleteSkipTrainingUpload()">Пропустить загрузку</button>
+        <button class="training-upload-cancel" type="button" onclick="this.closest('dialog').close()">Вернуться к загрузке</button>
       </dialog>`;
   } else if (section === "progress") {
     title = "Прогресс";
