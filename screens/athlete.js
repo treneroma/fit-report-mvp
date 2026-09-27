@@ -2006,7 +2006,7 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="info-card" type="button"
             onclick="this.closest('dialog').close();athleteOpenTrainingPhoto()">
             <strong>Скриншот или фото</strong>
-            <p>Распознать упражнения и подходы прошедшей тренировки</p>
+            <p>Распознать, проверить и при необходимости исправить перед сохранением</p>
           </button>
         </div>
       </dialog>
@@ -2024,9 +2024,9 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="training-adaptation-start" type="button" onclick="athleteChooseTrainingPhoto('gallery')">Выбрать фото или скриншот</button>
         </div>
         <p id="athleteTrainingPhotoFilename" class="training-photo-filename">Фото ещё не выбрано</p>
-        <p class="training-photo-note">Фото используется только для распознавания. В истории сохранятся упражнения и подходы, не изображение.</p>
+        <p class="training-photo-note">Фото используется только для распознавания. После сохранения в истории останутся данные тренировки, не изображение.</p>
         <p id="athleteTrainingPhotoError" class="training-manual-error" role="alert" hidden></p>
-        <button id="athleteTrainingPhotoRecognize" class="primary-btn training-manual-save" type="button" onclick="athleteSaveTrainingPhoto()" disabled>Распознать и сохранить</button>
+        <button id="athleteTrainingPhotoRecognize" class="primary-btn training-manual-save" type="button" onclick="athleteParseTrainingPhoto()" disabled>Распознать и продолжить</button>
       </dialog>
       <dialog id="athleteTrainingManualDialog" class="nutrition-help-dialog training-manual-dialog" aria-labelledby="athleteTrainingManualTitle">
         <div class="nutrition-help-dialog-heading">
@@ -2034,6 +2034,7 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
         <form id="athleteTrainingManualForm" onsubmit="event.preventDefault();athleteSaveManualTraining();">
+          <p id="athleteTrainingReviewNote" class="training-review-note" hidden>Проверь распознанные данные. Нераспознанные поля оставлены пустыми — заполни их перед сохранением.</p>
           <label class="training-manual-date-label" for="athleteTrainingManualDate">Дата тренировки</label>
           <input class="text-input training-manual-date" id="athleteTrainingManualDate" name="workoutDate" type="date" required style="color-scheme:dark;">
           <div id="athleteTrainingExercises" class="training-exercise-list"></div>
@@ -2579,10 +2580,10 @@ async function athleteTrainingRequest(action, extra = {}) {
     if (response.status === 422) {
       throw new Error(result.message || "Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
     }
-    if (action === "save_image" && result.message) {
+    if (action === "parse_image" && result.message) {
       throw new Error(result.message);
     }
-    throw new Error(action === "save_image"
+    throw new Error(action === "parse_image"
       ? "Не удалось распознать фото тренировки. Попробуй другое изображение."
       : "Не удалось сохранить тренировку. Попробуй ещё раз.");
   }
@@ -2632,20 +2633,53 @@ function athleteUpdateTrainingExerciseControls() {
   });
 }
 
-function athleteOpenManualTraining() {
+function athleteOpenManualTraining(recognizedWorkout = null, recognizedDate = "") {
   const dialog = document.getElementById("athleteTrainingManualDialog");
   const dateInput = document.getElementById("athleteTrainingManualDate");
   const exerciseList = document.getElementById("athleteTrainingExercises");
   const error = document.getElementById("athleteTrainingManualError");
+  const reviewNote = document.getElementById("athleteTrainingReviewNote");
+  const title = document.getElementById("athleteTrainingManualTitle");
   if (!dialog || !dateInput || !exerciseList) return;
 
-  dateInput.value = athleteLocalDate();
+  const isRecognized = recognizedWorkout && Array.isArray(recognizedWorkout.exercises);
+  if (title) title.textContent = isRecognized ? "Проверь тренировку" : "Новая тренировка";
+  if (reviewNote) reviewNote.hidden = !isRecognized;
+  dateInput.value = recognizedDate || athleteLocalDate();
   dateInput.max = athleteLocalDate();
   exerciseList.innerHTML = athleteTrainingExerciseMarkup(1);
   if (error) {
     error.hidden = true;
     error.textContent = "";
   }
+
+  if (isRecognized) {
+    const exercises = recognizedWorkout.exercises.slice(0, 15);
+    exerciseList.innerHTML = exercises.length
+      ? exercises.map((_, index) => athleteTrainingExerciseMarkup(index + 1)).join("")
+      : athleteTrainingExerciseMarkup(1);
+
+    [...exerciseList.querySelectorAll(".training-exercise-card")].forEach(function(card, index) {
+      const exercise = exercises[index] || {};
+      const nameInput = card.querySelector(".training-exercise-name");
+      nameInput.value = typeof exercise.name === "string" ? exercise.name.slice(0, 120) : "";
+
+      const parsedSets = Array.isArray(exercise.sets) ? exercise.sets.slice(0, 50) : [];
+      const setsList = card.querySelector(".training-sets-list");
+      if (parsedSets.length) {
+        setsList.innerHTML = parsedSets.map((_, setIndex) => athleteTrainingSetMarkup(setIndex + 1)).join("");
+        [...setsList.querySelectorAll(".training-set-row")].forEach(function(row, setIndex) {
+          const set = parsedSets[setIndex] || {};
+          const weightInput = row.querySelector(".training-set-weight");
+          const repsInput = row.querySelector(".training-set-reps");
+          weightInput.value = set.weight_kg == null ? "" : String(set.weight_kg);
+          repsInput.value = set.reps == null ? "" : String(set.reps);
+          row.querySelector(".training-set-failure").checked = set.is_failure === true;
+        });
+      }
+    });
+  }
+
   athleteUpdateTrainingExerciseControls();
   dialog.showModal();
 }
@@ -2663,7 +2697,7 @@ function athleteOpenTrainingPhoto() {
   error.hidden = true;
   error.textContent = "";
   button.disabled = true;
-  button.textContent = "Распознать и сохранить";
+  button.textContent = "Распознать и продолжить";
   if (filename) filename.textContent = "Фото ещё не выбрано";
   athleteTrainingPhotoFile = null;
   dialog.showModal();
@@ -2717,7 +2751,7 @@ function athleteCloseTrainingPhotoDialog(force = false) {
   athleteTrainingPhotoFile = null;
 }
 
-async function athleteSaveTrainingPhoto() {
+async function athleteParseTrainingPhoto() {
   if (athleteTrainingPhotoSaving) return;
   const dialog = document.getElementById("athleteTrainingPhotoDialog");
   const dateInput = document.getElementById("athleteTrainingPhotoDate");
@@ -2731,7 +2765,7 @@ async function athleteSaveTrainingPhoto() {
 
   athleteTrainingPhotoSaving = true;
   recognize.disabled = true;
-  recognize.textContent = "Распознаём и сохраняем…";
+  recognize.textContent = "Распознаём…";
   document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
     .forEach((button) => { button.disabled = true; });
   error.hidden = true;
@@ -2744,22 +2778,24 @@ async function athleteSaveTrainingPhoto() {
       reader.readAsDataURL(athleteTrainingPhotoFile);
     });
 
-    await athleteTrainingRequest("save_image", {
+    const result = await athleteTrainingRequest("parse_image", {
       workoutDate: dateInput.value,
       imageDataUrl
     });
 
+    const workout = result.draft || result.workout || result;
+    const workoutDate = dateInput.value;
     athleteCloseTrainingPhotoDialog(true);
-    showMessage("Тренировка распознана и сохранена.");
-  } catch (saveError) {
-    console.error("TRENZO training photo save failed:", saveError);
-    error.textContent = saveError.message || "Не удалось распознать и сохранить тренировку.";
+    athleteOpenManualTraining(workout, workoutDate);
+  } catch (parseError) {
+    console.error("TRENZO training photo recognition failed:", parseError);
+    error.textContent = parseError.message || "Не удалось распознать тренировку.";
     error.hidden = false;
   } finally {
     athleteTrainingPhotoSaving = false;
     if (dialog.open) {
       recognize.disabled = !athleteTrainingPhotoFile;
-      recognize.textContent = "Распознать и сохранить";
+      recognize.textContent = "Распознать и продолжить";
       document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
         .forEach((button) => { button.disabled = false; });
     }
