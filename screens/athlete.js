@@ -2012,7 +2012,7 @@ ${athleteNutritionProgressHelpMarkup()}
       </dialog>
       <input id="athleteTrainingCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" onchange="athleteSelectTrainingPhoto(this)">
       <input id="athleteTrainingGalleryInput" class="visually-hidden" type="file" accept="image/*" onchange="athleteSelectTrainingPhoto(this)">
-      <dialog id="athleteTrainingPhotoDialog" class="nutrition-help-dialog training-photo-dialog" aria-labelledby="athleteTrainingPhotoTitle">
+      <dialog id="athleteTrainingPhotoDialog" class="nutrition-help-dialog training-photo-dialog" aria-labelledby="athleteTrainingPhotoTitle" oncancel="if (athleteTrainingPhotoSaving) event.preventDefault()">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingPhotoTitle">Добавить тренировку по фото</h3>
           <button class="nutrition-help-close" type="button" onclick="athleteCloseTrainingPhotoDialog()" aria-label="Закрыть">×</button>
@@ -2577,7 +2577,10 @@ async function athleteTrainingRequest(action, extra = {}) {
       throw new Error("Изображение слишком большое. Выбери файл до 4 МБ.");
     }
     if (response.status === 422) {
-      throw new Error("Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
+      throw new Error(result.message || "Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
+    }
+    if (action === "save_image" && result.message) {
+      throw new Error(result.message);
     }
     throw new Error(action === "save_image"
       ? "Не удалось распознать фото тренировки. Попробуй другое изображение."
@@ -2706,7 +2709,8 @@ function athleteSelectTrainingPhoto(input) {
   recognize.disabled = true;
 }
 
-function athleteCloseTrainingPhotoDialog() {
+function athleteCloseTrainingPhotoDialog(force = false) {
+  if (athleteTrainingPhotoSaving && !force) return;
   document.getElementById("athleteTrainingPhotoDialog")?.close();
   document.getElementById("athleteTrainingCameraInput").value = "";
   document.getElementById("athleteTrainingGalleryInput").value = "";
@@ -2728,6 +2732,8 @@ async function athleteSaveTrainingPhoto() {
   athleteTrainingPhotoSaving = true;
   recognize.disabled = true;
   recognize.textContent = "Распознаём и сохраняем…";
+  document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
+    .forEach((button) => { button.disabled = true; });
   error.hidden = true;
 
   try {
@@ -2743,7 +2749,7 @@ async function athleteSaveTrainingPhoto() {
       imageDataUrl
     });
 
-    athleteCloseTrainingPhotoDialog();
+    athleteCloseTrainingPhotoDialog(true);
     showMessage("Тренировка распознана и сохранена.");
   } catch (saveError) {
     console.error("TRENZO training photo save failed:", saveError);
@@ -2754,6 +2760,8 @@ async function athleteSaveTrainingPhoto() {
     if (dialog.open) {
       recognize.disabled = !athleteTrainingPhotoFile;
       recognize.textContent = "Распознать и сохранить";
+      document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
+        .forEach((button) => { button.disabled = false; });
     }
   }
 }
