@@ -2,8 +2,9 @@
   TRENZO — регистрация пользователя «Мой прогресс»
 
   Разрешённые поля анкеты сохраняются в Supabase.
-  Ограничения по здоровью, свободный текст программы,
-  фотографии и имена файлов НЕ отправляем.
+  Ограничения по здоровью не сохраняются в профиле; при явном запросе
+  плана временно передаются ИИ-сервису. Программы, фотографии и имена
+  файлов в профиль не отправляем.
 */
 
 let athleteStep = 0;
@@ -404,10 +405,11 @@ function athleteFields() {
         )}
 
         <p class="small-note">
-          Если ограничений нет, напиши «Нет».
-          Это поле пока хранится только до закрытия приложения:
-          мы НЕ отправляем его в Supabase. Анкета не заменяет
-          медицинскую консультацию.
+          Если ограничений нет, напиши «Нет». Не указывай диагнозы
+          и подробности медицинской истории, которыми не хочешь делиться.
+          При составлении тренировочных рекомендаций этот ответ будет
+          передан ИИ-сервису через TRENZO, но не сохранится в профиле.
+          Анкета не заменяет медицинскую консультацию.
         </p>
       `;
 
@@ -1955,10 +1957,14 @@ ${athleteNutritionProgressHelpMarkup()}
             </span>
             <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
           </button>`}
-      <section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
-        <strong>План тренировок</strong>
-        <span>Появится после загрузки и анализа тренировок</span>
-      </section>
+      ${athleteTrainingPlan
+        ? `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')">
+            <strong>План тренировок</strong><span>Открыть план на неделю</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+          </button>`
+        : `<section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
+            <strong>План тренировок</strong>
+            <span>${athleteTrainingPlanLoading ? "Загружаем сохранённый план…" : athleteEscape(athleteTrainingPlanError || "Появится после анализа загруженных тренировок")}</span>
+          </section>`}
       <button class="info-card training-history-card" type="button" onclick="athleteOpenCabinetSection('training-history')">
         <span class="training-module-card-copy">
           <strong>История тренировок</strong>
@@ -2049,6 +2055,11 @@ ${athleteNutritionProgressHelpMarkup()}
       <div id="athleteTrainingHistory" class="training-history-list" aria-live="polite">
         <p class="training-history-status">Загружаем тренировки…</p>
       </div>`;
+  } else if (section === "training-plan") {
+    title = "План тренировок";
+    content = `<div id="athleteTrainingPlanContent" class="training-plan-content" aria-live="polite">
+      ${athleteTrainingPlan ? athleteTrainingPlanMarkup(athleteTrainingPlan) : `<p class="training-history-status">${athleteTrainingPlanLoading ? "Загружаем план…" : athleteEscape(athleteTrainingPlanError || "План пока не создан.")}</p>`}
+    </div>`;
   } else if (section === "progress") {
     title = "Прогресс";
     content = `
@@ -2335,6 +2346,10 @@ if (section === "nutrition-diary") {
   backAction = "athleteOpenCabinetSection('training')";
   backLabel = "К тренировкам";
 
+} else if (section === "training-plan") {
+  backAction = "athleteOpenCabinetSection('training')";
+  backLabel = "К тренировкам";
+
 } else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
   backLabel = "В замеры тела";
@@ -2387,6 +2402,9 @@ onclick="athleteRenderCabinet()">← В личный кабинет</button>
   if (section === "training-history") {
     athleteLoadTrainingHistory();
   }
+  if (section === "training" || section === "training-plan") {
+    athleteLoadTrainingPlan();
+  }
   if (section === "training-upload") {
     athleteRefreshTrainingUploadState();
   }
@@ -2406,8 +2424,8 @@ function athleteTrainingUploadPathsMarkup() {
       </div>
       <div class="training-upload-path-copy"><p>${uploadDescription}</p></div>
       ${enoughWorkouts
-        ? `<button class="primary-btn training-upload-start" type="button" disabled aria-describedby="athleteTrainingAnalysisHint">Анализировать тренировочный план</button>
-           <p id="athleteTrainingAnalysisHint" class="training-analysis-hint">Анализ и составление плана подключим следующим шагом.</p>
+        ? `<button class="primary-btn training-upload-start" type="button" onclick="athleteGenerateTrainingPlan()" ${athleteTrainingPlanLoading ? "disabled" : ""}>${athleteTrainingPlanLoading ? "Анализируем тренировки…" : "Анализировать тренировочный план"}</button>
+           <p class="training-analysis-hint">Ответ об ограничениях будет временно передан ИИ-сервису для анализа и не сохранится в профиле.</p>
            <button class="training-adaptation-start training-upload-add-more" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Добавить ещё тренировки</button>`
         : `<button class="primary-btn training-upload-start" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Загрузить программу</button>`}
     </section>
@@ -2418,7 +2436,9 @@ function athleteTrainingUploadPathsMarkup() {
       </div>
       <button class="training-adaptation-start" type="button" onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">Начать адаптацию</button>
     </section>`}
-    ${athleteTrainingUploadStateError ? `<p class="training-upload-state-error" role="status">${athleteEscape(athleteTrainingUploadStateError)}</p>` : ""}`;
+    ${athleteTrainingUploadStateError || (enoughWorkouts && athleteTrainingPlanError)
+      ? `<p class="training-upload-state-error" role="status">${athleteEscape(athleteTrainingUploadStateError || athleteTrainingPlanError)}</p>`
+      : ""}`;
 }
 
 async function athleteRefreshTrainingUploadState() {
@@ -2599,6 +2619,10 @@ async function athleteNutritionRequest(action, extra = {}) {
 let athleteTrainingSaving = false;
 let athleteTrainingPhotoFile = null;
 let athleteTrainingPhotoSaving = false;
+let athleteTrainingPlan = null;
+let athleteTrainingPlanLoading = false;
+let athleteTrainingPlanError = "";
+let athleteTrainingPlanLoaded = false;
 
 async function athleteTrainingRequest(action, extra = {}) {
   if (!tg || !tg.initData) {
@@ -2629,7 +2653,16 @@ async function athleteTrainingRequest(action, extra = {}) {
       throw new Error("Изображение слишком большое. Выбери файл до 4 МБ.");
     }
     if (response.status === 422) {
+      if (action === "generate_plan") {
+        throw new Error(result.message || "Для анализа пока не хватает данных тренировок.");
+      }
       throw new Error(result.message || "Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
+    }
+    if (response.status === 403 && (action === "generate_plan" || action === "load_plan")) {
+      throw new Error(result.message || "Анализ тренировок пока доступен только тестовому аккаунту.");
+    }
+    if (response.status === 429) {
+      throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
     }
     if (action === "load_history") {
       throw new Error(result.message || "Не удалось загрузить историю тренировок. Попробуй ещё раз.");
@@ -2637,12 +2670,106 @@ async function athleteTrainingRequest(action, extra = {}) {
     if (action === "parse_image" && result.message) {
       throw new Error(result.message);
     }
+    if (action === "generate_plan") {
+      throw new Error(result.message || "Не удалось составить план тренировок. Попробуй ещё раз.");
+    }
+    if (action === "load_plan") {
+      throw new Error(result.message || "Не удалось загрузить план тренировок.");
+    }
     throw new Error(action === "parse_image"
       ? "Не удалось распознать фото тренировки. Попробуй другое изображение."
       : "Не удалось сохранить тренировку. Попробуй ещё раз.");
   }
 
   return result;
+}
+
+function athleteTrainingPlanMarkup(plan) {
+  if (!plan || typeof plan !== "object") return "<p>План пока недоступен.</p>";
+  if (plan.reviewRequired) {
+    return `<section class="info-card training-plan-review"><strong>Нужна индивидуальная оценка специалиста</strong>
+      <p>${athleteEscape(plan.reviewReason || "По указанным ограничениям нельзя безопасно автоматически составить план.")}</p>
+      <p>Не выполняй упражнения, которые вызывают боль или противоречат рекомендациям врача.</p></section>`;
+  }
+  const sessions = Array.isArray(plan.sessions) ? plan.sessions : [];
+  const sessionCards = sessions.map((session, index) => {
+    const exercises = Array.isArray(session.exercises) ? session.exercises : [];
+    return `<article class="info-card training-plan-session">
+      <div class="training-plan-session-heading"><span>${athleteEscape(session.day || `Тренировка ${index + 1}`)}</span><strong>${athleteEscape(session.title || session.type || "Силовая тренировка")}</strong></div>
+      ${session.focus ? `<p class="training-plan-focus">${athleteEscape(session.focus)}</p>` : ""}
+      <ol>${exercises.map((exercise) => `<li><strong>${athleteEscape(exercise.name || "Упражнение")}</strong>
+        <span>${athleteEscape(exercise.sets ?? "—")} × ${athleteEscape(exercise.reps || "по плану")}${exercise.weightKg !== null && exercise.weightKg !== undefined ? ` · ${athleteEscape(exercise.weightKg)} кг` : ""}</span>
+        ${exercise.restSeconds ? `<small>Отдых ${athleteEscape(exercise.restSeconds)} сек.</small>` : ""}
+        ${exercise.notes ? `<small>${athleteEscape(exercise.notes)}</small>` : ""}</li>`).join("")}</ol>
+      ${session.notes ? `<p class="training-plan-session-note">${athleteEscape(session.notes)}</p>` : ""}
+    </article>`;
+  }).join("");
+  return `<section class="training-plan-intro info-card">
+    <span class="step-label">ПЛАН НА НЕДЕЛЮ</span><h2>${athleteEscape(plan.title || "Тренировочный план")}</h2>
+    <p>${athleteEscape(plan.summary || "План составлен на основе анкеты и журнала тренировок.")}</p>
+    ${plan.dataQuality ? `<p class="training-plan-quality">${athleteEscape(plan.dataQuality)}</p>` : ""}
+  </section>
+  ${sessionCards || `<section class="info-card">Тренировки на эту неделю не добавлены.</section>`}
+  ${plan.progression ? `<section class="info-card training-plan-guidance"><strong>Как прогрессировать</strong><p>${athleteEscape(plan.progression)}</p></section>` : ""}
+  ${plan.recovery ? `<section class="info-card training-plan-guidance"><strong>Восстановление</strong><p>${athleteEscape(plan.recovery)}</p></section>` : ""}
+  ${plan.coachNote ? `<p class="small-note">${athleteEscape(plan.coachNote)}</p>` : ""}
+  <button class="primary-btn" type="button" onclick="athleteGenerateTrainingPlan()" ${athleteTrainingPlanLoading ? "disabled" : ""}>${athleteTrainingPlanLoading ? "Обновляем план…" : "Пересоставить план"}</button>
+  ${athleteTrainingPlanError ? `<p class="training-upload-state-error" role="alert">${athleteEscape(athleteTrainingPlanError)}</p>` : ""}`;
+}
+
+async function athleteLoadTrainingPlan(force = false) {
+  if (athleteTrainingPlanLoading || (athleteTrainingPlanLoaded && !force)) return;
+  athleteTrainingPlanLoading = true;
+  athleteTrainingPlanError = "";
+  try {
+    const result = await athleteTrainingRequest("load_plan");
+    athleteTrainingPlan = result.plan || null;
+    athleteTrainingPlanLoaded = true;
+  } catch (error) {
+    console.error("TRENZO training plan load failed:", error);
+    athleteTrainingPlanError = error.message || "Не удалось загрузить план тренировок.";
+  } finally {
+    athleteTrainingPlanLoading = false;
+    const moduleCard = document.querySelector(".training-module-card-disabled");
+    if (moduleCard) {
+      moduleCard.outerHTML = athleteTrainingPlan
+        ? `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')"><strong>План тренировок</strong><span>Открыть план на неделю</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span></button>`
+        : `<section class="info-card training-module-card training-module-card-disabled" aria-disabled="true"><strong>План тренировок</strong><span>${athleteEscape(athleteTrainingPlanError || "Появится после анализа загруженных тренировок")}</span></section>`;
+    }
+    const planSlot = document.getElementById("athleteTrainingPlanContent");
+    if (planSlot) planSlot.innerHTML = athleteTrainingPlan
+      ? athleteTrainingPlanMarkup(athleteTrainingPlan)
+      : `<p class="training-history-status">${athleteEscape(athleteTrainingPlanError || "План пока не создан.")}</p>`;
+  }
+}
+
+async function athleteGenerateTrainingPlan() {
+  if (athleteTrainingPlanLoading) return;
+  const restrictions = String(registration?.athlete?.restrictions || "").trim().slice(0, 1500);
+  athleteTrainingPlanLoading = true;
+  athleteTrainingPlanError = "";
+  const uploadSlot = document.getElementById("athleteTrainingUploadPaths");
+  if (uploadSlot) uploadSlot.innerHTML = athleteTrainingUploadPathsMarkup();
+  try {
+    const result = await athleteTrainingRequest("generate_plan", { restrictions });
+    athleteTrainingPlan = result.plan || null;
+    athleteTrainingPlanLoaded = true;
+    if (!athleteTrainingPlan) throw new Error("Сервер не вернул тренировочный план.");
+    athleteOpenCabinetSection("training-plan");
+  } catch (error) {
+    athleteTrainingPlanError = error.message || "Не удалось составить план тренировок.";
+    console.error("TRENZO training plan generation failed:", error);
+    const slot = document.getElementById("athleteTrainingUploadPaths");
+    if (slot) slot.innerHTML = athleteTrainingUploadPathsMarkup();
+    const planSlot = document.getElementById("athleteTrainingPlanContent");
+    if (planSlot) planSlot.innerHTML = `<p class="training-upload-state-error" role="alert">${athleteEscape(athleteTrainingPlanError)}</p>`;
+  } finally {
+    athleteTrainingPlanLoading = false;
+    const slot = document.getElementById("athleteTrainingUploadPaths");
+    if (slot && !athleteTrainingPlan) slot.innerHTML = athleteTrainingUploadPathsMarkup();
+    const planSlot = document.getElementById("athleteTrainingPlanContent");
+    if (planSlot && athleteTrainingPlan) planSlot.innerHTML = athleteTrainingPlanMarkup(athleteTrainingPlan);
+  }
 }
 
 function athleteTrainingDateLabel(value) {
