@@ -2010,8 +2010,7 @@ ${athleteNutritionProgressHelpMarkup()}
           </button>
         </div>
       </dialog>
-      <input id="athleteTrainingCameraInput" class="visually-hidden" type="file" accept="image/*" capture="environment" onchange="athleteSelectTrainingPhoto(this)">
-      <input id="athleteTrainingGalleryInput" class="visually-hidden" type="file" accept="image/*" onchange="athleteSelectTrainingPhoto(this)">
+      <input id="athleteTrainingImageInput" class="visually-hidden" type="file" accept="image/*" onchange="athleteSelectTrainingPhoto(this)">
       <dialog id="athleteTrainingPhotoDialog" class="nutrition-help-dialog training-photo-dialog" aria-labelledby="athleteTrainingPhotoTitle" oncancel="if (athleteTrainingPhotoSaving) event.preventDefault()">
         <div class="nutrition-help-dialog-heading">
           <h3 id="athleteTrainingPhotoTitle">Добавить тренировку по фото</h3>
@@ -2019,10 +2018,8 @@ ${athleteNutritionProgressHelpMarkup()}
         </div>
         <label class="training-manual-date-label" for="athleteTrainingPhotoDate">Дата тренировки</label>
         <input class="text-input training-manual-date" id="athleteTrainingPhotoDate" type="date" required style="color-scheme:dark;">
-        <div class="training-photo-source-actions">
-          <button class="training-adaptation-start" type="button" onclick="athleteChooseTrainingPhoto('camera')">Сфотографировать тренировку</button>
-          <button class="training-adaptation-start" type="button" onclick="athleteChooseTrainingPhoto('gallery')">Выбрать фото или скриншот</button>
-        </div>
+        <button class="training-adaptation-start training-photo-add" type="button" onclick="athleteChooseTrainingPhoto()">Добавить фото</button>
+        <p class="training-photo-source-hint">Сфотографируй тренировку или выбери готовое фото или скриншот.</p>
         <p id="athleteTrainingPhotoFilename" class="training-photo-filename">Фото ещё не выбрано</p>
         <p class="training-photo-note">Фото используется только для распознавания. После сохранения в истории останутся данные тренировки, не изображение.</p>
         <p id="athleteTrainingPhotoError" class="training-manual-error" role="alert" hidden></p>
@@ -2722,10 +2719,8 @@ function athleteOpenTrainingPhoto() {
   dialog.showModal();
 }
 
-function athleteChooseTrainingPhoto(source) {
-  const input = document.getElementById(source === "camera"
-    ? "athleteTrainingCameraInput"
-    : "athleteTrainingGalleryInput");
+function athleteChooseTrainingPhoto() {
+  const input = document.getElementById("athleteTrainingImageInput");
   if (input) {
     input.value = "";
     input.click();
@@ -2765,8 +2760,7 @@ function athleteSelectTrainingPhoto(input) {
 function athleteCloseTrainingPhotoDialog(force = false) {
   if (athleteTrainingPhotoSaving && !force) return;
   document.getElementById("athleteTrainingPhotoDialog")?.close();
-  document.getElementById("athleteTrainingCameraInput").value = "";
-  document.getElementById("athleteTrainingGalleryInput").value = "";
+  document.getElementById("athleteTrainingImageInput").value = "";
   athleteTrainingPhotoFile = null;
 }
 
@@ -2785,8 +2779,8 @@ async function athleteParseTrainingPhoto() {
   athleteTrainingPhotoSaving = true;
   recognize.disabled = true;
   recognize.textContent = "Распознаём…";
-  document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
-    .forEach((button) => { button.disabled = true; });
+  const addPhotoButton = document.querySelector("#athleteTrainingPhotoDialog .training-photo-add");
+  if (addPhotoButton) addPhotoButton.disabled = true;
   error.hidden = true;
 
   try {
@@ -2815,8 +2809,7 @@ async function athleteParseTrainingPhoto() {
     if (dialog.open) {
       recognize.disabled = !athleteTrainingPhotoFile;
       recognize.textContent = "Распознать и продолжить";
-      document.querySelectorAll("#athleteTrainingPhotoDialog .training-photo-source-actions button")
-        .forEach((button) => { button.disabled = false; });
+      if (addPhotoButton) addPhotoButton.disabled = false;
     }
   }
 }
