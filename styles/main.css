@@ -889,45 +889,21 @@ h3 {
   margin: 0;
 }
 
-.training-photo-review-dialog {
+.training-photo-dialog {
   width: min(480px, calc(100% - 24px));
   max-height: 84dvh;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
 
-.training-photo-preview {
-  display: block;
-  width: 100%;
-  max-height: min(42dvh, 360px);
-  margin: 0 auto 10px;
-  border: 1px solid #414141;
-  border-radius: 14px;
-  background: #191919;
-  object-fit: contain;
-}
-
 .training-photo-filename {
   overflow-wrap: anywhere;
-  color: #f0f0f0 !important;
+  margin: 14px 0 10px !important;
+  color: #c5c5c5 !important;
   font-size: var(--text-support);
 }
 
-.training-photo-caption {
-  font-size: var(--text-support);
-}
-
-.training-review-note {
-  margin: 0 0 14px !important;
-  padding: 11px 12px;
-  border: 1px solid rgb(255 120 72 / 40%);
-  border-radius: 12px;
-  background: rgb(255 120 72 / 8%);
-  color: #f2c1ad !important;
-  font-size: var(--text-support);
-}
-
-.training-photo-review-dialog .nutrition-help-done {
+.training-photo-dialog .training-manual-save {
   width: 100%;
 }
 
