@@ -1933,7 +1933,7 @@ ${athleteNutritionProgressHelpMarkup()}
         </div>
         ${athleteTrainingControlMarkup()}
       </section>
-      <button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="document.getElementById('athleteTrainingUploadDialog').showModal()">
+      <button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
         <span class="training-module-card-copy">
           <strong>Загрузить тренировки</strong>
           <span>Добавь минимум 3 тренировки, чтобы мы составили план</span>
@@ -1954,15 +1954,32 @@ ${athleteNutritionProgressHelpMarkup()}
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
       </dialog>`;
-    content += `
-      <dialog id="athleteTrainingUploadDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingUploadTitle">
+  } else if (section === "training-upload") {
+    title = "Загрузка тренировок";
+    content = `
+      <section class="info-card training-upload-intro">
+        <strong>Для начала достаточно 3 тренировок</strong>
+        <p>Добавь свою программу, чтобы мы подготовили данные для анализа.</p>
+      </section>
+      <button class="primary-btn training-upload-start" type="button"
+        onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">
+        Загрузить тренировочную программу
+      </button>
+      <dialog id="athleteTrainingEntryMethodDialog" class="nutrition-help-dialog nutrition-entry-method-dialog" aria-labelledby="athleteTrainingEntryMethodTitle">
         <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteTrainingUploadTitle">Загрузить тренировки</h3>
+          <h3 id="athleteTrainingEntryMethodTitle">Как добавить тренировки?</h3>
           <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
         </div>
-        <p>Первый этап — добавить минимум 3 тренировки с датами. После загрузки мы сможем разобрать их и подготовить план.</p>
-        <p class="training-upload-notice">Загрузка и сохранение тренировок пока не подключены.</p>
-        <button class="primary-btn nutrition-help-done" type="button" onclick="this.closest('dialog').close()">Понятно</button>
+        <div class="nutrition-entry-method-options">
+          <button class="info-card" type="button" aria-disabled="true">
+            <strong>Ввести вручную</strong>
+            <p>Указать дату, упражнения, подходы и повторения</p>
+          </button>
+          <button class="info-card" type="button" aria-disabled="true">
+            <strong>Скриншот или фото</strong>
+            <p>Выбрать изображение из телефона или сделать снимок камерой</p>
+          </button>
+        </div>
       </dialog>`;
   } else if (section === "progress") {
     title = "Прогресс";
@@ -2241,6 +2258,10 @@ if (section === "nutrition-diary") {
 
 } else if (section === "nutrition-plan") {
   backAction = "athleteOpenCabinetSection('nutrition')";
+
+} else if (section === "training-upload") {
+  backAction = "athleteOpenCabinetSection('training')";
+  backLabel = "К тренировкам";
 
 } else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
