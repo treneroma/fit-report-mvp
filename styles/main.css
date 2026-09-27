@@ -618,6 +618,65 @@ h3 {
   margin-bottom: 12px;
 }
 
+.training-upload-no-program {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: #b8b8b8;
+  font: inherit;
+  font-size: var(--text-support);
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+}
+
+.training-upload-no-program:hover {
+  color: #fff;
+}
+
+.training-upload-no-program:focus-visible,
+.training-upload-cancel:focus-visible {
+  outline: 2px solid var(--accent, #ff7848);
+  outline-offset: 2px;
+}
+
+.training-upload-cancel {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: #c5c5c5;
+  font: inherit;
+  font-size: var(--text-body);
+  cursor: pointer;
+}
+
+.training-adaptation-selected {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 12px !important;
+  padding: 15px 18px;
+  border-color: #383b40;
+  background: #202020;
+}
+
+.training-adaptation-selected strong {
+  font-size: var(--text-card-title);
+  line-height: 1.25;
+}
+
+.training-adaptation-selected span {
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.4;
+}
+
 .nutrition-entry-method-options .info-card[aria-disabled="true"] {
   cursor: default;
   text-align: left;
