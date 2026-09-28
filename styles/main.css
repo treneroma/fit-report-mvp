@@ -1357,6 +1357,92 @@ h3 {
   line-height: 1.5;
 }
 
+.account-delete-zone {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid #573b38;
+  border-radius: 18px;
+  background: rgb(75 37 32 / 18%);
+}
+
+.account-delete-zone h2 {
+  margin: 0 0 8px;
+  font-size: var(--text-card-title);
+}
+
+.account-delete-zone p {
+  margin: 0 0 14px;
+  color: #bdb5b3;
+  line-height: 1.45;
+}
+
+.account-delete-button,
+.account-delete-confirm {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid #a94f42;
+  border-radius: 13px;
+  background: #3b2421;
+  color: #ff9a86;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.account-delete-button:focus-visible,
+.account-delete-confirm:focus-visible {
+  outline: 2px solid #ff7848;
+  outline-offset: 2px;
+}
+
+.account-delete-dialog {
+  width: min(460px, calc(100% - 32px));
+}
+
+.account-delete-confirm-label {
+  display: block;
+  margin: 16px 0 7px;
+  color: #eee;
+  font-weight: 700;
+}
+
+.account-delete-confirm-input {
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid #57504e;
+  border-radius: 12px;
+  background: #171717;
+  color: #fff;
+  font: inherit;
+}
+
+.account-delete-confirm-input:focus-visible {
+  outline: 2px solid #ff7848;
+  outline-offset: 2px;
+}
+
+.account-delete-status {
+  min-height: 1.4em;
+  margin-top: 10px !important;
+  color: #ffb29f !important;
+}
+
+.account-delete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.account-delete-confirm:disabled {
+  border-color: #514643;
+  background: #302725;
+  color: #92837f;
+  cursor: not-allowed;
+}
+
 .nutrition-help-done {
   min-height: 44px;
   margin-top: 4px;
