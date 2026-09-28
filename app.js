@@ -77,7 +77,43 @@ async function trenzoRequest(action, extra = {}) {
   return result;
 }
 
-// Первый экран → подтверждение входа → выбор роли.
+function openAthleteProfile(profile) {
+  registration.role = 'athlete';
+  registration.athlete = profile?.answers &&
+    typeof profile.answers === 'object' &&
+    !Array.isArray(profile.answers)
+    ? { ...profile.answers }
+    : {};
+  athleteStart(profile);
+  showScreen('athleteScreen');
+}
+
+// При повторном запуске сразу открываем кабинет завершившего анкету клиента.
+async function resumeRegisteredAthlete() {
+  if (!tg?.initData || authInProgress || roleLoading) return;
+  authInProgress = true;
+  const startButton = document.querySelector('.start-button-area');
+  if (startButton) startButton.disabled = true;
+  setTrenzoLoading(true, 'Подключаем TRENZO', 'Загружаем личный кабинет...');
+
+  try {
+    const result = await trenzoRequest('load_profile');
+    if (result.profile?.status === 'completed') {
+      openAthleteProfile(result.profile);
+    }
+  } catch (error) {
+    // При сетевой ошибке оставляем стартовый экран доступным для повтора входа.
+    console.error('TRENZO automatic session restore failed:', error);
+  } finally {
+    setTrenzoLoading(false);
+    if (startButton) startButton.disabled = false;
+    authInProgress = false;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', resumeRegisteredAthlete);
+
+// Первый вход → подтверждение Telegram → выбор роли.
 async function openRoles() {
   if (authInProgress) return;
   authInProgress = true;
@@ -87,8 +123,12 @@ async function openRoles() {
   setTrenzoLoading(true, 'Подключаем TRENZO', 'Проверяем вход через Telegram...');
 
   try {
-    await trenzoRequest('auth');
-    showScreen('roleScreen');
+    const result = await trenzoRequest('load_profile');
+    if (result.profile?.status === 'completed') {
+      openAthleteProfile(result.profile);
+    } else {
+      showScreen('roleScreen');
+    }
   } catch (error) {
     console.error('TRENZO authentication failed:', error);
     showMessage(error.message || 'Не удалось выполнить вход. Попробуй ещё раз.');
@@ -119,15 +159,7 @@ async function selectRole(role) {
   try {
     const result = await trenzoRequest('load_profile');
     const profile = result.profile;
-
-    registration.athlete = profile?.answers &&
-      typeof profile.answers === 'object' &&
-      !Array.isArray(profile.answers)
-      ? { ...profile.answers }
-      : {};
-
-    athleteStart(profile);
-    showScreen('athleteScreen');
+    openAthleteProfile(profile);
   } catch (error) {
     console.error('TRENZO profile loading failed:', error);
     showMessage(error.message || 'Не удалось загрузить анкету.');
