@@ -2581,3 +2581,169 @@ h3 {
   margin-top: 8px;
   line-height: 1.4;
 }
+
+/* Анкета: крупные, удобные для касания поля и единый ритм на каждом шаге. */
+#athleteScreen .athlete-onboarding-page .topbar {
+  margin-bottom: 14px;
+}
+
+#athleteScreen .athlete-onboarding-page .step-label {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+#athleteScreen .athlete-onboarding-page .progress-track {
+  height: 5px;
+  margin-bottom: 20px;
+}
+
+#athleteScreen .athlete-onboarding-page h1 {
+  margin-bottom: 8px;
+  font-size: clamp(27px, 7vw, 32px);
+  line-height: 1.16;
+  letter-spacing: -0.35px;
+}
+
+#athleteScreen .athlete-onboarding-page .hint {
+  max-width: 42ch;
+  margin-bottom: 18px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+#athleteScreen .athlete-onboarding-page .field {
+  margin-bottom: 16px;
+}
+
+#athleteScreen .athlete-onboarding-page .field-title {
+  margin-bottom: 8px;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+#athleteScreen .athlete-onboarding-page .text-input,
+#athleteScreen .athlete-onboarding-page .text-area,
+#athleteScreen .athlete-onboarding-page .file-input {
+  min-height: 54px;
+  padding: 13px 14px;
+  border-radius: 13px;
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+#athleteScreen .athlete-onboarding-page .text-input::placeholder,
+#athleteScreen .athlete-onboarding-page .text-area::placeholder {
+  color: #9a9a9a;
+  opacity: 1;
+}
+
+#athleteScreen .athlete-onboarding-page .text-input:focus-visible,
+#athleteScreen .athlete-onboarding-page .text-area:focus-visible,
+#athleteScreen .athlete-onboarding-page .file-input:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(255 120 70 / 18%);
+  outline: none;
+}
+
+#athleteScreen .athlete-onboarding-page .text-area {
+  min-height: 112px;
+  line-height: 1.45;
+}
+
+#athleteScreen .athlete-onboarding-page .option-list {
+  gap: 9px;
+}
+
+#athleteScreen .athlete-onboarding-page .option {
+  min-height: 54px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  font-size: 16px;
+  line-height: 1.35;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+#athleteScreen .athlete-onboarding-page .option input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+#athleteScreen .athlete-onboarding-page .option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#athleteScreen .athlete-onboarding-page .info-card {
+  padding: 14px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+#athleteScreen .athlete-onboarding-page .field-hint,
+#athleteScreen .athlete-onboarding-page .small-note {
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+#athleteScreen .athlete-onboarding-page .form-bottom {
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+#athleteScreen .athlete-onboarding-page form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+#athleteScreen .athlete-onboarding-page .primary-btn {
+  min-height: 54px;
+  font-size: 17px;
+}
+
+#athleteScreen .athlete-onboarding-page .primary-btn:focus-visible,
+#athleteScreen .athlete-onboarding-page .secondary-btn:focus-visible,
+#athleteScreen .athlete-onboarding-page .back-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+#athleteScreen .athlete-onboarding-page .primary-btn:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+#athleteScreen .athlete-onboarding-page #goalWarning:not([hidden]) {
+  margin: 0 0 14px;
+}
+
+#athleteScreen .athlete-onboarding-page .small-note {
+  color: #a3a3a3;
+}
+
+#athleteScreen .athlete-onboarding-page input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+#athleteScreen .athlete-onboarding-page input[type="number"]::-webkit-inner-spin-button,
+#athleteScreen .athlete-onboarding-page input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+@media (max-width: 360px) {
+  #athleteScreen .athlete-onboarding-page {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  #athleteScreen .athlete-onboarding-page .option {
+    gap: 10px;
+    padding-right: 11px;
+    padding-left: 11px;
+    font-size: 15px;
+  }
+}
