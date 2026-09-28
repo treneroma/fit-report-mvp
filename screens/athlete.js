@@ -271,7 +271,7 @@ function athleteFields() {
           "height",
           "Рост, см",
           "number",
-          "Например, 178",
+          "Рост, см",
           'required min="100" max="250"'
         )}
 
@@ -279,7 +279,7 @@ function athleteFields() {
           "weight",
           "Текущий вес, кг",
           "number",
-          "Например, 82,5",
+          "Текущий вес, кг",
           'required min="25" max="400" step="0.1"'
         )}
       `;
