@@ -90,13 +90,14 @@ function athleteEscape(value) {
 
 function athleteInput(name, label, type, placeholder, extra = "") {
   const value = registration.athlete[name] ?? "";
+  const hideVisibleLabel = name === "height" || name === "weight";
   const inputMode = type === "number"
     ? (extra.includes('step="0.1"') ? "decimal" : "numeric")
     : "";
 
   return `
     <div class="field">
-      <label class="field-title" for="${name}">
+      <label class="field-title${hideVisibleLabel ? " visually-hidden" : ""}" for="${name}">
         ${label}
       </label>
 
