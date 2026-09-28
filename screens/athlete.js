@@ -1225,7 +1225,7 @@ async function athleteAnalyzeProfile() {
         throw new Error("Сессия Telegram устарела. Закрой приложение и открой его заново.");
       }
       if (response.status === 429) {
-        throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
+        throw new Error("Сервис ИИ временно перегружен. Попробуй ещё раз позже.");
       }
       throw new Error("Не удалось выполнить анализ анкеты.");
     }
@@ -2596,7 +2596,7 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 429) {
-      throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
+      throw new Error("Сервис ИИ временно перегружен. Попробуй ещё раз позже.");
     }
 
     if (response.status === 400) {
@@ -2662,7 +2662,7 @@ async function athleteTrainingRequest(action, extra = {}) {
       throw new Error(result.message || "План уже обновился. Обнови экран и попробуй снова.");
     }
     if (response.status === 429) {
-      throw new Error("Дневной лимит ИИ-анализов исчерпан. Попробуй завтра.");
+      throw new Error("Сервис ИИ временно перегружен. Попробуй ещё раз позже.");
     }
     if (action === "load_history") {
       throw new Error(result.message || "Не удалось загрузить историю тренировок. Попробуй ещё раз.");
