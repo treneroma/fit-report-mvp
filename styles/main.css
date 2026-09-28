@@ -2587,6 +2587,11 @@ h3 {
   margin-bottom: 14px;
 }
 
+#athleteScreen .athlete-onboarding-page {
+  /* Даём нижний отступ, чтобы основная кнопка была выше края экрана. */
+  padding-bottom: 38px;
+}
+
 #athleteScreen .athlete-onboarding-page .step-label {
   margin-bottom: 8px;
   font-size: 13px;
