@@ -90,6 +90,9 @@ function athleteEscape(value) {
 
 function athleteInput(name, label, type, placeholder, extra = "") {
   const value = registration.athlete[name] ?? "";
+  const inputMode = type === "number"
+    ? (extra.includes('step="0.1"') ? "decimal" : "numeric")
+    : "";
 
   return `
     <div class="field">
@@ -102,6 +105,7 @@ function athleteInput(name, label, type, placeholder, extra = "") {
         id="${name}"
         name="${name}"
         type="${type}"
+        ${inputMode ? `inputmode="${inputMode}"` : ""}
         value="${athleteEscape(value)}"
         placeholder="${placeholder}"
         ${extra}
@@ -140,7 +144,7 @@ function athleteOptions(name, label, choices) {
     <div class="field">
       <div class="field-title">${label}</div>
 
-      <div class="option-list">
+      <div class="option-list" role="group" aria-label="${athleteEscape(label)}">
 
         ${choices.map(function(choice) {
           return `
