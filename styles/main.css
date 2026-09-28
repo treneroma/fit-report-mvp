@@ -2626,6 +2626,10 @@ h3 {
   line-height: 1.3;
 }
 
+#athleteScreen .athlete-onboarding-page .field-title.visually-hidden {
+  margin: -1px;
+}
+
 #athleteScreen .athlete-onboarding-page .text-input,
 #athleteScreen .athlete-onboarding-page .text-area,
 #athleteScreen .athlete-onboarding-page .file-input {
