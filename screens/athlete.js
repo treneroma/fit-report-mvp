@@ -2573,10 +2573,7 @@ async function athleteNutritionRequest(action, extra = {}) {
     }
 
     if (response.status === 403) {
-      if (action === "generate_plan" || action === "load_plan") {
-        throw new Error("Анализ питания пока доступен только тестовому аккаунту.");
-      }
-      throw new Error("Доступ к дневнику питания пока не открыт.");
+      throw new Error("Сначала заверши анкету в TRENZO, затем попробуй снова.");
     }
 
     if (response.status === 409) {
@@ -2659,7 +2656,7 @@ async function athleteTrainingRequest(action, extra = {}) {
       throw new Error(result.message || "Не удалось распознать упражнения и подходы. Попробуй более чёткое фото.");
     }
     if (response.status === 403 && (action === "generate_plan" || action === "load_plan")) {
-      throw new Error(result.message || "Анализ тренировок пока доступен только тестовому аккаунту.");
+      throw new Error(result.message || "Сначала заверши анкету в TRENZO, затем попробуй снова.");
     }
     if (response.status === 409 && (action === "generate_plan" || action === "complete_plan_session")) {
       throw new Error(result.message || "План уже обновился. Обнови экран и попробуй снова.");
