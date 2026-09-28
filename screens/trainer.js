@@ -9,14 +9,12 @@ function trainerStart() {
     <div class="page">
 
       <div class="topbar">
-
+        <div class="logo">TREN<span>ZO</span></div>
         <button
           class="back-button"
           onclick="showScreen('roleScreen')"
           aria-label="Назад"
         >←</button>
-
-        <div class="logo">TREN<span>ZO</span></div>
 
       </div>
 
