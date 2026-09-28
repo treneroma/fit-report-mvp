@@ -1266,6 +1266,91 @@ function athleteCabinetCard(title, rows) {
   </div>`;
 }
 
+let athleteAccountDeleteInProgress = false;
+
+function athleteOpenDeleteAccountDialog() {
+  const dialog = document.getElementById("athleteDeleteAccountDialog");
+  const phrase = document.getElementById("athleteDeleteAccountPhrase");
+  const status = document.getElementById("athleteDeleteAccountStatus");
+  if (!dialog || athleteAccountDeleteInProgress) return;
+  if (phrase) phrase.value = "";
+  if (status) status.textContent = "";
+  athleteValidateDeleteAccountPhrase();
+  dialog.showModal();
+  window.setTimeout(() => phrase?.focus(), 0);
+}
+
+function athleteCloseDeleteAccountDialog() {
+  if (athleteAccountDeleteInProgress) return;
+  document.getElementById("athleteDeleteAccountDialog")?.close();
+}
+
+function athleteValidateDeleteAccountPhrase() {
+  const phrase = document.getElementById("athleteDeleteAccountPhrase");
+  const button = document.getElementById("athleteDeleteAccountSubmit");
+  if (!button || athleteAccountDeleteInProgress) return;
+  button.disabled = phrase?.value.trim().toLocaleUpperCase("ru-RU") !== "УДАЛИТЬ";
+}
+
+async function athleteDeleteAccount() {
+  if (athleteAccountDeleteInProgress) return;
+  const tg = window.Telegram?.WebApp;
+  const phrase = document.getElementById("athleteDeleteAccountPhrase");
+  const status = document.getElementById("athleteDeleteAccountStatus");
+  const button = document.getElementById("athleteDeleteAccountSubmit");
+  if (phrase?.value.trim().toLocaleUpperCase("ru-RU") !== "УДАЛИТЬ") return;
+  if (!tg?.initData) {
+    if (status) status.textContent = "Открой TRENZO через Telegram и попробуй снова.";
+    return;
+  }
+
+  athleteAccountDeleteInProgress = true;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Удаляем данные…";
+  }
+  if (status) status.textContent = "Проверяем сессию и удаляем связанные данные…";
+
+  try {
+    const response = await fetch(
+      "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/delete-account",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: tg.initData, confirmed: true })
+      }
+    );
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      throw new Error("Сервер вернул некорректный ответ. Попробуй позже.");
+    }
+    if (!response.ok || result?.ok !== true) {
+      if (response.status === 401) {
+        throw new Error("Сессия Telegram устарела. Закрой Mini App и открой его заново.");
+      }
+      throw new Error("Не удалось удалить аккаунт. Попробуй ещё раз позже.");
+    }
+
+    const restart = () => window.location.reload();
+    if (tg && typeof tg.showAlert === "function") {
+      tg.showAlert("Аккаунт и данные TRENZO удалены. После этого можно начать регистрацию заново.", restart);
+    } else {
+      alert("Аккаунт и данные TRENZO удалены. Сейчас страница перезагрузится.");
+      restart();
+    }
+  } catch (error) {
+    console.error("TRENZO account deletion failed:", error);
+    athleteAccountDeleteInProgress = false;
+    if (status) status.textContent = error?.message || "Не удалось удалить аккаунт. Попробуй ещё раз.";
+    if (button) {
+      button.textContent = "Удалить все данные";
+      athleteValidateDeleteAccountPhrase();
+    }
+  }
+}
+
 function athleteCabinetHeader(label, title) {
   return `<div class="topbar" style="justify-content:space-between;">
       <div class="logo">TREN<span>ZO</span></div>
@@ -1406,7 +1491,37 @@ function athleteOpenCabinetSection(section) {
         })) +
       `<p class="small-note">Здесь показаны сохранённые данные анкеты.
         Изменение ответов добавим отдельно. Сведения о здоровье,
-        фотографии и файлы в тестовой версии не сохраняются.</p>`;
+        фотографии и файлы в тестовой версии не сохраняются.</p>` +
+      `<section class="account-delete-zone" aria-labelledby="athleteDeleteAccountTitle">
+        <h2 id="athleteDeleteAccountTitle">Удаление аккаунта</h2>
+        <p>Удалить профиль TRENZO и связанные с ним данные, чтобы пройти регистрацию заново.</p>
+        <button class="account-delete-button" type="button"
+          onclick="athleteOpenDeleteAccountDialog()">Удалить аккаунт</button>
+      </section>
+      <dialog id="athleteDeleteAccountDialog" class="nutrition-help-dialog account-delete-dialog"
+        aria-labelledby="athleteDeleteAccountDialogTitle"
+        oncancel="if (athleteAccountDeleteInProgress) event.preventDefault()">
+        <div class="nutrition-help-dialog-heading">
+          <h3 id="athleteDeleteAccountDialogTitle">Удалить аккаунт?</h3>
+          <button class="secondary-btn nutrition-help-close" type="button"
+            aria-label="Закрыть" onclick="athleteCloseDeleteAccountDialog()">×</button>
+        </div>
+        <p>Это безвозвратно удалит из TRENZO профиль и ответы анкеты, вес и замеры,
+          записи питания, планы, историю тренировок и подключение FatSecret.</p>
+        <p>Сам аккаунт Telegram не затрагивается. Чтобы подтвердить удаление,
+          введи слово <strong>УДАЛИТЬ</strong>.</p>
+        <label class="account-delete-confirm-label" for="athleteDeleteAccountPhrase">Подтверждение</label>
+        <input id="athleteDeleteAccountPhrase" class="account-delete-confirm-input"
+          type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
+          oninput="athleteValidateDeleteAccountPhrase()">
+        <p id="athleteDeleteAccountStatus" class="account-delete-status" role="status" aria-live="polite"></p>
+        <div class="account-delete-actions">
+          <button id="athleteDeleteAccountSubmit" class="account-delete-confirm" type="button"
+            disabled onclick="athleteDeleteAccount()">Удалить все данные</button>
+          <button class="secondary-btn" type="button"
+            onclick="athleteCloseDeleteAccountDialog()">Отмена</button>
+        </div>
+      </dialog>`;
   } else if (section === "nutrition") {
   title = "Питание";
 
