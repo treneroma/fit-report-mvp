@@ -254,10 +254,12 @@ h3 {
 }
 
 #roleScreen h1 {
-  max-width: 15ch;
+  max-width: none;
   margin-bottom: 10px;
-  font-size: clamp(32px, 7.5vw, 40px);
+  font-size: clamp(27px, 7vw, 34px);
   line-height: 1.12;
+  letter-spacing: -0.4px;
+  white-space: nowrap;
 }
 
 #roleScreen .hint {
@@ -296,6 +298,10 @@ h3 {
 #roleScreen .role-info small {
   font-size: clamp(15px, 3.9vw, 17px);
   line-height: 1.4;
+}
+
+#roleScreen .role-copy-break {
+  display: initial;
 }
 
 /* АНКЕТА */
