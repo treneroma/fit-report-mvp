@@ -906,8 +906,8 @@ h3 {
   width: 100%;
   margin: 0 0 12px;
   padding: 15px 44px 15px 18px;
-  border-color: #48413d;
-  background: #242220;
+  border-color: var(--border);
+  background: var(--surface);
   color: #fff;
   text-align: left;
   font: inherit;
