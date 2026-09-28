@@ -53,7 +53,7 @@ const athleteTitles = [
 ];
 
 const athleteHints = [
-  "Давай познакомимся. Как к тебе обращаться?",
+  "",
   "Эти данные помогут настроить личный профиль.",
   "Укажи свои актуальные показатели.",
   "Выбери основное направление, над которым хочешь работать.",
@@ -234,7 +234,7 @@ function athleteFields() {
         "name",
         "Твоё имя",
         "text",
-        "Например, Роман",
+        "Твоё имя",
         'required maxlength="60" autocomplete="given-name"'
       );
 
@@ -754,7 +754,7 @@ function athleteRender() {
   const lastStep = athleteStep === athleteTotalSteps - 1;
 
   document.getElementById("athleteScreen").innerHTML = `
-    <div class="page">
+    <div class="page athlete-onboarding-page${athleteStep === 0 ? " athlete-name-step" : ""}">
 
       <div class="topbar">
         <div class="logo">TREN<span>ZO</span></div>
@@ -785,9 +785,7 @@ function athleteRender() {
           ${athleteEscape(athleteRestoreNotice)}
         </div>` : ""}
 
-      <p class="hint">
-        ${athleteHints[athleteStep]}
-      </p>
+      ${athleteHints[athleteStep] ? `<p class="hint">${athleteHints[athleteStep]}</p>` : ""}
 
       <form
         id="athleteForm"
@@ -801,7 +799,7 @@ function athleteRender() {
           <button class="primary-btn" type="submit" id="athleteNextButton">
             ${lastStep
               ? "Подтвердить и завершить →"
-              : "Продолжить →"}
+              : "Продолжить"}
           </button>
 
         </div>
@@ -926,7 +924,7 @@ function athleteSetSaving(saving) {
     button.disabled = saving;
     button.textContent = saving ? "Сохраняем ответы..." :
       (athleteStep === athleteTotalSteps - 1
-        ? "Подтвердить и завершить →" : "Продолжить →");
+        ? "Подтвердить и завершить →" : "Продолжить");
   }
   const back = document.querySelector("#athleteScreen .back-button");
   if (back) back.disabled = saving;
