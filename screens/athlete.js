@@ -10,7 +10,7 @@
 let athleteStep = 0;
 let athleteSaving = false;
 let athleteRestoreNotice = "";
-let athleteTrainingSetupMode = "upload";
+let athleteTrainingSetupMode = null;
 let athleteTrainingWorkoutCount = null;
 let athleteTrainingUploadStateError = "";
 // Body photos stay only in memory until the user explicitly starts AI analysis.
@@ -36,7 +36,7 @@ function athleteSafeAnswers() {
   return safe;
 }
 
-const athleteTotalSteps = 15;
+const athleteTotalSteps = 14;
 
 const athleteTitles = [
   "Как тебя зовут?",
@@ -52,7 +52,6 @@ const athleteTitles = [
   "Есть ли особенности питания?",
   "Как ты сейчас тренируешься?",
   "Есть ли у тебя тренировочная программа?",
-  "Подготовим твои тренировки",
   "Проверь свою анкету"
 ];
 
@@ -69,8 +68,7 @@ const athleteHints = [
   "От этого зависит, как мы будем выстраивать работу с питанием.",
   "Учитываем твои привычки и ограничения.",
   "Это поможет выбрать дальнейший сценарий.",
-  "Можно начать с текущей программы или пройти адаптационный период.",
-  "Последний шаг перед проверкой анкеты.",
+  "По ответу выберем: загрузить текущие тренировки или начать адаптацию.",
   "Если нужно что-то исправить, вернись к соответствующему вопросу."
 ];
 
@@ -212,6 +210,7 @@ function athleteStart(profile = null) {
 
   athleteBodyPhotoFiles = [];
   athletePhotoConsent = false;
+  athleteTrainingSetupMode = null;
   registration.athlete.photoNames = [];
 
   const savedStep = Number.isInteger(profile?.onboarding_step)
@@ -542,79 +541,9 @@ function athleteFields() {
       );
 
 
-    // 14. ПРОГРАММА ИЛИ АДАПТАЦИЯ
+    // 14. ПРОВЕРКА АНКЕТЫ
 
-    case 13: {
-      if (d.programStatus === "no") {
-        return `
-          <div class="info-card">
-            <strong>Начнём с адаптационного периода.</strong><br><br>
-
-            После настройки тренировочного модуля ты сможешь
-            начать с базовой программы. По результатам выполненных
-            тренировок система будет собирать данные о нагрузках,
-            переносимости упражнений и восстановлении.
-
-            <br><br>
-
-            Эти данные станут основой для дальнейшей корректировки
-            тренировочной программы.
-          </div>
-
-          <p class="small-note">
-            Пока это описание будущего сценария:
-            сами тренировки ещё не сформированы.
-          </p>
-        `;
-      }
-
-      return `
-        <div class="info-card">
-          <strong>Добавь текущую программу.</strong><br><br>
-
-          Можно описать её вручную или выбрать файл:
-          PDF, фотографию либо скриншот.
-
-          На следующем этапе подключим распознавание программы
-          и перевод упражнений, подходов, повторений и весов
-          в структурированные данные.
-        </div>
-
-        ${athleteArea(
-          "programText",
-          "Программа в текстовом виде",
-          "Например:\nПонедельник\nПриседания — 3 × 10 × 60 кг\nЖим лёжа — 3 × 8 × 50 кг"
-        )}
-
-        <div class="field">
-          <label class="field-title" for="programFile">
-            Или выбери файл программы
-          </label>
-
-          <input
-            class="file-input"
-            id="programFile"
-            name="programFile"
-            type="file"
-            accept=".pdf,image/*,text/plain"
-          >
-
-          <p class="field-hint">
-            Выбранный файл:
-            ${athleteEscape(d.programFileName || "нет")}
-          </p>
-
-          <p class="field-hint">
-            Пока файл не отправляется на сервер и не анализируется.
-          </p>
-        </div>
-      `;
-    }
-
-
-    // 15. ПРОВЕРКА АНКЕТЫ
-
-    case 14:
+    case 13:
       return athleteSummary();
 
 
@@ -728,19 +657,12 @@ function athleteSummary() {
         programNames[d.programStatus]
       )}
 
-      ${athleteSummaryRow(
-        "Файл программы",
-        d.programFileName
-      )}
-
     </div>
 
     <p class="small-note">
-      Это предварительная анкета. На сервер сохраняются только
-      основные тестовые ответы. Ограничения по здоровью,
-      свободный текст программы,
-      фотографии и имена файлов НЕ сохраняются и после перезапуска
-      будут недоступны. ИИ-анализ ещё не выполнялся.
+      Дальнейший сценарий тренировок зависит от ответа о программе:
+      с готовой программой можно загрузить тренировки, без неё — начать адаптацию.
+      Фото и сведения о здоровье не сохраняются в профиле.
     </p>
   `;
 }
@@ -846,13 +768,6 @@ function athleteSaveCurrent(validate) {
 
   // Only an in-memory count is shown; image names and contents aren't persisted.
   d.photoNames = athleteBodyPhotoFiles.map(function() { return "Фото"; });
-
-
-  const programFile = document.getElementById("programFile");
-
-  if (programFile && programFile.files.length) {
-    d.programFileName = programFile.files[0].name;
-  }
 
   return true;
 }
@@ -1164,7 +1079,7 @@ function athleteRenderComplete(prefetched = null) {
       <div id="athleteOnboardingQuestions"></div>
       <div class="form-bottom">
         <button class="secondary-btn" type="button"
-          onclick="athleteStep = 14; athleteRender();">
+          onclick="athleteStep = 13; athleteRender();">
           Посмотреть исходную анкету
         </button>
       </div>
@@ -1544,8 +1459,6 @@ function athleteRenderCabinet() {
 }
 
 function athleteSkipTrainingUpload() {
-  const dialog = document.getElementById("athleteTrainingAdaptationDialog");
-  if (dialog?.open) dialog.close();
   athleteTrainingSetupMode = "adaptation_selected";
   athleteOpenCabinetSection("training");
 }
@@ -2176,6 +2089,9 @@ ${athleteNutritionProgressHelpMarkup()}
     </div>
   `;
   } else if (section === "training") {
+    if (athleteTrainingSetupMode === null) {
+      athleteTrainingSetupMode = d.programStatus === "yes" ? "upload" : "adaptation";
+    }
     title = "Тренировочный план";
     content = `
       <section class="info-card nutrition-control-card training-control-card" aria-labelledby="trainingControlTitle">
@@ -2189,22 +2105,40 @@ ${athleteNutritionProgressHelpMarkup()}
       ${athleteTrainingSetupMode === "adaptation_selected"
         ? `<section class="info-card training-adaptation-selected" role="status">
             <strong>Адаптационный план выбран</strong>
-            <span>Загрузка пропущена. Генерацию плана подключим следующим шагом.</span>
+            <span>Сценарий выбран. Генерация адаптационного плана появится после подключения этого этапа.</span>
           </section>`
-        : `<button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
+        : d.programStatus === "yes"
+          ? `<button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
             <span class="training-module-card-copy">
               <strong>Загрузить тренировки</strong>
-              <span>Добавь минимум 3 тренировки, чтобы мы составили план</span>
+              <span>Добавь занятия из своей программы — это будет первым шагом к её анализу</span>
             </span>
             <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
-          </button>`}
+          </button>`
+          : `<section class="info-card training-upload-path training-upload-adaptation-path">
+              <div class="training-upload-path-copy">
+                <strong>Начни с адаптации</strong>
+                <p>${d.programStatus === "partial"
+                  ? "Ты отметил, что занимаешься по отдельным упражнениям, но без полной программы. Начнём с адаптации."
+                  : "Ты отметил, что пока не занимаешься по программе. Начнём с адаптации."}</p>
+              </div>
+              <button class="training-adaptation-start" type="button" onclick="athleteSkipTrainingUpload()">Начать адаптацию</button>
+            </section>`}
       ${athleteTrainingPlan
         ? `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')">
             <strong>План тренировок</strong><span>Открыть план на неделю</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
           </button>`
         : `<section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
             <strong>План тренировок</strong>
-            <span>${athleteTrainingPlanLoading ? "Загружаем сохранённый план…" : athleteEscape(athleteTrainingPlanError || "Появится после анализа загруженных тренировок")}</span>
+            <span>${athleteTrainingPlanLoading
+              ? "Загружаем сохранённый план…"
+              : athleteEscape(athleteTrainingPlanError || (
+                  athleteTrainingSetupMode === "adaptation_selected"
+                    ? "Появится после генерации адаптационного плана"
+                    : d.programStatus === "yes"
+                      ? "Появится после анализа загруженных тренировок"
+                      : "Начни с адаптации, чтобы подготовить план"
+                ))}</span>
           </section>`}
       <button class="info-card training-history-card" type="button" onclick="athleteOpenCabinetSection('training-history')">
         <span class="training-module-card-copy">
@@ -2280,16 +2214,7 @@ ${athleteNutritionProgressHelpMarkup()}
           <button id="athleteTrainingManualSave" class="primary-btn training-manual-save" type="submit">Сохранить тренировку</button>
         </form>
       </dialog>
-      <dialog id="athleteTrainingAdaptationDialog" class="nutrition-help-dialog" aria-labelledby="athleteTrainingAdaptationTitle">
-        <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteTrainingAdaptationTitle">Начать без программы?</h3>
-          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
-        </div>
-        <p>Если продолжишь, мы пропустим этап загрузки. Адаптационный план подготовим по твоей анкете, цели и опыту — загружать прошлые тренировки не понадобится.</p>
-        <p class="training-upload-notice">Сейчас это только выбор сценария. Генерацию плана подключим следующим шагом.</p>
-        <button class="primary-btn nutrition-help-done" type="button" onclick="athleteSkipTrainingUpload()">Пропустить загрузку</button>
-        <button class="training-upload-cancel" type="button" onclick="this.closest('dialog').close()">Вернуться к загрузке</button>
-      </dialog>`;
+      `;
   } else if (section === "training-history") {
     title = "История тренировок";
     content = `
@@ -2670,13 +2595,6 @@ function athleteTrainingUploadPathsMarkup() {
            <button class="training-adaptation-start training-upload-add-more" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Добавить ещё тренировки</button>`
         : `<button class="primary-btn training-upload-start" type="button" onclick="document.getElementById('athleteTrainingEntryMethodDialog').showModal()">Загрузить программу</button>`}
     </section>
-    ${enoughWorkouts ? "" : `<section class="info-card training-upload-path training-upload-adaptation-path">
-      <div class="training-upload-path-copy">
-        <strong>Нет актуальной программы?</strong>
-        <p>Начни с тренировочной адаптации — учтём твою цель и опыт.</p>
-      </div>
-      <button class="training-adaptation-start" type="button" onclick="document.getElementById('athleteTrainingAdaptationDialog').showModal()">Начать адаптацию</button>
-    </section>`}
     ${athleteTrainingUploadStateError || (enoughWorkouts && athleteTrainingPlanError)
       ? `<p class="training-upload-state-error" role="status">${athleteEscape(athleteTrainingUploadStateError || athleteTrainingPlanError)}</p>`
       : ""}`;
