@@ -1015,6 +1015,29 @@ h3 {
   outline-offset: 2px;
 }
 
+.training-adaptation-module-card {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 15px 18px;
+}
+
+.training-adaptation-module-card > strong {
+  color: #fff;
+  font-size: var(--text-card-title);
+  line-height: 1.25;
+}
+
+.training-adaptation-module-card > span {
+  color: var(--muted);
+  font-size: var(--text-body);
+  line-height: 1.4;
+}
+
+.training-adaptation-module-card .training-adaptation-start {
+  margin-top: 4px;
+}
+
 .training-history-workout {
   overflow: hidden;
   border: 1px solid #414141;
