@@ -325,7 +325,7 @@ function athleteFields() {
           "months",
           "За какой срок ты хочешь достичь цели?",
           "number",
-          "Например, 6",
+          "Укажи срок в месяцах",
           'required min="1" max="60"'
         )}
 
