@@ -2582,15 +2582,24 @@ h3 {
   padding: 16px 16px 22px;
 }
 
+#athleteScreen {
+  --athlete-bottom-nav-offset: max(
+    22px,
+    calc(env(safe-area-inset-bottom, 0px) + 8px),
+    calc(var(--tg-safe-area-inset-bottom, 0px) + 8px),
+    calc(var(--tg-content-safe-area-inset-bottom, 0px) + 8px)
+  );
+}
+
 #athleteScreen.has-athlete-bottom-nav .page {
-  padding-bottom: calc(75px + max(11px, calc(env(safe-area-inset-bottom) + 3px)) + 16px) !important;
+  padding-bottom: calc(75px + var(--athlete-bottom-nav-offset) + 16px) !important;
 }
 
 .athlete-bottom-nav {
   position: fixed;
   z-index: 1000;
   right: max(10px, env(safe-area-inset-right));
-  bottom: max(11px, calc(env(safe-area-inset-bottom) + 3px));
+  bottom: var(--athlete-bottom-nav-offset);
   left: max(10px, env(safe-area-inset-left));
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
