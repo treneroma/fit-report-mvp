@@ -2583,21 +2583,21 @@ h3 {
 }
 
 #athleteScreen.has-athlete-bottom-nav .page {
-  padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important;
+  padding-bottom: calc(75px + max(11px, calc(env(safe-area-inset-bottom) + 3px)) + 16px) !important;
 }
 
 .athlete-bottom-nav {
   position: fixed;
   z-index: 1000;
   right: max(10px, env(safe-area-inset-right));
-  bottom: max(8px, env(safe-area-inset-bottom));
+  bottom: max(11px, calc(env(safe-area-inset-bottom) + 3px));
   left: max(10px, env(safe-area-inset-left));
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: stretch;
   gap: 2px;
   max-width: 480px;
-  min-height: 80px;
+  min-height: 75px;
   margin: 0 auto;
   padding: 7px 6px 5px;
   border: 1px solid var(--border, #414141);
@@ -2609,12 +2609,12 @@ h3 {
 .athlete-bottom-nav-item {
   display: grid;
   min-width: 0;
-  min-height: 64px;
+  min-height: 59px;
   grid-template-rows: 26px 1fr 3px;
   justify-items: center;
   align-content: center;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   padding: 2px 1px 0;
   border: 0;
   border-radius: 15px;
@@ -2672,7 +2672,7 @@ h3 {
   .athlete-bottom-nav {
     right: max(7px, env(safe-area-inset-right));
     left: max(7px, env(safe-area-inset-left));
-    min-height: 76px;
+    min-height: 71px;
     padding-right: 4px;
     padding-left: 4px;
   }
