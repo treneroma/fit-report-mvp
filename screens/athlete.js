@@ -1463,6 +1463,13 @@ function athleteSkipTrainingUpload() {
   return athleteRunAdaptationGeneration(null, false);
 }
 
+function athleteOpenTrainingEntryMethods() {
+  athleteOpenCabinetSection("training-upload");
+  requestAnimationFrame(() => {
+    document.getElementById("athleteTrainingEntryMethodDialog")?.showModal();
+  });
+}
+
 function athleteOpenCabinetSection(section) {
   const d = athleteSafeAnswers();
   const screen = document.getElementById("athleteScreen");
@@ -2110,7 +2117,13 @@ ${athleteNutritionProgressHelpMarkup()}
             </span>
             <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
           </button>`
-          : ""}
+          : `<button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenTrainingEntryMethods()">
+            <span class="training-module-card-copy">
+              <strong>Добавить тренировку</strong>
+              <span>Введи её вручную или распознай по фото — запись сохранится в истории</span>
+            </span>
+            <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+          </button>`}
       ${athleteTrainingPlan
         ? `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')">
             <strong>План тренировок</strong><span>Открыть план на неделю</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
