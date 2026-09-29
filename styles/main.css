@@ -885,6 +885,26 @@ h3 {
   text-align: center;
 }
 
+.training-plan-adaptation-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.training-plan-adaptation-inputs .training-plan-reps-input {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 3px;
+}
+
+.training-plan-session-form.is-adaptation .training-plan-set-row {
+  grid-template-columns: 60px minmax(0, 1fr) 142px;
+}
+
+.training-plan-session-form.is-adaptation .training-plan-set-target > strong {
+  font-size: var(--text-support);
+}
+
 .training-plan-reps-input:focus-visible {
   border-color: var(--accent, #ff7848);
   outline: 2px solid rgba(255, 120, 72, 0.22);
@@ -1283,6 +1303,93 @@ h3 {
   color: var(--muted);
   font-size: var(--text-body);
   line-height: 1.4;
+}
+
+.training-adaptation-dialog form {
+  display: grid;
+  gap: 14px;
+}
+
+.training-adaptation-dialog-copy {
+  margin: 0 !important;
+}
+
+.training-adaptation-equipment {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.training-adaptation-equipment legend,
+.training-adaptation-restrictions-label {
+  margin-bottom: 2px;
+  color: #f5f5f5;
+  font-size: var(--text-body);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.training-adaptation-equipment label {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #484848;
+  border-radius: 13px;
+  background: #2b2b2b;
+  font-size: var(--text-support);
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.training-adaptation-equipment input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: var(--accent, #ff7848);
+}
+
+.training-adaptation-restrictions-label {
+  display: block;
+}
+
+.training-adaptation-dialog textarea {
+  width: 100%;
+  min-height: 86px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #484848;
+  border-radius: 13px;
+  background: #2b2b2b;
+  color: #f5f5f5;
+  font: inherit;
+  font-size: var(--text-support);
+}
+
+.training-adaptation-privacy {
+  margin: -4px 0 0 !important;
+  font-size: 13px;
+  line-height: 1.4 !important;
+}
+
+.training-adaptation-dialog input[type="file"] {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #484848;
+  border-radius: 13px;
+  background: #2b2b2b;
+  color: #f5f5f5;
+  font: inherit;
+  font-size: var(--text-support);
+}
+
+.training-adaptation-dialog .primary-btn {
+  width: 100%;
+  margin: 0;
 }
 
 .nutrition-entry-method-options .info-card[aria-disabled="true"] {
