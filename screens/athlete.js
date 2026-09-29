@@ -13,6 +13,10 @@ let athleteRestoreNotice = "";
 let athleteTrainingSetupMode = "upload";
 let athleteTrainingWorkoutCount = null;
 let athleteTrainingUploadStateError = "";
+// Body photos stay only in memory until the user explicitly starts AI analysis.
+let athleteBodyPhotoFiles = [];
+let athleteBodyPhotoConsent = false;
+const athleteMaxBodyPhotos = 3;
 
 // Должен совпадать со списком allowedFields в Edge Function.
 const athleteServerFields = [
@@ -61,7 +65,7 @@ const athleteHints = [
   "",
   "Подберём формат, который впишется в твой график.",
   "Расскажи обо всём, что может повлиять на тренировки.",
-  "Фотографии помогут сравнивать визуальные изменения со временем.",
+  "Фото можно учесть при анализе анкеты. В TRENZO они не сохраняются.",
   "От этого зависит, как мы будем выстраивать работу с питанием.",
   "Учитываем твои привычки и ограничения.",
   "Это поможет выбрать дальнейший сценарий.",
@@ -205,6 +209,10 @@ function athleteStart(profile = null) {
     });
     return;
   }
+
+  athleteBodyPhotoFiles = [];
+  athletePhotoConsent = false;
+  registration.athlete.photoNames = [];
 
   const savedStep = Number.isInteger(profile?.onboarding_step)
     ? profile.onboarding_step : 0;
@@ -409,12 +417,19 @@ function athleteFields() {
     // 9. ФОТОГРАФИИ
 
     case 8:
+      if (!(Number(d.age) >= 18)) {
+        return `
+          <div class="info-card">
+            Анализ фотографий доступен пользователям от 18 лет. Этот шаг можно пропустить.
+          </div>
+        `;
+      }
       return `
         <div class="info-card">
-          <strong>Фотографии необязательны.</strong><br>
-          Можно добавить фотографии спереди, сбоку и сзади.
-          Они нужны только для сравнения визуального прогресса,
-          а не для диагностики или оценки техники упражнений.
+          <strong>Фото добавлять необязательно.</strong><br>
+          Можно выбрать до трёх снимков: спереди, сбоку и сзади.
+          ИИ учтёт только общие визуальные особенности телосложения
+          при анализе цели — без медицинских выводов и оценки процента жира.
         </div>
 
         <div class="field">
@@ -429,19 +444,18 @@ function athleteFields() {
             type="file"
             accept="image/*"
             multiple
+            onchange="athleteHandleBodyPhotoSelection(this)"
           >
 
-          <p class="field-hint">
-            Пока файлы не загружаются на сервер.
-            Мы подключим их сохранение позднее.
+          <p class="field-hint" id="bodyPhotoStatus" role="status" aria-live="polite">
+            ${athleteBodyPhotoFiles.length
+              ? `Выбрано фото: ${athleteBodyPhotoFiles.length} из ${athleteMaxBodyPhotos}`
+              : "Фото будут отправлены на анализ только после твоего подтверждения и не сохранятся в профиле TRENZO."}
           </p>
-
-          <p class="field-hint">
-            Ранее выбрано:
-            ${athleteEscape(
-              (d.photoNames || []).join(", ") || "ничего"
-            )}
-          </p>
+          <button class="secondary-btn" id="bodyPhotoClearButton" type="button"
+            onclick="athleteClearBodyPhotos()"${athleteBodyPhotoFiles.length ? "" : " hidden"}>
+            Удалить выбранные фото
+          </button>
         </div>
       `;
 
@@ -830,18 +844,8 @@ function athleteSaveCurrent(validate) {
   });
 
 
-  // Имена выбранных фотографий.
-  // Содержимое файлов не сохраняем и не загружаем.
-
-  const photos = document.getElementById("bodyPhotos");
-
-  if (photos && photos.files.length) {
-    d.photoNames = Array.from(photos.files).map(
-      function(file) {
-        return file.name;
-      }
-    );
-  }
+  // Only an in-memory count is shown; image names and contents aren't persisted.
+  d.photoNames = athleteBodyPhotoFiles.map(function() { return "Фото"; });
 
 
   const programFile = document.getElementById("programFile");
@@ -1010,6 +1014,98 @@ const ATHLETE_ONBOARDING_URL =
 let athleteAiInProgress = false;
 let athleteFinishInProgress = false;
 
+function athleteHandleBodyPhotoSelection(input) {
+  const selected = Array.from(input.files || []);
+  const status = document.getElementById("bodyPhotoStatus");
+  const clearButton = document.getElementById("bodyPhotoClearButton");
+  input.value = "";
+
+  if (!(Number(registration.athlete.age) >= 18)) {
+    if (status) status.textContent = "Анализ фотографий доступен пользователям от 18 лет.";
+    return;
+  }
+
+  if (selected.length > athleteMaxBodyPhotos) {
+    if (status) status.textContent = `Можно выбрать не больше ${athleteMaxBodyPhotos} фото.`;
+    return;
+  }
+  const tooLarge = selected.find(function(file) {
+    return !file.type.startsWith("image/") || file.size > 20 * 1024 * 1024;
+  });
+  if (tooLarge) {
+    if (status) status.textContent = tooLarge.size > 20 * 1024 * 1024
+      ? "Размер одного фото не должен превышать 20 МБ."
+      : "Выбери файл изображения.";
+    return;
+  }
+
+  athleteBodyPhotoFiles = selected;
+  athletePhotoConsent = false;
+  registration.athlete.photoNames = selected.map(function() { return "Фото"; });
+  if (status) status.textContent = selected.length
+    ? `Выбрано фото: ${selected.length} из ${athleteMaxBodyPhotos}. Их можно будет удалить до анализа.`
+    : "Фото будут отправлены на анализ только после твоего подтверждения и не сохранятся в профиле TRENZO.";
+  if (clearButton) clearButton.hidden = selected.length === 0;
+}
+
+function athleteClearBodyPhotos() {
+  athleteBodyPhotoFiles = [];
+  athletePhotoConsent = false;
+  registration.athlete.photoNames = [];
+  const status = document.getElementById("bodyPhotoStatus");
+  const clearButton = document.getElementById("bodyPhotoClearButton");
+  if (status) status.textContent = "Фото не выбраны. Этот шаг можно пропустить.";
+  if (clearButton) clearButton.hidden = true;
+  const input = document.getElementById("bodyPhotos");
+  if (input) input.value = "";
+}
+
+function athleteDecodePhoto(file) {
+  return new Promise(function(resolve, reject) {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = function() {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = function() {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Не удалось открыть одно из фото. Попробуй JPEG или PNG."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function athletePrepareBodyPhoto(file) {
+  const image = await athleteDecodePhoto(file);
+  const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const context = canvas.getContext("2d", { alpha: false });
+  if (!context) throw new Error("Не удалось подготовить фото к анализу.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  let blob = await new Promise(function(resolve) {
+    canvas.toBlob(resolve, "image/jpeg", 0.76);
+  });
+  if (!blob) throw new Error("Не удалось подготовить фото к анализу.");
+  if (blob.size > 900 * 1024) {
+    blob = await new Promise(function(resolve) {
+      canvas.toBlob(resolve, "image/jpeg", 0.58);
+    });
+  }
+  if (!blob || blob.size > 900 * 1024) {
+    throw new Error("Фото получилось слишком большим. Попробуй выбрать снимок поменьше.");
+  }
+  return await new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function() { resolve(String(reader.result || "")); };
+    reader.onerror = function() { reject(new Error("Не удалось прочитать фото.")); };
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function athleteOnboardingRequest(action, extra = {}) {
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
@@ -1049,9 +1145,19 @@ function athleteRenderComplete(prefetched = null) {
       <div id="athleteOnboardingStatus" class="info-card" role="status">
         Загружаем сохранённые данные...
       </div>
+      ${athleteBodyPhotoFiles.length ? `
+        <div class="info-card athlete-photo-consent-card">
+          <label class="option" for="athletePhotoConsent">
+            <input id="athletePhotoConsent" type="checkbox"
+              onchange="athletePhotoConsent = this.checked"${athletePhotoConsent ? " checked" : ""}>
+            <span>Я согласен отправить выбранные фото в OpenAI вместе с анкетой для анализа.</span>
+          </label>
+          <p class="field-hint">TRENZO не сохранит фото в профиле, базе или хранилище. OpenAI может хранить запросы в журналах безопасности до 30 дней.</p>
+        </div>
+      ` : ""}
       <button id="athleteAnalyzeButton" class="primary-btn" type="button"
         onclick="athleteAnalyzeProfile()" hidden>
-        Анализировать анкету ✦
+        ${athleteBodyPhotoFiles.length ? "Анализировать анкету и фото ✦" : "Анализировать анкету ✦"}
       </button>
       <div id="athleteAiResult" class="info-card"
         style="white-space: pre-wrap;" hidden></div>
@@ -1191,22 +1297,42 @@ async function athleteAnalyzeProfile() {
     showMessage("Открой TRENZO через Telegram и попробуй снова.");
     return;
   }
+  if (athleteBodyPhotoFiles.length && !athletePhotoConsent) {
+    showMessage("Подтверди отправку фото для анализа или удали выбранные снимки.");
+    return;
+  }
+  if (athleteBodyPhotoFiles.length && !(Number(registration.athlete.age) >= 18)) {
+    showMessage("Анализ фотографий доступен пользователям от 18 лет.");
+    return;
+  }
 
   athleteAiInProgress = true;
   button.disabled = true;
-  button.textContent = "Знакомлюсь с твоей целью...";
+  const photosForAnalysis = athleteBodyPhotoFiles.slice(0, athleteMaxBodyPhotos);
+  button.textContent = photosForAnalysis.length
+    ? "Анализирую анкету и фото..."
+    : "Знакомлюсь с твоей целью...";
   statusBox.hidden = false;
-  statusBox.textContent = "Смотрю твою анкету. Сейчас разберусь с целью.";
+  statusBox.textContent = photosForAnalysis.length
+    ? "Подготавливаю фото и анализирую анкету."
+    : "Смотрю твою анкету. Сейчас разберусь с целью.";
 
+  let imagePayloads = [];
+  let requestBody = "";
   try {
+    imagePayloads = await Promise.all(photosForAnalysis.map(athletePrepareBodyPhoto));
+    requestBody = JSON.stringify({ initData: tg.initData, images: imagePayloads });
     const response = await fetch(
       "https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/analyze-profile",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: tg.initData })
+        body: requestBody
       }
     );
+    imagePayloads.fill("");
+    imagePayloads = [];
+    requestBody = "";
     const result = await response.json();
     if (!response.ok || result.ok !== true) {
       if (response.status === 401) {
@@ -1215,8 +1341,15 @@ async function athleteAnalyzeProfile() {
       if (response.status === 429) {
         throw new Error("Сервис ИИ временно перегружен. Попробуй ещё раз позже.");
       }
+      if (response.status === 413) {
+        throw new Error("Фото слишком большие для отправки. Выбери снимки меньшего размера.");
+      }
       throw new Error("Не удалось выполнить анализ анкеты.");
     }
+    // После успешного анализа очищаем все ссылки на оригиналы и подготовленные копии.
+    athleteBodyPhotoFiles = [];
+    athletePhotoConsent = false;
+    registration.athlete.photoNames = [];
     // Запрашиваем сохранённые вопросы с их ID, чтобы привязать к ним ответы.
     await athleteLoadOnboarding();
   } catch (error) {
@@ -1225,9 +1358,14 @@ async function athleteAnalyzeProfile() {
     statusBox.textContent = error.message || "Не удалось выполнить анализ.";
     button.hidden = false;
   } finally {
+    imagePayloads.fill("");
+    imagePayloads = [];
+    requestBody = "";
     athleteAiInProgress = false;
     button.disabled = false;
-    button.textContent = "Анализировать анкету ✦";
+    button.textContent = athleteBodyPhotoFiles.length
+      ? "Анализировать анкету и фото ✦"
+      : "Анализировать анкету ✦";
   }
 }
 
