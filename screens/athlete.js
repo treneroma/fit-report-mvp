@@ -1471,13 +1471,13 @@ function athleteBottomNavigationMarkup(activeSection) {
       id: "nutrition",
       label: "Питание",
       action: "athleteNavigatePrimaryTab(\'nutrition\')",
-      icon: '<path d="M4 3v7m3-7v7M4 7h3m-1.5 3v11M14 3v18m0-18c3 2 4 5 4 8h-4"/>'
+      icon: '<circle cx="14" cy="12" r="7"/><path d="M3 4v6m3-6v6M3 7h3m-1.5 3v10"/>'
     },
     {
       id: "training",
       label: "Тренировки",
       action: "athleteNavigatePrimaryTab(\'training\')",
-      icon: '<path d="M4 9v6m4-9v12m8-12v12m4-9v6M8 12h8"/>'
+      icon: '<path d="M3 9v6m3-9v12m2-6h8m2-6v12m3-9v6"/>'
     },
     {
       id: "progress",
