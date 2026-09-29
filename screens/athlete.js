@@ -1460,19 +1460,7 @@ function athleteRenderCabinet() {
 
 function athleteSkipTrainingUpload() {
   athleteAdaptationNextWeekRequested = false;
-  const title = document.getElementById("athleteTrainingAdaptationTitle");
-  const submit = document.getElementById("athleteTrainingAdaptationSubmit");
-  const photoFields = document.getElementById("athleteTrainingAdaptationPhotoFields");
-  if (title) title.textContent = "Подготовим адаптационный план";
-  if (submit) submit.textContent = "Составить план";
-  if (photoFields) photoFields.hidden = false;
-  const dialog = document.getElementById("athleteTrainingAdaptationDialog");
-  if (dialog) {
-    dialog.showModal();
-    return;
-  }
-  athleteOpenCabinetSection("training");
-  requestAnimationFrame(() => document.getElementById("athleteTrainingAdaptationDialog")?.showModal());
+  return athleteRunAdaptationGeneration(null, false);
 }
 
 function athleteOpenCabinetSection(section) {
@@ -2114,12 +2102,7 @@ ${athleteNutritionProgressHelpMarkup()}
         </div>
         ${athleteTrainingControlMarkup()}
       </section>
-      ${athleteTrainingSetupMode === "adaptation_selected"
-        ? `<section class="info-card training-adaptation-selected" role="status">
-            <strong>Адаптация</strong>
-            <span>План составлен по анкете. Тренировки можно проходить в удобном порядке.</span>
-          </section>`
-        : d.programStatus === "yes"
+      ${d.programStatus === "yes"
           ? `<button class="info-card nutrition-plan-link training-upload-card" type="button" onclick="athleteOpenCabinetSection('training-upload')">
             <span class="training-module-card-copy">
               <strong>Загрузить тренировки</strong>
@@ -2127,39 +2110,22 @@ ${athleteNutritionProgressHelpMarkup()}
             </span>
             <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
           </button>`
-          : `<section class="info-card training-upload-path training-upload-adaptation-path">
-              <div class="training-upload-path-copy">
-                <strong>Начни с адаптации</strong>
-                <p>${d.programStatus === "partial"
-                  ? "Ты отметил, что занимаешься по отдельным упражнениям, но без полной программы. Начнём с адаптации."
-                  : "Ты отметил, что пока не занимаешься по программе. Начнём с адаптации."}</p>
-              </div>
-              <button class="training-adaptation-start" type="button" onclick="athleteSkipTrainingUpload()">Начать адаптацию</button>
-            </section>`}
-      ${d.programStatus !== "yes" ? `<dialog id="athleteTrainingAdaptationDialog" class="nutrition-help-dialog training-adaptation-dialog" aria-labelledby="athleteTrainingAdaptationTitle">
-        <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteTrainingAdaptationTitle">Подготовим адаптационный план</h3>
-          <button class="nutrition-help-close" type="button" onclick="this.closest('dialog').close()" aria-label="Закрыть">×</button>
-        </div>
-        <form onsubmit="event.preventDefault();athleteGenerateAdaptationPlan(event)">
-          <p class="training-adaptation-dialog-copy">Составим текущую неделю для обычного тренажёрного зала. Фото тела можно приложить по желанию — оно используется только при анализе и не сохраняется. Укажи ограничения ещё раз: мы не храним этот ответ.</p>
-          <div id="athleteTrainingAdaptationPhotoFields">
-            <label class="training-adaptation-restrictions-label" for="athleteTrainingAdaptationPhoto">Фото тела (необязательно, только для первой недели)</label>
-            <input id="athleteTrainingAdaptationPhoto" name="bodyPhoto" type="file" accept="image/jpeg,image/png,image/webp">
-            <p class="training-adaptation-privacy">Подойдут JPEG, PNG или WEBP. Фото удаляется после запроса.</p>
-          </div>
-          <label class="training-adaptation-restrictions-label" for="athleteTrainingAdaptationRestrictions">Есть ли ограничения, боль или рекомендации врача?</label>
-          <textarea id="athleteTrainingAdaptationRestrictions" name="restrictions" maxlength="1500" placeholder="Если ограничений нет, напиши «Нет»"></textarea>
-          <p class="training-adaptation-privacy">Ответ будет передан ИИ только для составления плана и не сохранится в профиле. Не указывай диагнозы и медицинские подробности, которыми не хочешь делиться.</p>
-          <p id="athleteTrainingAdaptationError" class="training-upload-state-error" role="alert" hidden></p>
-          <button id="athleteTrainingAdaptationSubmit" class="primary-btn" type="submit">Составить план</button>
-        </form>
-      </dialog>` : ""}
+          : ""}
       ${athleteTrainingPlan
         ? `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')">
             <strong>План тренировок</strong><span>Открыть план на неделю</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
           </button>`
-        : `<section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
+        : d.programStatus !== "yes"
+          ? `<section class="info-card training-module-card training-adaptation-module-card">
+            <strong>План тренировок</strong>
+            <span>${athleteTrainingSetupMode === "adaptation_selected"
+              ? `Адаптация · неделя ${athleteTrainingPlan?.adaptationWeek || 1} из 3`
+              : "Подготовим первую неделю по твоей анкете. Тренировки можно проходить в удобные дни."}</span>
+            ${athleteTrainingSetupMode === "adaptation_selected"
+              ? `<button class="training-adaptation-start" type="button" onclick="athleteOpenCabinetSection('training-plan')">Открыть план</button>`
+              : `<button class="training-adaptation-start" type="button" onclick="athleteSkipTrainingUpload()" ${athleteAdaptationGenerationLoading ? "disabled" : ""}>${athleteAdaptationGenerationLoading ? "Составляем план…" : "Начать адаптацию"}</button>`}
+          </section>`
+          : `<section class="info-card training-module-card training-module-card-disabled" aria-disabled="true">
             <strong>План тренировок</strong>
             <span>${athleteTrainingPlanLoading
               ? "Загружаем сохранённый план…"
@@ -2809,6 +2775,7 @@ let athleteTrainingPhotoSaving = false;
 let athleteTrainingPlan = null;
 let athleteTrainingPlanLoading = false;
 let athleteTrainingPlanError = "";
+let athleteAdaptationGenerationLoading = false;
 let athleteTrainingPlanLoaded = false;
 
 async function athleteTrainingRequest(action, extra = {}) {
@@ -3062,6 +3029,10 @@ async function athleteLoadTrainingPlan(force = false) {
     athleteTrainingPlanError = error.message || "Не удалось загрузить план тренировок.";
   } finally {
     athleteTrainingPlanLoading = false;
+    const adaptationCard = document.querySelector(".training-adaptation-module-card");
+    if (adaptationCard && athleteTrainingPlan) {
+      adaptationCard.outerHTML = `<button class="info-card training-module-card training-plan-module-card" type="button" onclick="athleteOpenCabinetSection('training-plan')"><strong>План тренировок</strong><span>Адаптация · неделя ${athleteTrainingPlan.adaptationWeek || 1} из 3</span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span></button>`;
+    }
     const moduleCard = document.querySelector(".training-module-card-disabled");
     if (moduleCard) {
       moduleCard.outerHTML = athleteTrainingPlan
@@ -3120,46 +3091,21 @@ let athleteAdaptationNextWeekRequested = false;
 
 function athleteOpenNextAdaptationDialog() {
   athleteAdaptationNextWeekRequested = true;
-  if (!document.getElementById("athleteTrainingAdaptationDialog")) {
-    athleteOpenCabinetSection("training");
-    requestAnimationFrame(() => athleteOpenNextAdaptationDialog());
-    return;
-  }
-  const title = document.getElementById("athleteTrainingAdaptationTitle");
-  const submit = document.getElementById("athleteTrainingAdaptationSubmit");
-  const photoFields = document.getElementById("athleteTrainingAdaptationPhotoFields");
-  const dialog = document.getElementById("athleteTrainingAdaptationDialog");
-  if (title) title.textContent = `Подготовим неделю ${Math.min(3, (Number(athleteTrainingPlan?.adaptationWeek) || 1) + 1)}`;
-  if (submit) submit.textContent = "Составить следующую неделю";
-  if (photoFields) photoFields.hidden = true;
-  dialog?.showModal();
+  return athleteRunAdaptationGeneration(null, true);
 }
 
 async function athleteRunAdaptationGeneration(event, nextWeek) {
   if (athleteTrainingPlanLoading) return;
-  const form = event?.currentTarget || null;
-  const error = document.getElementById("athleteTrainingAdaptationError");
-  const submit = document.getElementById("athleteTrainingAdaptationSubmit");
-  const formData = form ? new FormData(form) : null;
-  const restrictions = String(formData?.get("restrictions") || "").trim().slice(0, 1500);
-  let bodyPhotoDataUrl = null;
-  const photoInput = form?.elements.namedItem("bodyPhoto");
-  const photoFile = photoInput?.files?.[0] || null;
-  if (photoFile && !nextWeek) {
-    try {
-      bodyPhotoDataUrl = await athletePrepareBodyPhoto(photoFile);
-    } catch (photoError) {
-      if (error) {
-        error.textContent = photoError.message || "Не удалось подготовить фото к анализу.";
-        error.hidden = false;
-      }
-      return;
-    }
-  }
+  const restrictions = nextWeek
+    ? ""
+    : String(registration?.athlete?.restrictions || "").trim().slice(0, 1500);
+  const submit = document.querySelector(nextWeek
+    ? ".training-plan-next-adaptation"
+    : ".training-adaptation-start");
 
   athleteTrainingPlanLoading = true;
+  athleteAdaptationGenerationLoading = true;
   athleteTrainingPlanError = "";
-  if (error) error.hidden = true;
   if (submit) {
     submit.disabled = true;
     submit.textContent = nextWeek ? "Готовим следующую неделю…" : "Составляем план…";
@@ -3168,34 +3114,31 @@ async function athleteRunAdaptationGeneration(event, nextWeek) {
     const result = await athleteTrainingRequest("generate_adaptation_plan", {
       restrictions,
       nextWeek,
-      ...(bodyPhotoDataUrl ? { bodyPhotoDataUrl } : {}),
     });
     athleteTrainingPlan = result.plan || null;
     athleteTrainingPlanLoaded = true;
     if (!athleteTrainingPlan) throw new Error("Сервер не вернул адаптационный план.");
     athleteTrainingSetupMode = "adaptation_selected";
     athleteAdaptationNextWeekRequested = false;
-    document.getElementById("athleteTrainingAdaptationDialog")?.close();
     athleteOpenCabinetSection("training-plan");
   } catch (generationError) {
     const message = generationError.message || "Не удалось составить адаптационный план. Попробуй ещё раз.";
-    if (error && !nextWeek) {
-      error.textContent = message;
-      error.hidden = false;
-    } else {
-      athleteTrainingPlanError = message;
-      const planSlot = document.getElementById("athleteTrainingPlanContent");
-      if (planSlot) planSlot.innerHTML = athleteTrainingPlan
-        ? athleteTrainingPlanMarkup(athleteTrainingPlan)
-        : `<p class="training-upload-state-error" role="alert">${athleteEscape(message)}</p>`;
-    }
+    athleteTrainingPlanError = message;
+    const planSlot = document.getElementById("athleteTrainingPlanContent");
+    if (planSlot) planSlot.innerHTML = athleteTrainingPlan
+      ? athleteTrainingPlanMarkup(athleteTrainingPlan)
+      : `<p class="training-upload-state-error" role="alert">${athleteEscape(message)}</p>`;
+    showMessage(message);
     console.error("TRENZO adaptation plan generation failed:", generationError);
   } finally {
     athleteTrainingPlanLoading = false;
-    if (photoInput) photoInput.value = "";
+    athleteAdaptationGenerationLoading = false;
     if (submit) {
       submit.disabled = false;
-      submit.textContent = nextWeek ? "Составить следующую неделю" : "Составить план";
+      submit.textContent = nextWeek ? "Перейти к следующей неделе" : "Начать адаптацию";
+    }
+    if (!athleteTrainingPlan && document.getElementById("athleteScreen")?.textContent.includes("Тренировочный план")) {
+      athleteOpenCabinetSection("training");
     }
   }
 }
