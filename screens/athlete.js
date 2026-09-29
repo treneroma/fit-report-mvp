@@ -671,6 +671,7 @@ function athleteSummary() {
 // Отображаем текущий экран анкеты
 
 function athleteRender() {
+  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav");
   if (athleteStep === athleteTotalSteps) {
     athleteRenderComplete();
     return;
@@ -1047,6 +1048,7 @@ async function athleteOnboardingRequest(action, extra = {}) {
 
 // Показываем экран знакомства. Само открытие экрана НЕ вызывает OpenAI.
 function athleteRenderComplete(prefetched = null) {
+  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav");
   const name = athleteEscape(registration.athlete.name || "Друг");
 
   document.getElementById("athleteScreen").innerHTML = `
@@ -1415,7 +1417,84 @@ function athleteCabinetNavButton(section, symbol, title, detail) {
         <span class="cabinet-nav-detail">${detail}</span>
       </span>
       <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
-    </button>`;
+  </button>`;
+}
+
+function athleteHasUnsavedFormChanges() {
+  return Array.from(document.querySelectorAll("#athleteScreen form")).some((form) =>
+    Array.from(form.elements).some((field) => {
+      if (!field || field.disabled || field.readOnly ||
+          ["button", "submit", "reset", "file", "hidden"].includes(field.type)) return false;
+      if (field.type === "checkbox" || field.type === "radio") {
+        return field.checked !== field.defaultChecked;
+      }
+      if (field.type === "date") {
+        return field.value !== (field.defaultValue || athleteLocalDate());
+      }
+      if (field.tagName === "SELECT") {
+        const selected = Array.from(field.selectedOptions).map((option) => option.value).join("|");
+        const original = Array.from(field.options).filter((option) => option.defaultSelected).map((option) => option.value).join("|");
+        return selected !== original;
+      }
+      return field.value !== field.defaultValue;
+    })
+  );
+}
+
+function athleteNavigatePrimaryTab(tab) {
+  if (athleteHasUnsavedFormChanges() &&
+      !window.confirm("Есть незаполненные изменения. Перейти в другой раздел и потерять их?")) {
+    return;
+  }
+  if (tab === "home") {
+    athleteRenderCabinet();
+    return;
+  }
+  athleteOpenCabinetSection(tab);
+}
+
+function athleteBottomNavigationMarkup(activeSection) {
+  const section = String(activeSection || "");
+  const activeTab = section === "home" ? "home"
+    : section.startsWith("nutrition") ? "nutrition"
+    : section.startsWith("training") ? "training"
+    : section.startsWith("progress") ? "progress"
+    : "";
+  const tabs = [
+    {
+      id: "home",
+      label: "Главная",
+      action: "athleteNavigatePrimaryTab(\'home\')",
+      icon: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" fill="currentColor" stroke="none"/>'
+    },
+    {
+      id: "nutrition",
+      label: "Питание",
+      action: "athleteNavigatePrimaryTab(\'nutrition\')",
+      icon: '<path d="M4 3v7m3-7v7M4 7h3m-1.5 3v11M14 3v18m0-18c3 2 4 5 4 8h-4"/>'
+    },
+    {
+      id: "training",
+      label: "Тренировки",
+      action: "athleteNavigatePrimaryTab(\'training\')",
+      icon: '<path d="M4 9v6m4-9v12m8-12v12m4-9v6M8 12h8"/>'
+    },
+    {
+      id: "progress",
+      label: "Прогресс",
+      action: "athleteNavigatePrimaryTab(\'progress\')",
+      icon: '<path d="M4 20V12h4v8zm6 0V7h4v13zm6 0V3h4v17z" fill="currentColor" stroke="none"/>'
+    }
+  ];
+
+  return `<nav class="athlete-bottom-nav" aria-label="Основные разделы">
+    ${tabs.map((tab) => `<button class="athlete-bottom-nav-item${activeTab === tab.id ? " is-active" : ""}"
+      type="button" onclick="${tab.action}"${activeTab === tab.id ? ' aria-current="page"' : ""}>
+      <svg class="athlete-bottom-nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${tab.icon}</svg>
+      <span class="athlete-bottom-nav-label">${tab.label}</span>
+      <span class="athlete-bottom-nav-indicator" aria-hidden="true"></span>
+    </button>`).join("")}
+  </nav>`;
 }
 
 function athleteRenderCabinet() {
@@ -1433,7 +1512,9 @@ function athleteRenderCabinet() {
     ? ` · Цель: ${athleteEscape(d.targetWeight)} кг`
     : "";
 
-  document.getElementById("athleteScreen").innerHTML = `
+  const screen = document.getElementById("athleteScreen");
+  screen.classList.add("has-athlete-bottom-nav");
+  screen.innerHTML = `
     <div class="page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
       <h1 style="margin:0 0 16px;">Личный кабинет</h1>
@@ -1453,7 +1534,8 @@ function athleteRenderCabinet() {
         ${athleteCabinetNavButton("progress", "▥", "Прогресс",
           "Исходные показатели и динамика результатов")}
       </div>
-    </div>`;
+    </div>
+    ${athleteBottomNavigationMarkup("home")}`;
   window.scrollTo(0, 0);
   athleteLoadWeightSummary();
 }
@@ -2506,8 +2588,6 @@ title = "Вес";
   const progressSubpage = section.startsWith("progress-");
 
 let backAction = "athleteRenderCabinet()";
-  let backLabel = "В личный кабинет";
-
 if (section === "nutrition-diary") {
   backAction = "athleteOpenCabinetSection('nutrition')";
 
@@ -2516,31 +2596,26 @@ if (section === "nutrition-diary") {
 
 } else if (section === "training-upload") {
   backAction = "athleteOpenCabinetSection('training')";
-  backLabel = "К тренировкам";
 
 } else if (section === "training-history") {
   backAction = "athleteOpenCabinetSection('training')";
-  backLabel = "К тренировкам";
 
 } else if (section === "training-plan") {
   backAction = "athleteOpenCabinetSection('training')";
-  backLabel = "К тренировкам";
 
 } else if (section === "progress-measurements-form") {
   backAction = "athleteOpenCabinetSection('progress-measurements')";
-  backLabel = "В замеры тела";
 
 } else if (
   section === "progress-weight" ||
   section === "progress-measurements"
 ) {
   backAction = "athleteOpenCabinetSection('progress-body')";
-  backLabel = "В вес и тело";
 
 } else if (progressSubpage) {
   backAction = "athleteOpenCabinetSection('progress')";
-  backLabel = "В прогресс";
 }
+  screen.classList.add("has-athlete-bottom-nav");
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
   <div class="logo">TREN<span>ZO</span></div>
@@ -2550,9 +2625,8 @@ if (section === "nutrition-diary") {
 </div>
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
-    <button class="secondary-btn" type="button" style="margin-top:16px;"
-onclick="athleteRenderCabinet()">← В личный кабинет</button>
-  </div>`;
+  </div>
+  ${athleteBottomNavigationMarkup(section)}`;
   window.scrollTo(0, 0);
 
   if (section === "profile") {
