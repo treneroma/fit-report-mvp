@@ -2591,22 +2591,38 @@ h3 {
   );
 }
 
+#athleteScreen.has-athlete-bottom-nav.active {
+  display: flex;
+  height: 100dvh;
+  min-height: 0;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  padding-bottom: var(--athlete-bottom-nav-offset);
+}
+
 #athleteScreen.has-athlete-bottom-nav .page {
-  padding-bottom: calc(75px + var(--athlete-bottom-nav-offset) + 16px) !important;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 16px !important;
 }
 
 .athlete-bottom-nav {
-  position: fixed;
+  position: relative;
   z-index: 1000;
-  right: max(10px, env(safe-area-inset-right));
-  bottom: var(--athlete-bottom-nav-offset);
-  left: max(10px, env(safe-area-inset-left));
+  align-self: center;
+  width: calc(100% - 20px);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: stretch;
   gap: 2px;
   max-width: 480px;
   min-height: 75px;
+  flex: 0 0 75px;
   margin: 0 auto;
   padding: 7px 6px 5px;
   border: 1px solid var(--border, #414141);
@@ -2679,9 +2695,9 @@ h3 {
 
 @media (max-width: 360px) {
   .athlete-bottom-nav {
-    right: max(7px, env(safe-area-inset-right));
-    left: max(7px, env(safe-area-inset-left));
     min-height: 71px;
+    flex-basis: 71px;
+    width: calc(100% - 14px);
     padding-right: 4px;
     padding-left: 4px;
   }
