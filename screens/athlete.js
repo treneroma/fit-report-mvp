@@ -1564,26 +1564,32 @@ function athleteRenderCabinet() {
     fitness: "Улучшение формы", other: "Индивидуальная цель"
   };
   const goal = athleteCabinetValue(d.goal, goalLabels);
-  const weights = d.weight
-    ? `Вес при регистрации: ${athleteEscape(d.weight)} кг`
-    : "Вес при регистрации не указан";
-  const target = d.targetWeight
-    ? ` · Цель: ${athleteEscape(d.targetWeight)} кг`
-    : "";
-
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
-      <h1 style="margin:0 0 16px;">Личный кабинет</h1>
-      <div class="info-card" style="margin:0 !important;">
+      <section class="info-card athlete-dashboard-next" id="athleteDashboardNextWorkout">
+        <span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span>
+        <strong>Загружаем план…</strong>
+      </section>
+      <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
+        <h2>Твои показатели</h2>
+        <div class="athlete-dashboard-metrics">
+          <div><strong id="athleteDashboardWorkoutCount">—</strong><span>тренировок</span></div>
+          <div><strong id="athleteDashboardWeight">—</strong><span>текущий вес</span></div>
+          <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
+            <strong id="athleteDashboardAdherenceValue">—</strong><span>соблюдение плана</span>
+          </div>
+        </div>
+        <div class="athlete-dashboard-adherence-hint" id="athleteDashboardAdherenceHint" hidden></div>
+      </section>
+      <section class="info-card athlete-dashboard-goal">
         <div class="step-label">ТВОЯ ЦЕЛЬ</div>
         <strong class="cabinet-goal">${goal}</strong>
-        <p style="margin:0;">${weights}${target}</p>
-        <p id="athleteCabinetLatestWeight" style="margin:6px 0 0;color:#bbb;">Последний вес: загружаем...</p>
-      </div>
+        <p>${d.targetWeight ? `Целевой вес: ${athleteEscape(d.targetWeight)} кг` : "Продолжай двигаться к своей цели"}</p>
+      </section>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
           "Анкета, личные данные и твоя цель")}
@@ -1597,7 +1603,106 @@ function athleteRenderCabinet() {
     </div>
     ${athleteBottomNavigationMarkup("home")}`;
   window.scrollTo(0, 0);
-  athleteLoadWeightSummary();
+  athleteLoadCabinetDashboard();
+}
+
+function athleteDashboardSetValue(id, value) {
+  const slot = document.getElementById(id);
+  if (slot) slot.textContent = value;
+}
+
+function athleteDashboardRenderAdherence(nutrition, training) {
+  const value = document.getElementById("athleteDashboardAdherenceValue");
+  const hint = document.getElementById("athleteDashboardAdherenceHint");
+  if (!value || !hint) return;
+  const missing = [];
+  if (nutrition == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('nutrition-diary')">Заполни питание</button>`);
+  if (training == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('training')">Добавь план тренировок</button>`);
+  if (missing.length) {
+    value.textContent = "—";
+    hint.innerHTML = `Чтобы посчитать общий показатель: ${missing.join(" · ")}`;
+    hint.hidden = false;
+    return;
+  }
+  value.textContent = `${Math.max(1, Math.min(100, Math.round((nutrition + training) / 2)))}%`;
+  hint.textContent = "Среднее выполнение плана питания и тренировок за эту неделю";
+  hint.hidden = false;
+}
+
+function athleteDashboardNutritionPercent(plan, entries) {
+  const days = plan && Array.isArray(plan.weekPlan) ? plan.weekPlan : [];
+  if (plan?.reviewRequired || days.length !== 7 || !Array.isArray(entries)) return null;
+  const targets = {
+    calories: days.reduce((sum, day) => sum + Number(day.calories || 0), 0) / 7,
+    protein_g: days.reduce((sum, day) => sum + Number(day.protein_g || 0), 0) / 7,
+    fat_g: days.reduce((sum, day) => sum + Number(day.fat_g || 0), 0) / 7,
+    carbs_g: days.reduce((sum, day) => sum + Number(day.carbs_g || 0), 0) / 7
+  };
+  if (Object.values(targets).some(target => !Number.isFinite(target) || target <= 0)) return null;
+  const weekStart = athleteNutritionWeekStart(athleteLocalDate());
+  const today = athleteLocalDate();
+  const logged = entries.filter(entry => entry?.report_date >= weekStart && entry?.report_date <= today);
+  if (!logged.length) return null;
+  const percentages = Object.keys(targets).map(key => {
+    const average = logged.reduce((sum, row) => sum + Math.max(0, Number(row[key]) || 0), 0) / logged.length;
+    return Math.min(100, average / targets[key] * 100);
+  });
+  return percentages.every(Number.isFinite)
+    ? percentages.reduce((sum, percent) => sum + percent, 0) / percentages.length
+    : null;
+}
+
+function athleteDashboardTrainingPercent(plan) {
+  const sessions = Array.isArray(plan?.sessions) ? plan.sessions : [];
+  if (!sessions.length || plan?.reviewRequired) return null;
+  return sessions.filter(session => session?.completed === true).length / sessions.length * 100;
+}
+
+async function athleteLoadCabinetDashboard() {
+  const nextSlot = document.getElementById("athleteDashboardNextWorkout");
+  if (!nextSlot) return;
+  const weightSlot = document.getElementById("athleteDashboardWeight");
+  const adherenceValue = document.getElementById("athleteDashboardAdherenceValue");
+  if (adherenceValue) adherenceValue.textContent = "—";
+
+  const results = await Promise.allSettled([
+    athleteTrainingRequest("load_history"),
+    athleteTrainingRequest("load_plan"),
+    athleteNutritionRequest("load_plan"),
+    athleteEnsureNutritionLoaded(),
+    athleteEnsureWeightLoaded()
+  ]);
+  if (document.getElementById("athleteDashboardNextWorkout") !== nextSlot) return;
+
+  const history = results[0].status === "fulfilled" ? results[0].value : null;
+  const trainingPlan = results[1].status === "fulfilled" ? results[1].value.plan : null;
+  const nutritionResult = results[2].status === "fulfilled" ? results[2].value : null;
+  const nutritionEntries = results[3].status === "fulfilled" ? results[3].value : null;
+  const weights = results[4].status === "fulfilled" ? results[4].value : [];
+
+  if (history) {
+    const workoutCount = history.totalWorkouts ?? (history.hasMore ? "50+" : history.workouts?.length ?? 0);
+    athleteDashboardSetValue("athleteDashboardWorkoutCount", String(workoutCount));
+  } else {
+    athleteDashboardSetValue("athleteDashboardWorkoutCount", "—");
+  }
+  if (weightSlot) weightSlot.textContent = weights.length ? `${athleteFormatWeight(weights[weights.length - 1].kg)} кг` : "Не указан";
+
+  const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
+  const nextSessionIndex = sessions.findIndex(session => session?.completed !== true);
+  if (trainingPlan && nextSessionIndex >= 0) {
+    const session = sessions[nextSessionIndex];
+    const label = session.title || session.name || `Тренировка ${nextSessionIndex + 1}`;
+    const exerciseCount = Array.isArray(session.exercises) ? session.exercises.length : 0;
+    nextSlot.innerHTML = `<span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${athleteEscape(label)}</strong><span>${exerciseCount ? athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений") : "Открой план, чтобы посмотреть упражнения"}</span><button type="button" onclick="athleteOpenCabinetSection('training-plan')">Открыть тренировку <span aria-hidden="true">›</span></button>`;
+  } else {
+    nextSlot.innerHTML = `<span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${trainingPlan && sessions.length ? "План на эту неделю завершён" : "Тренировка пока не запланирована"}</strong><button type="button" onclick="athleteOpenCabinetSection('training')">${trainingPlan && sessions.length ? "Посмотреть план" : "Составить план тренировок"} <span aria-hidden="true">›</span></button>`;
+  }
+
+  athleteDashboardRenderAdherence(
+    nutritionResult?.plan ? athleteDashboardNutritionPercent(nutritionResult.plan, nutritionEntries) : null,
+    trainingPlan ? athleteDashboardTrainingPercent(trainingPlan) : null
+  );
 }
 
 function athleteSkipTrainingUpload() {
