@@ -731,7 +731,10 @@ h3 {
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
-  display: none;
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 #athleteScreen .athlete-cabinet-page {
@@ -2954,7 +2957,10 @@ h3 {
   }
 
   #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
-    display: none;
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    line-height: 1.15;
   }
 }
 
