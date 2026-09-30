@@ -2680,6 +2680,8 @@ if (section === "nutrition-diary") {
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
   <div class="logo">TREN<span>ZO</span></div>
+  <button class="back-button athlete-desktop-back-button" type="button"
+    onclick="athleteNavigateBack()" aria-label="Назад" title="Назад">←</button>
 </div>
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
