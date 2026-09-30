@@ -1583,13 +1583,13 @@ function athleteRenderCabinet() {
       </button>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
-          "")}
+          "Цель, анкета, данные")}
         ${athleteCabinetNavButton("nutrition", "✦", "Питание",
-          "")}
+          "Рацион на неделю, отчёты")}
         ${athleteCabinetNavButton("training", "↗", "Тренировочный план",
-          "")}
+          "Программа, отчёты")}
         ${athleteCabinetNavButton("progress", "▥", "Прогресс",
-          "")}
+          "Динамика результатов")}
       </div>
     </div>
     ${athleteBottomNavigationMarkup("home")}`;
