@@ -2707,6 +2707,64 @@ h3 {
   }
 }
 
+@media (max-height: 760px) and (max-width: 600px) {
+  #athleteScreen .athlete-cabinet-page {
+    padding-top: 8px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-page .topbar {
+    margin-bottom: 6px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-page h1 {
+    margin-bottom: 8px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-page > .info-card {
+    padding: 10px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-page .step-label {
+    margin-bottom: 4px;
+  }
+
+  #athleteScreen .athlete-cabinet-page .cabinet-goal {
+    margin: 4px 0;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  #athleteScreen .athlete-cabinet-page > .info-card p {
+    margin-top: 4px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-links {
+    gap: 6px !important;
+    margin-top: 8px !important;
+  }
+
+  #athleteScreen .athlete-cabinet-links .cabinet-nav-button {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  #athleteScreen .athlete-cabinet-links .cabinet-nav-icon {
+    flex-basis: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  #athleteScreen .athlete-cabinet-links .cabinet-nav-title {
+    font-size: 17px;
+    line-height: 1.2;
+  }
+
+  #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
+    margin-top: 3px;
+    line-height: 1.25;
+  }
+}
+
 #athleteScreen .topbar {
   gap: 12px;
   margin-bottom: 16px;
