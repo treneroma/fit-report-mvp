@@ -2781,6 +2781,17 @@ h3 {
   font-size: 22px;
 }
 
+#athleteScreen .athlete-desktop-back-button {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #athleteScreen.has-athlete-bottom-nav .athlete-desktop-back-button {
+    display: grid;
+    place-items: center;
+  }
+}
+
 #athleteScreen .step-label {
   margin-bottom: 8px;
 }
