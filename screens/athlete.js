@@ -1557,23 +1557,12 @@ function athleteBottomNavigationMarkup(activeSection) {
 }
 
 function athleteRenderCabinet() {
-  const d = athleteSafeAnswers();
-  const goalLabels = {
-    lose: "Снижение веса", muscle: "Набор мышечной массы",
-    recomp: "Изменение состава тела", strength: "Развитие силы",
-    fitness: "Улучшение формы", other: "Индивидуальная цель"
-  };
-  const goal = athleteCabinetValue(d.goal, goalLabels);
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
-      <section class="info-card athlete-dashboard-next" id="athleteDashboardNextWorkout">
-        <span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span>
-        <strong>Загружаем план…</strong>
-      </section>
       <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
         <h2>Твои показатели</h2>
         <div class="athlete-dashboard-metrics">
@@ -1585,20 +1574,22 @@ function athleteRenderCabinet() {
         </div>
         <div class="athlete-dashboard-adherence-hint" id="athleteDashboardAdherenceHint" hidden></div>
       </section>
-      <section class="info-card athlete-dashboard-goal">
-        <div class="step-label">ТВОЯ ЦЕЛЬ</div>
-        <strong class="cabinet-goal">${goal}</strong>
-        <p>${d.targetWeight ? `Целевой вес: ${athleteEscape(d.targetWeight)} кг` : "Продолжай двигаться к своей цели"}</p>
-      </section>
+      <button class="info-card athlete-dashboard-next" id="athleteDashboardNextWorkout" type="button" onclick="athleteOpenCabinetSection('training-plan')">
+        <span class="athlete-dashboard-next-copy">
+          <span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span>
+          <strong>Загружаем план…</strong>
+        </span>
+        <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
+      </button>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
-          "Анкета, личные данные и твоя цель")}
+          "")}
         ${athleteCabinetNavButton("nutrition", "✦", "Питание",
-          "Твои привычки, будущий рацион и отчёты")}
+          "")}
         ${athleteCabinetNavButton("training", "↗", "Тренировочный план",
-          "Текущий режим, будущие тренировки и отчёты")}
+          "")}
         ${athleteCabinetNavButton("progress", "▥", "Прогресс",
-          "Исходные показатели и динамика результатов")}
+          "")}
       </div>
     </div>
     ${athleteBottomNavigationMarkup("home")}`;
@@ -1694,9 +1685,11 @@ async function athleteLoadCabinetDashboard() {
     const session = sessions[nextSessionIndex];
     const label = session.title || session.name || `Тренировка ${nextSessionIndex + 1}`;
     const exerciseCount = Array.isArray(session.exercises) ? session.exercises.length : 0;
-    nextSlot.innerHTML = `<span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${athleteEscape(label)}</strong><span>${exerciseCount ? athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений") : "Открой план, чтобы посмотреть упражнения"}</span><button type="button" onclick="athleteOpenCabinetSection('training-plan')">Открыть тренировку <span aria-hidden="true">›</span></button>`;
+    nextSlot.onclick = () => athleteOpenCabinetSection("training-plan");
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${athleteEscape(label)}</strong><span class="athlete-dashboard-next-meta">${exerciseCount ? athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений") : "Тренировка по плану"}</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
   } else {
-    nextSlot.innerHTML = `<span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${trainingPlan && sessions.length ? "План на эту неделю завершён" : "Тренировка пока не запланирована"}</strong><button type="button" onclick="athleteOpenCabinetSection('training')">${trainingPlan && sessions.length ? "Посмотреть план" : "Составить план тренировок"} <span aria-hidden="true">›</span></button>`;
+    nextSlot.onclick = () => athleteOpenCabinetSection("training");
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${trainingPlan && sessions.length ? "План на эту неделю завершён" : "Тренировка пока не запланирована"}</strong><span class="athlete-dashboard-next-meta">${trainingPlan && sessions.length ? "Открой план тренировок" : "Составь план тренировок"}</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
   }
 
   athleteDashboardRenderAdherence(
