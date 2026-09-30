@@ -1395,11 +1395,8 @@ async function athleteDeleteAccount() {
 }
 
 function athleteCabinetHeader(label, title) {
-  return `<div class="topbar" style="justify-content:space-between;">
+  return `<div class="topbar">
       <div class="logo">TREN<span>ZO</span></div>
-      <button class="back-button" type="button"
-        onclick="athleteRenderCabinet()"
-        aria-label="Вернуться в личный кабинет">←</button>
     </div>
     <h1 style="margin:0 0 14px;">
       ${athleteEscape(title)}
@@ -1452,6 +1449,68 @@ function athleteNavigatePrimaryTab(tab) {
   }
   athleteOpenCabinetSection(tab);
 }
+
+function athleteNavigateBack() {
+  const screen = document.getElementById("athleteScreen");
+  if (!screen || !screen.classList.contains("has-athlete-bottom-nav")) return;
+  if (document.querySelector("#athleteScreen dialog[open]")) return;
+  if (athleteHasUnsavedFormChanges() &&
+      !window.confirm("Есть незаполненные изменения. Вернуться и потерять их?")) {
+    return;
+  }
+  const target = screen.dataset.backSection || "home";
+  if (target === "home") {
+    athleteRenderCabinet();
+    return;
+  }
+  athleteOpenCabinetSection(target);
+}
+
+let athleteBackSwipeStart = null;
+
+document.addEventListener("touchstart", (event) => {
+  const screen = document.getElementById("athleteScreen");
+  const touch = event.changedTouches?.[0];
+  if (!touch || event.touches.length !== 1 || touch.clientX > 28 ||
+      !screen?.classList.contains("active") ||
+      !screen.classList.contains("has-athlete-bottom-nav") ||
+      document.querySelector("#athleteScreen dialog[open]")) {
+    athleteBackSwipeStart = null;
+    return;
+  }
+  athleteBackSwipeStart = { x: touch.clientX, y: touch.clientY, horizontal: false };
+}, { passive: true });
+
+document.addEventListener("touchmove", (event) => {
+  if (!athleteBackSwipeStart || !event.changedTouches?.[0]) return;
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - athleteBackSwipeStart.x;
+  const deltaY = touch.clientY - athleteBackSwipeStart.y;
+  if (deltaX > 8 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+    athleteBackSwipeStart.horizontal = true;
+    event.preventDefault();
+  } else if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+    athleteBackSwipeStart = null;
+  }
+}, { passive: false });
+
+document.addEventListener("touchend", (event) => {
+  if (!athleteBackSwipeStart || !event.changedTouches?.[0]) {
+    athleteBackSwipeStart = null;
+    return;
+  }
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - athleteBackSwipeStart.x;
+  const deltaY = touch.clientY - athleteBackSwipeStart.y;
+  const shouldNavigateBack = athleteBackSwipeStart.horizontal &&
+    deltaX >= 72 && deltaX > Math.abs(deltaY) * 1.2;
+  athleteBackSwipeStart = null;
+  if (shouldNavigateBack) athleteNavigateBack();
+}, { passive: true });
+
+document.addEventListener("touchcancel", () => {
+  athleteBackSwipeStart = null;
+}, { passive: true });
 
 function athleteBottomNavigationMarkup(activeSection) {
   const section = String(activeSection || "");
@@ -1514,6 +1573,7 @@ function athleteRenderCabinet() {
 
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
+  screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
@@ -2587,41 +2647,39 @@ title = "Вес";
 
   const progressSubpage = section.startsWith("progress-");
 
-let backAction = "athleteRenderCabinet()";
+let backSection = "home";
 if (section === "nutrition-diary") {
-  backAction = "athleteOpenCabinetSection('nutrition')";
+  backSection = "nutrition";
 
 } else if (section === "nutrition-plan") {
-  backAction = "athleteOpenCabinetSection('nutrition')";
+  backSection = "nutrition";
 
 } else if (section === "training-upload") {
-  backAction = "athleteOpenCabinetSection('training')";
+  backSection = "training";
 
 } else if (section === "training-history") {
-  backAction = "athleteOpenCabinetSection('training')";
+  backSection = "training";
 
 } else if (section === "training-plan") {
-  backAction = "athleteOpenCabinetSection('training')";
+  backSection = "training";
 
 } else if (section === "progress-measurements-form") {
-  backAction = "athleteOpenCabinetSection('progress-measurements')";
+  backSection = "progress-measurements";
 
 } else if (
   section === "progress-weight" ||
   section === "progress-measurements"
 ) {
-  backAction = "athleteOpenCabinetSection('progress-body')";
+  backSection = "progress-body";
 
 } else if (progressSubpage) {
-  backAction = "athleteOpenCabinetSection('progress')";
+  backSection = "progress";
 }
   screen.classList.add("has-athlete-bottom-nav");
+  screen.dataset.backSection = backSection;
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
   <div class="logo">TREN<span>ZO</span></div>
-  <button class="back-button" type="button"
-    onclick="${backAction}"
-    aria-label="Назад">←</button>
 </div>
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
