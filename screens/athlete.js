@@ -1562,14 +1562,38 @@ function athleteRenderCabinet() {
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
-      <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
+      <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
+        <div class="logo">TREN<span>ZO</span></div>
+        <button class="athlete-dashboard-profile-shortcut" type="button" aria-label="Открыть профиль" onclick="athleteOpenCabinetSection('profile')">
+          <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>
+        </button>
+      </div>
       <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
-        <h2>Твои показатели</h2>
+        <svg class="athlete-dashboard-wave" viewBox="0 0 500 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 42C54 50 71 88 132 77S189 34 240 62s67 20 111 10 78-8 149-47v75H0Z"/><path d="M0 53c54-5 92 57 145 43 56-15 52-63 111-43 45 16 64 49 111 26 40-20 75-19 133-47"/><path d="M0 71c55-12 93 34 144 28s75-55 126-37 74 28 116 12 64-34 114-41"/></svg>
         <div class="athlete-dashboard-metrics">
-          <div><strong id="athleteDashboardWorkoutCount">—</strong><span>тренировок</span></div>
-          <div><strong id="athleteDashboardWeight">—</strong><span>текущий вес</span></div>
+          <div class="athlete-dashboard-workouts">
+            <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
+              <svg class="gauge-icon" viewBox="0 0 40 40"><path d="M21 4c1 8-5 9-5 16 0 3 2 5 4 6-1-4 2-7 4-9 7 8 7 13 3 18 8-2 12-9 9-17-2-5-6-8-7-14-2 4-4 6-7 8 1-4 1-6-1-8Z"/></svg>
+            </div>
+            <strong id="athleteDashboardWorkoutCount">—</strong>
+            <span>тренировок</span>
+          </div>
+          <div class="athlete-dashboard-weight">
+            <div class="athlete-dashboard-weight-orbit" aria-hidden="true">
+              <div class="athlete-dashboard-weight-icon"><svg viewBox="0 0 24 24"><path d="M5 8h14l1.5 11h-17L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="12" cy="13" r="1.5"/></svg></div>
+              <strong id="athleteDashboardWeight">—</strong>
+              <span>текущий вес</span>
+              <svg class="athlete-dashboard-weight-trend" viewBox="0 0 150 42" aria-hidden="true"><path id="athleteDashboardWeightTrendLine" d=""/><circle id="athleteDashboardWeightTrendDot" cx="0" cy="0" r="4"/></svg>
+            </div>
+          </div>
           <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
-            <strong id="athleteDashboardAdherenceValue">—</strong><span>соблюдение плана</span>
+            <div class="athlete-dashboard-small-gauge athlete-dashboard-adherence-gauge" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
+              <svg class="gauge-icon athlete-dashboard-food-icon" viewBox="0 0 40 40"><path d="M9 5v12m5-12v12M9 11h5m-2.5 6v18M27 5v30m0-30c-6 2-8 8-8 15h8"/></svg>
+            </div>
+            <strong id="athleteDashboardAdherenceValue">—</strong>
+            <span>соблюдение плана</span>
           </div>
         </div>
         <div class="athlete-dashboard-adherence-hint" id="athleteDashboardAdherenceHint" hidden></div>
@@ -1582,13 +1606,13 @@ function athleteRenderCabinet() {
         <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
       </button>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
-        ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
+        ${athleteCabinetNavButton("profile", '<svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="8"/><path d="M9 40c2-9 7-13 15-13s13 4 15 13H9Z"/></svg>', "Мой профиль",
           "Цель, анкета, данные")}
-        ${athleteCabinetNavButton("nutrition", "✦", "Питание",
+        ${athleteCabinetNavButton("nutrition", '<svg viewBox="0 0 48 48"><path d="M12 6v15m6-15v15m-6-7h6m-3 7v21M34 6v34m0-34c-7 2-10 9-10 17h10"/></svg>', "Питание",
           "Рацион на неделю, отчёты")}
-        ${athleteCabinetNavButton("training", "↗", "Тренировочный план",
+        ${athleteCabinetNavButton("training", '<svg viewBox="0 0 48 48"><path d="M5 18v12m6-18v24m5-18h16m5-6v24m6-18v12"/></svg>', "Тренировочный план",
           "Программа, отчёты")}
-        ${athleteCabinetNavButton("progress", "▥", "Прогресс",
+        ${athleteCabinetNavButton("progress", '<svg viewBox="0 0 48 48"><path d="M9 39V25h7v14H9Zm12 0V16h7v23h-7Zm12 0V7h7v32h-7Z"/></svg>', "Прогресс",
           "Динамика результатов")}
       </div>
     </div>
@@ -1605,19 +1629,48 @@ function athleteDashboardSetValue(id, value) {
 function athleteDashboardRenderAdherence(nutrition, training) {
   const value = document.getElementById("athleteDashboardAdherenceValue");
   const hint = document.getElementById("athleteDashboardAdherenceHint");
+  const arc = document.getElementById("athleteDashboardAdherenceArc");
   if (!value || !hint) return;
+  const circumference = 2 * Math.PI * 43;
   const missing = [];
   if (nutrition == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('nutrition-diary')">Заполни питание</button>`);
   if (training == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('training')">Добавь план тренировок</button>`);
   if (missing.length) {
     value.textContent = "—";
+    if (arc) arc.style.strokeDashoffset = String(circumference);
     hint.innerHTML = `Чтобы посчитать общий показатель: ${missing.join(" · ")}`;
     hint.hidden = false;
     return;
   }
-  value.textContent = `${Math.max(1, Math.min(100, Math.round((nutrition + training) / 2)))}%`;
+  const percent = Math.max(1, Math.min(100, Math.round((nutrition + training) / 2)));
+  value.textContent = String(percent);
+  if (arc) arc.style.strokeDashoffset = String(circumference * (1 - percent / 100));
   hint.textContent = "Среднее выполнение плана питания и тренировок за эту неделю";
   hint.hidden = false;
+}
+
+function athleteDashboardRenderWeightTrend(weights) {
+  const line = document.getElementById("athleteDashboardWeightTrendLine");
+  const dot = document.getElementById("athleteDashboardWeightTrendDot");
+  if (!line || !dot) return;
+  const points = (Array.isArray(weights) ? weights : []).slice(-10);
+  if (points.length < 2) {
+    line.setAttribute("d", "");
+    dot.setAttribute("r", "0");
+    return;
+  }
+  const values = points.map(point => Number(point.kg));
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const coordinates = values.map((value, index) => ({
+    x: 4 + index * (142 / (values.length - 1)),
+    y: 34 - ((value - min) / span) * 22
+  }));
+  line.setAttribute("d", coordinates.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" "));
+  dot.setAttribute("cx", coordinates[coordinates.length - 1].x.toFixed(1));
+  dot.setAttribute("cy", coordinates[coordinates.length - 1].y.toFixed(1));
+  dot.setAttribute("r", "4");
 }
 
 function athleteDashboardNutritionPercent(plan, entries) {
@@ -1677,7 +1730,8 @@ async function athleteLoadCabinetDashboard() {
   } else {
     athleteDashboardSetValue("athleteDashboardWorkoutCount", "—");
   }
-  if (weightSlot) weightSlot.textContent = weights.length ? `${athleteFormatWeight(weights[weights.length - 1].kg)} кг` : "Не указан";
+  if (weightSlot) weightSlot.textContent = weights.length ? `${athleteFormatWeight(weights[weights.length - 1].kg)} кг` : "—";
+  athleteDashboardRenderWeightTrend(weights);
 
   const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
   const nextSessionIndex = sessions.findIndex(session => session?.completed !== true);
