@@ -649,6 +649,9 @@ h3 {
 
 .athlete-dashboard-next {
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
   min-height: 100px;
   align-items: center;
   justify-content: space-between;
@@ -984,11 +987,13 @@ h3 {
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-title {
-  font-size: 16px;
+  font-size: 17px;
+  line-height: 1.18;
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.22;
 }
 
 #athleteScreen .athlete-cabinet-page {
@@ -3224,15 +3229,15 @@ h3 {
   }
 
   #athleteScreen .athlete-cabinet-links .cabinet-nav-title {
-    font-size: 14px;
-    line-height: 1.15;
+    font-size: 16px;
+    line-height: 1.18;
   }
 
   #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
     display: block;
     margin-top: 2px;
-    font-size: 11.5px;
-    line-height: 1.15;
+    font-size: 12.5px;
+    line-height: 1.2;
   }
 }
 
