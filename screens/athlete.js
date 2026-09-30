@@ -1515,7 +1515,7 @@ function athleteRenderCabinet() {
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
   screen.innerHTML = `
-    <div class="page" style="display:block;min-height:0;padding-bottom:24px;">
+    <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar" style="margin-bottom:12px;"><div class="logo">TREN<span>ZO</span></div></div>
       <h1 style="margin:0 0 16px;">Личный кабинет</h1>
       <div class="info-card" style="margin:0 !important;">
@@ -1524,7 +1524,7 @@ function athleteRenderCabinet() {
         <p style="margin:0;">${weights}${target}</p>
         <p id="athleteCabinetLatestWeight" style="margin:6px 0 0;color:#bbb;">Последний вес: загружаем...</p>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
+      <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", "◉", "Мой профиль",
           "Анкета, личные данные и твоя цель")}
         ${athleteCabinetNavButton("nutrition", "✦", "Питание",
