@@ -629,10 +629,10 @@ h3 {
   width: 46px;
   height: 46px;
   padding: 0;
-  border: 1px solid rgba(255, 120, 70, 0.72);
+  border: 1px solid rgba(255, 120, 70, .72);
   border-radius: 50%;
   background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%);
-  box-shadow: 0 0 16px rgba(255, 104, 51, 0.23), inset 0 0 8px rgba(255, 104, 51, 0.16);
+  box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16);
   color: #e6e6e6;
   cursor: pointer;
 }
@@ -678,7 +678,7 @@ h3 {
   color: var(--accent, #ff7846);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.11em;
+  letter-spacing: .11em;
 }
 
 .athlete-dashboard-next-copy > strong {
@@ -695,63 +695,58 @@ h3 {
 
 .athlete-dashboard-summary {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
+  min-height: 214px;
+  box-sizing: border-box;
   padding: 14px 8px 9px !important;
   border-radius: 24px !important;
-  background: radial-gradient(ellipse at 50% 89%, rgba(179, 70, 27, .28), transparent 43%), linear-gradient(145deg, #191b1d, #111213 62%, #201713) !important;
+  background: linear-gradient(180deg, rgba(13, 14, 15, .12), rgba(13, 14, 15, .04)), url("../assets/dashboard-metrics-bg.png") center / cover no-repeat !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02), 0 12px 28px rgba(0, 0, 0, .18);
 }
 
-.athlete-dashboard-wave {
+.athlete-dashboard-summary::after {
   position: absolute;
-  z-index: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 31%;
+  z-index: 3;
+  inset: 0;
+  border: 1px solid rgba(188, 191, 195, .2);
+  border-radius: inherit;
+  content: "";
   pointer-events: none;
-}
-
-.athlete-dashboard-wave path:not(:first-child) {
-  fill: none;
-  stroke: rgba(255, 105, 46, .24);
-  stroke-width: 1.1;
-}
-
-.athlete-dashboard-wave path:first-child {
-  fill: rgba(126, 49, 24, .14);
 }
 
 .athlete-dashboard-metrics {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(60px, 1fr) minmax(130px, 1.75fr) minmax(68px, 1fr);
+  width: 100%;
+  min-height: 188px;
+  grid-template-columns: minmax(68px, .9fr) minmax(138px, 1.75fr) minmax(74px, 1fr);
   align-items: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 .athlete-dashboard-metrics > div {
   display: grid;
+  min-width: 0;
   justify-items: center;
   align-content: center;
-  gap: 2px;
-  min-width: 0;
-  padding: 0;
+  gap: 3px;
+  padding: 6px 0;
   border: 0;
   background: transparent;
 }
 
 .athlete-dashboard-small-gauge {
   position: relative;
-  width: min(100%, 88px);
+  width: min(100%, 84px);
   aspect-ratio: 1;
-  margin-bottom: 5px;
+  margin: 0 auto 4px;
   filter: drop-shadow(0 0 10px rgba(255, 101, 42, .08));
 }
 
-.athlete-dashboard-small-gauge > svg:first-child {
+.athlete-dashboard-small-gauge > svg:first-child,
+.athlete-dashboard-adherence-gauge > svg:first-child {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -763,182 +758,163 @@ h3 {
 .athlete-dashboard-small-gauge circle {
   fill: none;
   stroke-width: 8;
+  vector-effect: non-scaling-stroke;
 }
 
-.athlete-dashboard-small-gauge .gauge-track {
-  stroke: rgba(126, 131, 138, .19);
+.athlete-dashboard-small-gauge .gauge-track,
+.athlete-dashboard-adherence-gauge .gauge-track {
+  stroke: rgba(126, 131, 138, .22);
 }
 
 .athlete-dashboard-small-gauge .gauge-decorative-arc {
-  stroke: #ff683b;
-  stroke-linecap: round;
-  stroke-dasharray: 72 270;
-  filter: drop-shadow(0 0 4px rgba(255, 105, 56, .48));
-}
-
-.athlete-dashboard-adherence-arc {
-  fill: none;
-  stroke: #ff683b;
+  stroke: #ff703c;
   stroke-width: 8;
   stroke-linecap: round;
-  stroke-dasharray: 270.177;
-  stroke-dashoffset: 270.177;
-  transition: stroke-dashoffset .45s ease;
-  filter: drop-shadow(0 0 4px rgba(255, 105, 56, .48));
+  stroke-dasharray: 92 270;
+  stroke-dashoffset: -18;
+  filter: drop-shadow(0 0 5px rgba(255, 105, 56, .48));
+}
+
+.athlete-dashboard-weight-gauge .gauge-decorative-arc {
+  stroke-dasharray: 154 270;
+  stroke-dashoffset: -60;
 }
 
 .athlete-dashboard-small-gauge .gauge-icon {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 35%;
-  height: 35%;
+  width: 45%;
+  height: 45%;
   transform: translate(-50%, -50%);
-  fill: #ff7846;
-  stroke: #ff7846;
-  stroke-width: 2.2;
+  fill: none;
+  stroke: #ff8849;
+  stroke-width: 3.3;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px rgba(255, 105, 56, .35));
 }
 
-.athlete-dashboard-workout-gauge .gauge-icon {
-  fill: #ff7846;
+.athlete-dashboard-weight-gauge .gauge-icon {
+  width: 38%;
+  height: 38%;
+  stroke-width: 2.5;
+}
+
+.athlete-dashboard-weight-gauge .gauge-icon circle {
+  fill: #ff8849;
   stroke: none;
 }
 
-.athlete-dashboard-food-icon {
-  fill: none !important;
-  stroke: #ff7846 !important;
-  stroke-width: 3;
+.athlete-dashboard-workouts > strong,
+.athlete-dashboard-weight > strong {
+  color: #fff;
+  font-size: clamp(19px, 5.4vw, 28px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
 }
 
-.athlete-dashboard-workouts strong,
-.athlete-dashboard-adherence > strong {
-  color: #fff;
-  font-size: clamp(21px, 6vw, 30px);
-  line-height: 1;
+.athlete-dashboard-weight > strong {
+  font-size: clamp(15px, 4vw, 22px);
+  letter-spacing: -.05em;
 }
 
 .athlete-dashboard-workouts > span,
-.athlete-dashboard-adherence > span {
-  color: var(--muted, #aaa);
-  font-size: clamp(10px, 2.9vw, 13px);
+.athlete-dashboard-weight > span {
+  color: #c5c7ca;
+  font-size: clamp(10px, 2.7vw, 13px);
   line-height: 1.18;
   text-align: center;
-}
-
-.athlete-dashboard-weight-orbit {
-  position: relative;
-  display: flex;
-  width: min(100%, 184px);
-  aspect-ratio: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  margin: 0 auto;
-  border: 1px solid rgba(255, 113, 51, .65);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(55, 29, 21, .92), rgba(19, 19, 20, .96) 69%, rgba(18, 19, 20, .88));
-  box-shadow: 0 0 13px rgba(255, 96, 37, .26), inset 0 0 24px rgba(255, 100, 39, .12), 0 0 0 5px rgba(255, 120, 70, .045);
-}
-
-.athlete-dashboard-weight-orbit::before {
-  position: absolute;
-  inset: 7px;
-  border: 1px solid rgba(255, 129, 67, .17);
-  border-radius: inherit;
-  background: repeating-conic-gradient(from -2deg, rgba(255, 147, 86, .25) 0deg 1deg, transparent 1deg 6deg);
-  content: "";
-  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
-  pointer-events: none;
-}
-
-.athlete-dashboard-weight-icon {
-  display: grid;
-  width: 35px;
-  height: 35px;
-  place-items: center;
-  margin-bottom: 2px;
-  border: 1px solid rgba(255, 132, 66, .54);
-  border-radius: 9px;
-  background: rgba(255, 112, 55, .11);
-  box-shadow: 0 0 14px rgba(255, 96, 37, .18);
-  color: #ff8849;
-}
-
-.athlete-dashboard-weight-icon svg {
-  width: 21px;
-  height: 21px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.athlete-dashboard-weight > div > strong {
-  max-width: 100%;
-  color: #fff;
-  font-size: clamp(23px, 7vw, 34px);
-  font-weight: 800;
-  line-height: 1.06;
+  text-shadow: 0 1px 3px #111;
   white-space: nowrap;
 }
 
-.athlete-dashboard-weight > div > span {
-  color: #b8b9bc;
-  font-size: 12px;
-  line-height: 1.15;
+.athlete-dashboard-weight > span {
+  font-size: clamp(10px, 2.6vw, 12px);
 }
 
-.athlete-dashboard-weight-trend {
-  width: 72%;
-  height: 27px;
-  margin-top: 4px;
-  overflow: visible;
+.athlete-dashboard-adherence {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: 0 !important;
 }
 
-.athlete-dashboard-weight-trend path {
+.athlete-dashboard-adherence-gauge {
+  position: relative;
+  display: grid;
+  width: min(100%, 204px);
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  place-items: center;
+  border: 1px solid rgba(255, 113, 51, .38);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(12, 12, 13, .22), transparent 70%);
+  box-shadow: 0 0 16px rgba(255, 96, 37, .18), inset 0 0 24px rgba(255, 100, 39, .06), 0 0 0 5px rgba(255, 120, 70, .035);
+}
+
+.athlete-dashboard-adherence-gauge > svg:first-child circle {
+  fill: none;
+  stroke-width: 9;
+  vector-effect: non-scaling-stroke;
+}
+
+.athlete-dashboard-adherence-arc {
+  stroke: #ff743f;
+  stroke-dasharray: 270.177;
+  stroke-dashoffset: 270.177;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(255, 105, 56, .56));
+  transition: stroke-dashoffset .45s ease;
+}
+
+.athlete-dashboard-adherence-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  justify-items: center;
+  align-content: center;
+  gap: 2px;
+  padding: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.athlete-dashboard-adherence-icon {
+  width: clamp(23px, 6vw, 34px);
+  height: clamp(23px, 6vw, 34px);
+  margin-bottom: 2px;
   fill: none;
   stroke: #ff7846;
-  stroke-width: 2.4;
+  stroke-width: 3.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 3px rgba(255, 111, 52, .48));
+  filter: drop-shadow(0 0 5px rgba(255, 105, 56, .36));
 }
 
-.athlete-dashboard-weight-trend circle {
-  fill: #ff7846;
-  filter: drop-shadow(0 0 4px rgba(255, 111, 52, .5));
+.athlete-dashboard-adherence-copy > strong {
+  color: #fff;
+  font-size: clamp(36px, 10vw, 54px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: -.025em;
+  line-height: .98;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
 }
 
-.athlete-dashboard-adherence-hint {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 8px;
-  margin-top: 6px;
-  color: var(--muted, #aaa);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.athlete-dashboard-adherence-hint[hidden] {
-  display: none;
-}
-
-.athlete-dashboard-adherence-hint button {
-  min-height: 28px;
-  margin: 0;
-  padding: 2px 0;
-  border: 0;
-  background: transparent;
-  color: var(--accent, #ff7846);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
+.athlete-dashboard-adherence-copy > span {
+  color: #c5c7ca;
+  font-size: clamp(11px, 3vw, 15px);
+  line-height: 1.18;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #111;
 }
 
 #athleteScreen .athlete-cabinet-links {
@@ -949,6 +925,8 @@ h3 {
 #athleteScreen .athlete-cabinet-links .cabinet-nav-button {
   gap: 9px;
   padding: 6px 10px;
+  border-color: rgba(122, 126, 132, .32);
+  background: linear-gradient(105deg, rgba(34, 35, 37, .96), rgba(20, 21, 22, .98));
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-icon {
@@ -969,38 +947,20 @@ h3 {
   stroke-linejoin: round;
 }
 
-#athleteScreen .athlete-cabinet-links .cabinet-nav-button {
-  border-color: rgba(122, 126, 132, .32);
-  background: linear-gradient(105deg, rgba(34, 35, 37, .96), rgba(20, 21, 22, .98));
-}
-
-#athleteScreen .athlete-cabinet-links .cabinet-nav-title {
-  font-size: 15px;
-  line-height: 1.15;
-}
-
-#athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
 #athleteScreen .athlete-cabinet-links .cabinet-nav-title {
   font-size: 17px;
   line-height: 1.18;
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-detail {
+  display: block;
+  margin-top: 2px;
   font-size: 13px;
   line-height: 1.22;
 }
 
 #athleteScreen .athlete-cabinet-page {
-  padding-top: 10px !important;
-  padding-right: 14px !important;
-  padding-bottom: 10px !important;
-  padding-left: 14px !important;
+  padding: 10px 14px !important;
 }
 
 #athleteScreen .athlete-cabinet-page .topbar {
@@ -1014,10 +974,12 @@ h3 {
 @media (max-width: 380px) {
   #athleteScreen .athlete-dashboard-summary {
     padding: 11px 6px 8px !important;
+    min-height: 184px;
   }
 
   .athlete-dashboard-metrics {
-    grid-template-columns: minmax(54px, 1fr) minmax(122px, 1.7fr) minmax(60px, 1fr);
+    min-height: 164px;
+    grid-template-columns: minmax(54px, .9fr) minmax(122px, 1.7fr) minmax(60px, 1fr);
     gap: 0;
   }
 
@@ -1025,17 +987,12 @@ h3 {
     width: min(100%, 72px);
   }
 
-  .athlete-dashboard-weight-orbit {
-    width: min(100%, 158px);
+  .athlete-dashboard-adherence-gauge {
+    width: min(100%, 164px);
   }
 
-  .athlete-dashboard-weight-icon {
-    width: 30px;
-    height: 30px;
-  }
-
-  .athlete-dashboard-weight-trend {
-    height: 20px;
+  .athlete-dashboard-weight > strong {
+    font-size: clamp(14px, 4vw, 17px);
   }
 
   #athleteScreen .athlete-cabinet-links .cabinet-nav-button {
