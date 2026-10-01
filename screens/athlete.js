@@ -1569,34 +1569,34 @@ function athleteRenderCabinet() {
         </button>
       </div>
       <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
-        <svg class="athlete-dashboard-wave" viewBox="0 0 500 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 42C54 50 71 88 132 77S189 34 240 62s67 20 111 10 78-8 149-47v75H0Z"/><path d="M0 53c54-5 92 57 145 43 56-15 52-63 111-43 45 16 64 49 111 26 40-20 75-19 133-47"/><path d="M0 71c55-12 93 34 144 28s75-55 126-37 74 28 116 12 64-34 114-41"/></svg>
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon" viewBox="0 0 40 40"><path d="M21 4c1 8-5 9-5 16 0 3 2 5 4 6-1-4 2-7 4-9 7 8 7 13 3 18 8-2 12-9 9-17-2-5-6-8-7-14-2 4-4 6-7 8 1-4 1-6-1-8Z"/></svg>
+              <svg class="gauge-icon" viewBox="0 0 40 40"><path d="M6 16v8m4-12v16m4-12h12m4-4v16m4-12v8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>
             </div>
             <strong id="athleteDashboardWorkoutCount">—</strong>
             <span>тренировок</span>
           </div>
-          <div class="athlete-dashboard-weight">
-            <div class="athlete-dashboard-weight-orbit" aria-hidden="true">
-              <div class="athlete-dashboard-weight-icon"><svg viewBox="0 0 24 24"><path d="M5 8h14l1.5 11h-17L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><circle cx="12" cy="13" r="1.5"/></svg></div>
-              <strong id="athleteDashboardWeight">—</strong>
-              <span>текущий вес</span>
-              <svg class="athlete-dashboard-weight-trend" viewBox="0 0 150 42" aria-hidden="true"><path id="athleteDashboardWeightTrendLine" d=""/><circle id="athleteDashboardWeightTrendDot" cx="0" cy="0" r="4"/></svg>
+          <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
+            <div class="athlete-dashboard-adherence-gauge">
+              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
+              <div class="athlete-dashboard-adherence-copy">
+                <svg class="athlete-dashboard-adherence-icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15"/><path d="m12 20 5 5 11-12"/></svg>
+                <strong id="athleteDashboardAdherenceValue">—</strong>
+                <span>соблюдение плана</span>
+              </div>
             </div>
           </div>
-          <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
-            <div class="athlete-dashboard-small-gauge athlete-dashboard-adherence-gauge" aria-hidden="true">
-              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon athlete-dashboard-food-icon" viewBox="0 0 40 40"><path d="M9 5v12m5-12v12M9 11h5m-2.5 6v18M27 5v30m0-30c-6 2-8 8-8 15h8"/></svg>
+          <div class="athlete-dashboard-weight">
+            <div class="athlete-dashboard-small-gauge athlete-dashboard-weight-gauge" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
+              <svg class="gauge-icon athlete-dashboard-weight-icon" viewBox="0 0 40 40"><path d="M10 15h20l2 17H8l2-17Z"/><path d="M15 15v-2a5 5 0 0 1 10 0v2"/><circle cx="20" cy="22" r="2"/></svg>
             </div>
-            <strong id="athleteDashboardAdherenceValue">—</strong>
-            <span>соблюдение плана</span>
+            <strong id="athleteDashboardWeight">—</strong>
+            <span>текущий вес</span>
           </div>
         </div>
-        <div class="athlete-dashboard-adherence-hint" id="athleteDashboardAdherenceHint" hidden></div>
       </section>
       <button class="info-card athlete-dashboard-next" id="athleteDashboardNextWorkout" type="button" onclick="athleteOpenCabinetSection('training-plan')">
         <span class="athlete-dashboard-next-copy">
@@ -1628,49 +1628,17 @@ function athleteDashboardSetValue(id, value) {
 
 function athleteDashboardRenderAdherence(nutrition, training) {
   const value = document.getElementById("athleteDashboardAdherenceValue");
-  const hint = document.getElementById("athleteDashboardAdherenceHint");
   const arc = document.getElementById("athleteDashboardAdherenceArc");
-  if (!value || !hint) return;
+  if (!value) return;
   const circumference = 2 * Math.PI * 43;
-  const missing = [];
-  if (nutrition == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('nutrition-diary')">Заполни питание</button>`);
-  if (training == null) missing.push(`<button type="button" onclick="athleteOpenCabinetSection('training')">Добавь план тренировок</button>`);
-  if (missing.length) {
+  if (nutrition == null || training == null) {
     value.textContent = "—";
     if (arc) arc.style.strokeDashoffset = String(circumference);
-    hint.innerHTML = `Чтобы посчитать общий показатель: ${missing.join(" · ")}`;
-    hint.hidden = false;
     return;
   }
   const percent = Math.max(1, Math.min(100, Math.round((nutrition + training) / 2)));
   value.textContent = String(percent);
   if (arc) arc.style.strokeDashoffset = String(circumference * (1 - percent / 100));
-  hint.textContent = "Среднее выполнение плана питания и тренировок за эту неделю";
-  hint.hidden = false;
-}
-
-function athleteDashboardRenderWeightTrend(weights) {
-  const line = document.getElementById("athleteDashboardWeightTrendLine");
-  const dot = document.getElementById("athleteDashboardWeightTrendDot");
-  if (!line || !dot) return;
-  const points = (Array.isArray(weights) ? weights : []).slice(-10);
-  if (points.length < 2) {
-    line.setAttribute("d", "");
-    dot.setAttribute("r", "0");
-    return;
-  }
-  const values = points.map(point => Number(point.kg));
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const coordinates = values.map((value, index) => ({
-    x: 4 + index * (142 / (values.length - 1)),
-    y: 34 - ((value - min) / span) * 22
-  }));
-  line.setAttribute("d", coordinates.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" "));
-  dot.setAttribute("cx", coordinates[coordinates.length - 1].x.toFixed(1));
-  dot.setAttribute("cy", coordinates[coordinates.length - 1].y.toFixed(1));
-  dot.setAttribute("r", "4");
 }
 
 function athleteDashboardNutritionPercent(plan, entries) {
@@ -1731,7 +1699,6 @@ async function athleteLoadCabinetDashboard() {
     athleteDashboardSetValue("athleteDashboardWorkoutCount", "—");
   }
   if (weightSlot) weightSlot.textContent = weights.length ? `${athleteFormatWeight(weights[weights.length - 1].kg)} кг` : "—";
-  athleteDashboardRenderWeightTrend(weights);
 
   const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
   const nextSessionIndex = sessions.findIndex(session => session?.completed !== true);
