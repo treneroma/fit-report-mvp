@@ -784,10 +784,25 @@ h3 {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: clamp(54px, 16vw, 64px);
-  height: clamp(54px, 16vw, 64px);
-  object-fit: contain;
+  width: 64px;
+  height: 52px;
   transform: translate(-50%, -50%);
+}
+
+.gauge-image {
+  display: block;
+  background-image: url("../assets/dashboard-metric-icons.png");
+  background-repeat: no-repeat;
+  background-size: 206.34px 68.78px;
+  mix-blend-mode: screen;
+}
+
+.gauge-dumbbell-image {
+  background-position: -13px -10px;
+}
+
+.gauge-weight-image {
+  background-position: -131px -10px;
 }
 
 .athlete-dashboard-workouts > strong,
@@ -876,15 +891,10 @@ h3 {
 }
 
 .athlete-dashboard-adherence-icon {
-  width: clamp(30px, 7.5vw, 42px);
-  height: clamp(30px, 7.5vw, 42px);
+  width: 64px;
+  height: 52px;
   margin-bottom: 2px;
-  fill: none;
-  stroke: #ff7846;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px rgba(255, 105, 56, .36));
+  background-position: -73px -10px;
 }
 
 .athlete-dashboard-adherence-copy > strong {
