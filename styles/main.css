@@ -780,29 +780,13 @@ h3 {
   stroke-dashoffset: -60;
 }
 
-.athlete-dashboard-small-gauge .gauge-image {
+.athlete-dashboard-small-gauge .gauge-icon {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 64px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   transform: translate(-50%, -50%);
-}
-
-.gauge-image {
-  display: block;
-  background-image: url("../assets/dashboard-metric-icons.png");
-  background-repeat: no-repeat;
-  background-size: 206.34px 68.78px;
-  mix-blend-mode: screen;
-}
-
-.gauge-dumbbell-image {
-  background-position: -13px -10px;
-}
-
-.gauge-weight-image {
-  background-position: -131px -10px;
 }
 
 .athlete-dashboard-workouts > strong,
@@ -891,10 +875,9 @@ h3 {
 }
 
 .athlete-dashboard-adherence-icon {
-  width: 64px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   margin-bottom: 2px;
-  background-position: -73px -10px;
 }
 
 .athlete-dashboard-adherence-copy > strong {
@@ -911,8 +894,16 @@ h3 {
   color: #c5c7ca;
   font-size: clamp(11px, 3vw, 15px);
   line-height: 1.18;
-  white-space: nowrap;
+  white-space: normal;
   text-shadow: 0 1px 3px #111;
+}
+
+.athlete-dashboard-adherence-copy > .athlete-dashboard-adherence-label {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  font-size: clamp(12px, 3vw, 15px);
+  line-height: 1.12;
 }
 
 #athleteScreen .athlete-cabinet-links {
