@@ -624,20 +624,37 @@ h3 {
 }
 
 .athlete-dashboard-profile-shortcut {
+  position: relative;
   display: grid;
   place-items: center;
   width: 46px;
   height: 46px;
   padding: 0;
-  border: 1px solid rgba(255, 120, 70, .72);
+  border: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%);
-  box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16);
+  background: transparent;
+  box-shadow: none;
   color: #e6e6e6;
   cursor: pointer;
 }
 
+.athlete-dashboard-profile-shortcut::before {
+  position: absolute;
+  z-index: 0;
+  width: 32.2px;
+  height: 32.2px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 120, 70, .72);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%);
+  box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16);
+  content: "";
+  pointer-events: none;
+}
+
 .athlete-dashboard-profile-shortcut svg {
+  position: relative;
+  z-index: 1;
   width: 26.6px;
   height: 26.6px;
   fill: none;
@@ -701,7 +718,7 @@ h3 {
   box-sizing: border-box;
   padding: 14px 8px 9px !important;
   border-radius: 24px !important;
-  background: linear-gradient(180deg, rgba(13, 14, 15, .12), rgba(13, 14, 15, .04)), url("../assets/dashboard-metrics-bg.png?v=2") center / cover no-repeat !important;
+  background: linear-gradient(180deg, rgba(13, 14, 15, .12), rgba(13, 14, 15, .04)), url("../assets/dashboard-metrics-bg.png?v=3") center / cover no-repeat !important;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02), 0 12px 28px rgba(0, 0, 0, .18);
 }
 
