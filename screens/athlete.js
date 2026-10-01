@@ -1573,7 +1573,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon" viewBox="0 0 40 40"><path d="M6 16v8m4-12v16m4-12h12m4-4v16m4-12v8" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>
+              <svg class="gauge-icon" viewBox="0 0 48 48"><path d="M5 19v10m5-15v20m5-12h18m5-8v20m5-15v10"/></svg>
             </div>
             <strong id="athleteDashboardWorkoutCount">—</strong>
             <span>тренировок</span>
@@ -1582,7 +1582,7 @@ function athleteRenderCabinet() {
             <div class="athlete-dashboard-adherence-gauge">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
               <div class="athlete-dashboard-adherence-copy">
-                <svg class="athlete-dashboard-adherence-icon" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15"/><path d="m12 20 5 5 11-12"/></svg>
+                <svg class="athlete-dashboard-adherence-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M36.5 12.5A18 18 0 1 0 41 24"/><path d="m15 24 6 6 13-14"/></svg>
                 <strong id="athleteDashboardAdherenceValue">—</strong>
                 <span>соблюдение плана</span>
               </div>
@@ -1591,9 +1591,9 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-weight">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-weight-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon athlete-dashboard-weight-icon" viewBox="0 0 40 40"><path d="M10 15h20l2 17H8l2-17Z"/><path d="M15 15v-2a5 5 0 0 1 10 0v2"/><circle cx="20" cy="22" r="2"/></svg>
+              <svg class="gauge-icon athlete-dashboard-weight-icon" viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="5"/><path d="M18 10a6 6 0 0 1 12 0"/><circle cx="24" cy="21" r="5"/><path d="m24 21 3-3"/></svg>
             </div>
-            <strong id="athleteDashboardWeight">—</strong>
+            <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
             <span>текущий вес</span>
           </div>
         </div>
@@ -1698,7 +1698,7 @@ async function athleteLoadCabinetDashboard() {
   } else {
     athleteDashboardSetValue("athleteDashboardWorkoutCount", "—");
   }
-  if (weightSlot) weightSlot.textContent = weights.length ? `${athleteFormatWeight(weights[weights.length - 1].kg)} кг` : "—";
+  if (weightSlot) weightSlot.textContent = weights.length ? athleteFormatWeightNumber(weights[weights.length - 1].kg) : "—";
 
   const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
   const nextSessionIndex = sessions.findIndex(session => session?.completed !== true);
@@ -5087,8 +5087,13 @@ if (dynamicsSlot) {
   }
 }
 function athleteFormatWeight(value) {
+  const formatted = athleteFormatWeightNumber(value);
+  return formatted === "—" ? formatted : formatted + " кг";
+}
+
+function athleteFormatWeightNumber(value) {
   const n = Number(value);
-  return Number.isFinite(n) ? n.toFixed(1).replace(".", ",") + " кг" : "—";
+  return Number.isFinite(n) ? n.toFixed(1).replace(".", ",") : "—";
 }
 
 function athleteWeightPoints(rows) {
