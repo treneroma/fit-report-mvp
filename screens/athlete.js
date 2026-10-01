@@ -1573,7 +1573,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <img class="gauge-image gauge-dumbbell-image" src="assets/dashboard-dumbbell-icon.png" alt="" />
+              <span class="gauge-image gauge-dumbbell-image"></span>
             </div>
             <strong id="athleteDashboardWorkoutCount">—</strong>
             <span>тренировок</span>
@@ -1582,7 +1582,7 @@ function athleteRenderCabinet() {
             <div class="athlete-dashboard-adherence-gauge">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
               <div class="athlete-dashboard-adherence-copy">
-                <svg class="athlete-dashboard-adherence-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M36.5 12.5A18 18 0 1 0 41 24"/><path d="m15 24 6 6 13-14"/></svg>
+                <span class="athlete-dashboard-adherence-icon gauge-image gauge-progress-image" aria-hidden="true"></span>
                 <strong id="athleteDashboardAdherenceValue">—</strong>
                 <span>соблюдение плана</span>
               </div>
@@ -1591,7 +1591,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-weight">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-weight-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <img class="gauge-image gauge-weight-image" src="assets/dashboard-weight-icon.png" alt="" />
+              <span class="gauge-image gauge-weight-image"></span>
             </div>
             <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
             <span>текущий вес</span>
