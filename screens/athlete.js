@@ -1309,6 +1309,39 @@ function athleteCabinetCard(title, rows) {
   </div>`;
 }
 
+function athleteAccountDeleteMarkup() {
+  return `<section class="account-delete-zone" aria-labelledby="athleteDeleteAccountTitle">
+    <h2 id="athleteDeleteAccountTitle">Удаление аккаунта</h2>
+    <p>Удалить профиль TRENZO и связанные с ним данные, чтобы пройти регистрацию заново.</p>
+    <button class="account-delete-button" type="button"
+      onclick="athleteOpenDeleteAccountDialog()">Удалить аккаунт</button>
+  </section>
+  <dialog id="athleteDeleteAccountDialog" class="nutrition-help-dialog account-delete-dialog"
+    aria-labelledby="athleteDeleteAccountDialogTitle"
+    oncancel="if (athleteAccountDeleteInProgress) event.preventDefault()">
+    <div class="nutrition-help-dialog-heading">
+      <h3 id="athleteDeleteAccountDialogTitle">Удалить аккаунт?</h3>
+      <button class="secondary-btn nutrition-help-close" type="button"
+        aria-label="Закрыть" onclick="athleteCloseDeleteAccountDialog()">×</button>
+    </div>
+    <p>Это безвозвратно удалит из TRENZO профиль и ответы анкеты, вес и замеры,
+      записи питания, планы, историю тренировок и подключение FatSecret.</p>
+    <p>Сам аккаунт Telegram не затрагивается. Чтобы подтвердить удаление,
+      введи слово <strong>УДАЛИТЬ</strong>.</p>
+    <label class="account-delete-confirm-label" for="athleteDeleteAccountPhrase">Подтверждение</label>
+    <input id="athleteDeleteAccountPhrase" class="account-delete-confirm-input"
+      type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
+      oninput="athleteValidateDeleteAccountPhrase()">
+    <p id="athleteDeleteAccountStatus" class="account-delete-status" role="status" aria-live="polite"></p>
+    <div class="account-delete-actions">
+      <button id="athleteDeleteAccountSubmit" class="account-delete-confirm" type="button"
+        disabled onclick="athleteDeleteAccount()">Удалить все данные</button>
+      <button class="secondary-btn" type="button"
+        onclick="athleteCloseDeleteAccountDialog()">Отмена</button>
+    </div>
+  </dialog>`;
+}
+
 let athleteAccountDeleteInProgress = false;
 
 function athleteOpenDeleteAccountDialog() {
@@ -1514,7 +1547,7 @@ document.addEventListener("touchcancel", () => {
 
 function athleteBottomNavigationMarkup(activeSection) {
   const section = String(activeSection || "");
-  const activeTab = section === "home" ? "home"
+  const activeTab = ["home", "account", "profile"].includes(section) ? "home"
     : section.startsWith("nutrition") ? "nutrition"
     : section.startsWith("training") ? "training"
     : section.startsWith("progress") ? "progress"
@@ -1564,7 +1597,7 @@ function athleteRenderCabinet() {
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
-        <button class="athlete-dashboard-profile-shortcut" type="button" aria-label="Открыть профиль" onclick="athleteOpenCabinetSection('profile')">
+        <button class="athlete-dashboard-profile-shortcut" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
           <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>
         </button>
       </div>
@@ -1616,7 +1649,7 @@ function athleteRenderCabinet() {
       </button>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
         ${athleteCabinetNavButton("profile", '<svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="8"/><path d="M9 40c2-9 7-13 15-13s13 4 15 13H9Z"/></svg>', "Мой профиль",
-          "Цель, анкета, данные")}
+          "Цель и ответы анкеты")}
         ${athleteCabinetNavButton("nutrition", '<svg viewBox="0 0 48 48"><path d="M12 6v15m6-15v15m-6-7h6m-3 7v21M34 6v34m0-34c-7 2-10 9-10 17h10"/></svg>', "Питание",
           "Рацион на неделю, отчёты")}
         ${athleteCabinetNavButton("training", '<svg viewBox="0 0 48 48"><path d="M5 18v12m6-18v24m5-18h16m5-6v24m6-18v12"/></svg>', "Тренировочный план",
@@ -1747,13 +1780,8 @@ function athleteOpenCabinetSection(section) {
   let title = "";
   let content = "";
 
-  if (section === "profile") {
-    title = "Мой профиль";
-    const goals = {
-      lose: "Снизить вес", muscle: "Набрать мышечную массу",
-      recomp: "Изменить состав тела", strength: "Увеличить силовые показатели",
-      fitness: "Улучшить физическую форму", other: "Другая цель"
-    };
+  if (section === "account") {
+    title = "Аккаунт";
     const sexes = {
       male: "Мужской", female: "Женский",
       unspecified: "Предпочитаю не указывать"
@@ -1766,8 +1794,15 @@ function athleteOpenCabinetSection(section) {
       athleteCabinetRow("Вес при регистрации", d.weight ? d.weight + " кг" : "")) +
       `<div id="athleteProfileWeight" class="info-card" role="status">
         Загружаем последний зафиксированный вес...
-      </div>` +
-      athleteCabinetCard("Цель",
+      </div>` + athleteAccountDeleteMarkup();
+  } else if (section === "profile") {
+    title = "Анкета";
+    const goals = {
+      lose: "Снизить вес", muscle: "Набрать мышечную массу",
+      recomp: "Изменить состав тела", strength: "Увеличить силовые показатели",
+      fitness: "Улучшить физическую форму", other: "Другая цель"
+    };
+    content = athleteCabinetCard("Цель",
         athleteCabinetRow("Направление", d.goal, goals) +
         athleteCabinetRow("Желаемый результат", d.result) +
         athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
@@ -1807,37 +1842,7 @@ function athleteOpenCabinetSection(section) {
         })) +
       `<p class="small-note">Здесь показаны сохранённые данные анкеты.
         Изменение ответов добавим отдельно. Сведения о здоровье,
-        фотографии и файлы в тестовой версии не сохраняются.</p>` +
-      `<section class="account-delete-zone" aria-labelledby="athleteDeleteAccountTitle">
-        <h2 id="athleteDeleteAccountTitle">Удаление аккаунта</h2>
-        <p>Удалить профиль TRENZO и связанные с ним данные, чтобы пройти регистрацию заново.</p>
-        <button class="account-delete-button" type="button"
-          onclick="athleteOpenDeleteAccountDialog()">Удалить аккаунт</button>
-      </section>
-      <dialog id="athleteDeleteAccountDialog" class="nutrition-help-dialog account-delete-dialog"
-        aria-labelledby="athleteDeleteAccountDialogTitle"
-        oncancel="if (athleteAccountDeleteInProgress) event.preventDefault()">
-        <div class="nutrition-help-dialog-heading">
-          <h3 id="athleteDeleteAccountDialogTitle">Удалить аккаунт?</h3>
-          <button class="secondary-btn nutrition-help-close" type="button"
-            aria-label="Закрыть" onclick="athleteCloseDeleteAccountDialog()">×</button>
-        </div>
-        <p>Это безвозвратно удалит из TRENZO профиль и ответы анкеты, вес и замеры,
-          записи питания, планы, историю тренировок и подключение FatSecret.</p>
-        <p>Сам аккаунт Telegram не затрагивается. Чтобы подтвердить удаление,
-          введи слово <strong>УДАЛИТЬ</strong>.</p>
-        <label class="account-delete-confirm-label" for="athleteDeleteAccountPhrase">Подтверждение</label>
-        <input id="athleteDeleteAccountPhrase" class="account-delete-confirm-input"
-          type="text" autocomplete="off" autocapitalize="characters" spellcheck="false"
-          oninput="athleteValidateDeleteAccountPhrase()">
-        <p id="athleteDeleteAccountStatus" class="account-delete-status" role="status" aria-live="polite"></p>
-        <div class="account-delete-actions">
-          <button id="athleteDeleteAccountSubmit" class="account-delete-confirm" type="button"
-            disabled onclick="athleteDeleteAccount()">Удалить все данные</button>
-          <button class="secondary-btn" type="button"
-            onclick="athleteCloseDeleteAccountDialog()">Отмена</button>
-        </div>
-      </dialog>`;
+        фотографии и файлы в тестовой версии не сохраняются.</p>`;
   } else if (section === "nutrition") {
   title = "Питание";
 
@@ -2817,7 +2822,7 @@ if (section === "nutrition-diary") {
   ${athleteBottomNavigationMarkup(section)}`;
   window.scrollTo(0, 0);
 
-  if (section === "profile") {
+  if (section === "account") {
     athleteLoadProfileWeight();
   }
   if (section === "progress") {
