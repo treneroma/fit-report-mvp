@@ -1589,7 +1589,7 @@ function athleteRenderCabinet() {
                   <defs><filter id="dashboardProgressCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
                   <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardProgressCutout)"/>
                 </svg>
-                <strong id="athleteDashboardAdherenceValue">—</strong>
+                <strong id="athleteDashboardAdherenceValue">0</strong>
                 <span class="athlete-dashboard-adherence-label"><span>соблюдение</span><span>плана</span></span>
               </div>
             </div>
@@ -1641,7 +1641,7 @@ function athleteDashboardRenderAdherence(nutrition, training) {
   if (!value) return;
   const circumference = 2 * Math.PI * 43;
   if (nutrition == null || training == null) {
-    value.textContent = "—";
+    value.textContent = "0";
     if (arc) arc.style.strokeDashoffset = String(circumference);
     return;
   }
@@ -1684,7 +1684,7 @@ async function athleteLoadCabinetDashboard() {
   if (!nextSlot) return;
   const weightSlot = document.getElementById("athleteDashboardWeight");
   const adherenceValue = document.getElementById("athleteDashboardAdherenceValue");
-  if (adherenceValue) adherenceValue.textContent = "—";
+  if (adherenceValue) adherenceValue.textContent = "0";
 
   const results = await Promise.allSettled([
     athleteTrainingRequest("load_history"),
