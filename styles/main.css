@@ -789,6 +789,11 @@ h3 {
   transform: translate(-50%, -50%);
 }
 
+.athlete-dashboard-weight-gauge .gauge-weight-icon {
+  width: 44.64px;
+  height: 44.64px;
+}
+
 .athlete-dashboard-workouts > strong,
 .athlete-dashboard-weight > strong {
   color: #fff;
@@ -875,6 +880,8 @@ h3 {
 }
 
 .athlete-dashboard-adherence-icon {
+  position: relative;
+  top: 2px;
   width: 44px;
   height: 44px;
   margin-bottom: 2px;
