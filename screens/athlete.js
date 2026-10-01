@@ -1792,9 +1792,7 @@ function athleteOpenCabinetSection(section) {
       athleteCabinetRow("Пол", d.sex, sexes) +
       athleteCabinetRow("Рост", d.height ? d.height + " см" : "") +
       athleteCabinetRow("Вес при регистрации", d.weight ? d.weight + " кг" : "")) +
-      `<div id="athleteProfileWeight" class="info-card" role="status">
-        Загружаем последний зафиксированный вес...
-      </div>` + athleteAccountDeleteMarkup();
+      athleteAccountDeleteMarkup();
   } else if (section === "profile") {
     title = "Анкета";
     const goals = {
@@ -1807,6 +1805,9 @@ function athleteOpenCabinetSection(section) {
         athleteCabinetRow("Желаемый результат", d.result) +
         athleteCabinetRow("Желаемый вес", d.targetWeight ? d.targetWeight + " кг" : "") +
         athleteCabinetRow("Желаемый срок", d.months ? d.months + " мес." : "")) +
+      `<div id="athleteProfileWeight" class="info-card" role="status">
+        Загружаем последний зафиксированный вес...
+      </div>` +
       athleteCabinetCard("Тренировки и питание",
         athleteCabinetRow("Тренировочный опыт", d.experience, {
           new: "Только начинаю", under1: "До 1 года", "1to3": "От 1 до 3 лет",
@@ -2822,7 +2823,7 @@ if (section === "nutrition-diary") {
   ${athleteBottomNavigationMarkup(section)}`;
   window.scrollTo(0, 0);
 
-  if (section === "account") {
+  if (section === "profile") {
     athleteLoadProfileWeight();
   }
   if (section === "progress") {
