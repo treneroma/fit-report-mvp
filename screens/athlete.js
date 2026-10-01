@@ -1573,7 +1573,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon" viewBox="0 0 48 48"><path d="M5 19v10m5-15v20m5-12h18m5-8v20m5-15v10"/></svg>
+              <img class="gauge-image gauge-dumbbell-image" src="assets/dashboard-dumbbell-icon.png" alt="" />
             </div>
             <strong id="athleteDashboardWorkoutCount">—</strong>
             <span>тренировок</span>
@@ -1591,7 +1591,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-weight">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-weight-gauge" aria-hidden="true">
               <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon athlete-dashboard-weight-icon" viewBox="0 0 48 48"><rect x="8" y="10" width="32" height="30" rx="5"/><path d="M18 10a6 6 0 0 1 12 0"/><circle cx="24" cy="21" r="5"/><path d="m24 21 3-3"/></svg>
+              <img class="gauge-image gauge-weight-image" src="assets/dashboard-weight-icon.png" alt="" />
             </div>
             <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
             <span>текущий вес</span>
