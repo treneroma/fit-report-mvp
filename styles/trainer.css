@@ -116,14 +116,14 @@
 }
 .trainer-dashboard-ring circle {
   fill: none;
-  stroke-width: 6.5;
-  vector-effect: non-scaling-stroke;
+  stroke-width: 7.5;
 }
 .trainer-dashboard-ring-track { stroke: rgba(126, 131, 138, .24); }
 .trainer-dashboard-ring-arc {
   stroke: #ff703c;
-  stroke-dasharray: 158 270;
-  stroke-dashoffset: -18;
+  /* pathLength=100 keeps the same arc proportions at every dashboard size. */
+  stroke-dasharray: 70 100;
+  stroke-dashoffset: -7;
   stroke-linecap: round;
   filter: drop-shadow(0 0 3px rgba(255, 105, 56, .38));
 }
@@ -173,10 +173,10 @@
   background: radial-gradient(circle, rgba(12, 12, 13, .28), transparent 70%);
   box-shadow: 0 0 16px rgba(255, 96, 37, .18), inset 0 0 24px rgba(255, 100, 39, .06), 0 0 0 5px rgba(255, 120, 70, .035);
 }
-.trainer-dashboard-center-gauge > .trainer-dashboard-ring circle { stroke-width: 7; }
+.trainer-dashboard-center-gauge > .trainer-dashboard-ring circle { stroke-width: 4.5; }
 .trainer-dashboard-center-gauge .trainer-dashboard-ring-arc {
   stroke: #ff743f;
-  stroke-dasharray: 216 270;
+  stroke-dasharray: 52 100;
   stroke-dashoffset: 0;
   filter: drop-shadow(0 0 3px rgba(255, 105, 56, .42));
 }
@@ -236,8 +236,7 @@
 .trainer-home-tool-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid rgba(255, 120, 70, .14); border-radius: var(--trainer-radius-icon); background: rgba(255, 120, 70, .09); color: var(--accent); }
 .trainer-home-tool-icon svg { width: 23px !important; height: 23px !important; }
 .trainer-home-tool-icon.is-ai { display: inline-flex; align-items: center; justify-content: center; gap: 0; background: linear-gradient(145deg, rgba(255, 120, 70, .16), rgba(255, 120, 70, .06)); }
-.trainer-home-tool-icon .trainer-ai-card-sparkle { flex: 0 0 23px; width: 23px !important; height: 23px !important; transform: translateY(-1px); }
-.trainer-home-tool-icon .trainer-ai-card-label { position: static; margin: 5px 0 0 -1px; color: var(--accent); font-size: 9px !important; font-weight: 800; line-height: 1; }
+#trainerScreen .trainer-home-tool-icon svg.trainer-ai-card-icon { width: 34px !important; height: 29px !important; color: var(--accent); }
 .trainer-home-tool-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
 .trainer-home-tool-copy strong { font-size: var(--text-card-title); line-height: 1.2; }
 .trainer-home-tool-copy small { overflow: hidden; color: var(--muted); font-size: var(--text-caption); line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
@@ -533,22 +532,21 @@
 @media (max-width: 420px) {
   .trainer-header { margin-bottom: 10px; }
   .trainer-main { gap: 16px; }
-  .trainer-dashboard { min-height: 198px; padding: 10px 6px 6px; }
-  #trainerScreen .trainer-dashboard > h2 { margin: 0 8px 0; }
+  .trainer-dashboard { min-height: 218px; padding: 10px 8px 6px; }
+  #trainerScreen .trainer-dashboard > h2 { margin: 0 8px 4px; }
   .trainer-dashboard-metrics {
-    min-height: 146px;
-    grid-template-columns: minmax(54px, .9fr) minmax(122px, 1.7fr) minmax(60px, 1fr);
-    gap: 0;
+    min-height: 170px;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.95fr) minmax(0, 1fr);
+    gap: 4px;
   }
-  .trainer-dashboard-side-gauge { width: min(100%, 64px); }
-  .trainer-dashboard-center-gauge { width: min(100%, 150px); }
-  .trainer-dashboard-icon.is-center { width: 46px; height: 38px; }
+  .trainer-dashboard-side-gauge { width: min(100%, 80px); }
+  .trainer-dashboard-center-gauge { width: min(100%, 174px); }
+  #trainerScreen svg.trainer-dashboard-icon.is-side { width: 44px; height: 44px; }
+  #trainerScreen svg.trainer-dashboard-icon.is-center { width: 52px; height: 42px; }
   .trainer-home-tools { gap: 8px; }
   .trainer-home-shortcut { min-height: 62px; gap: 10px; padding: 8px 10px !important; }
   .trainer-home-tool-icon { width: 38px; height: 38px; flex-basis: 38px; border-radius: 11px; }
   .trainer-home-tool-icon svg { width: 22px !important; height: 22px !important; }
-  .trainer-home-tool-icon .trainer-ai-card-sparkle { flex-basis: 22px; width: 22px !important; height: 22px !important; }
-  .trainer-home-tool-icon .trainer-ai-card-label { margin-top: 5px; font-size: 8px !important; }
 }
 @media (prefers-reduced-motion: reduce) {
   #trainerScreen * { scroll-behavior: auto !important; }
