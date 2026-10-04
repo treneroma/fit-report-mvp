@@ -233,6 +233,67 @@
 .trainer-count { display: inline-flex; justify-content: center; align-items: center; min-width: 25px; height: 25px; padding: 0 6px; border-radius: 9px; background: var(--trainer-soft-accent); color: var(--accent); font-size: var(--text-support); letter-spacing: 0; }
 .trainer-list { display: flex; flex-direction: column; gap: 12px; }
 .trainer-card { display: block; width: 100%; min-width: 0; padding: var(--trainer-space-4); border: 1px solid var(--border); border-radius: var(--trainer-radius-card); background: var(--surface); text-align: left; }
+.trainer-home-tools { display: flex; flex-direction: column; gap: 10px; }
+.trainer-home-shortcut { display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px !important; color: var(--text); text-align: left; }
+.trainer-home-tool-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid rgba(255, 120, 70, .14); border-radius: var(--trainer-radius-icon); background: rgba(255, 120, 70, .09); color: var(--accent); }
+.trainer-home-tool-icon svg { width: 23px !important; height: 23px !important; }
+.trainer-home-tool-icon.is-ai { background: linear-gradient(145deg, rgba(255, 120, 70, .16), rgba(255, 120, 70, .06)); }
+.trainer-home-tool-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.trainer-home-tool-copy strong { font-size: var(--text-card-title); line-height: 1.2; }
+.trainer-home-tool-copy small { overflow: hidden; color: var(--muted); font-size: var(--text-caption); line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.trainer-home-shortcut > svg:last-child { width: 18px !important; color: var(--muted); }
+.trainer-task-form { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.trainer-task-form input,
+.trainer-chat-compose input { flex: 1; width: 0; min-width: 0; min-height: 48px; padding: 11px 13px; border: 1px solid var(--border); border-radius: var(--trainer-radius-control); background: var(--surface); color: var(--text); font-size: 16px; }
+.trainer-task-form button { flex: 0 0 auto; min-height: 48px; padding: 10px 14px; }
+.trainer-task-empty { margin: 0 !important; padding: 14px 0; }
+.trainer-task-row { display: flex; align-items: center; gap: 11px; padding: 12px !important; }
+.trainer-task-toggle,
+.trainer-task-delete { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; }
+.trainer-task-toggle { width: 28px; height: 28px; padding: 4px; border-radius: 9px; }
+#trainerScreen .trainer-task-toggle svg { width: 18px; height: 18px; color: var(--accent); }
+.trainer-task-row.is-complete .trainer-task-toggle { border-color: var(--trainer-line-accent); background: var(--trainer-soft-accent); }
+.trainer-task-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.trainer-task-copy strong { font-size: var(--text-body); line-height: 1.3; overflow-wrap: anywhere; }
+.trainer-task-copy small { font-size: var(--text-caption) !important; }
+.trainer-task-row.is-complete .trainer-task-copy strong { color: var(--muted); text-decoration: line-through; }
+.trainer-task-delete { width: 34px; height: 34px; border: 0; border-radius: 10px; }
+.trainer-task-delete svg { width: 18px !important; height: 18px !important; }
+.trainer-ai-task,
+.trainer-chat-list-item { display: flex; align-items: center; gap: 12px; padding: 12px !important; color: var(--text); text-align: left; }
+.trainer-ai-task { border-color: var(--trainer-line-accent); }
+.trainer-ai-task-copy,
+.trainer-chat-list-copy { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.trainer-ai-task-copy > small { color: var(--accent); font-size: var(--text-caption) !important; }
+.trainer-ai-task-copy > strong,
+.trainer-chat-list-copy > strong { font-size: var(--text-body-emphasis); line-height: 1.25; }
+.trainer-ai-task-copy > span,
+.trainer-chat-list-copy > small { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: var(--text-caption); line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.trainer-ai-task > svg:last-child,
+.trainer-chat-list-item > svg:last-child { width: 18px !important; flex: 0 0 18px; color: var(--muted); }
+.trainer-demo-note { margin: 0 0 12px !important; color: var(--muted); font-size: var(--text-caption) !important; }
+.trainer-chat-client-bar { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: var(--trainer-radius-card); background: var(--surface); }
+.trainer-chat-client-bar > div { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.trainer-chat-client-bar > div > small { font-size: var(--text-caption) !important; }
+.trainer-chat-client-bar > button { padding: 8px 0 8px 8px; font-size: var(--text-caption); white-space: nowrap; }
+.trainer-chat-thread { display: flex; flex: 1; flex-direction: column; gap: 10px; min-height: min(42dvh, 340px); padding: 8px 0; }
+.trainer-chat-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 220px; color: var(--muted); text-align: center; }
+.trainer-chat-empty strong { color: var(--text); }
+.trainer-chat-empty p { max-width: 30ch; margin: 0 !important; color: var(--muted); }
+.trainer-chat-message { align-self: flex-end; max-width: 88%; padding: 9px 12px; border: 1px solid var(--trainer-line-accent); border-radius: 16px 16px 4px 16px; background: var(--trainer-soft-accent); }
+.trainer-chat-message small { color: var(--accent); font-size: 11px !important; }
+.trainer-chat-message p { margin: 3px 0 0 !important; overflow-wrap: anywhere; }
+.trainer-chat-compose { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 10px 0 max(10px, env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+.trainer-chat-compose button { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; flex: 0 0 48px; border: 0; border-radius: 14px; background: var(--accent); color: #171717 !important; }
+.trainer-income-intro { text-align: center; padding: 22px 18px; }
+.trainer-income-intro > .trainer-home-tool-icon { margin-bottom: 12px; }
+.trainer-income-intro h2 { margin: 0 !important; }
+.trainer-income-intro p { max-width: 38ch; margin: 8px auto 0 !important; color: var(--muted); }
+.trainer-income-preview { margin-top: 8px; }
+.trainer-income-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px !important; }
+.trainer-income-row > span { display: flex; flex-direction: column; gap: 4px; }
+.trainer-income-row small { font-size: var(--text-caption) !important; }
+.trainer-income-row > small { flex: 0 0 auto; }
 .trainer-card > p { color: #d2d2d2; }
 #trainerScreen .trainer-card p + .trainer-metrics-grid { margin-top: 18px; }
 .trainer-card-heading { display: flex; align-items: center; gap: 12px; }
