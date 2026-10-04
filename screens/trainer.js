@@ -18,7 +18,7 @@ const trainerIcons = {
   ai: '<path d="m12 3 2.8 6.2L21 12l-6.2 2.8L12 21l-2.8-6.2L3 12l6.2-2.8L12 3Z"/><path d="m20 2 .6 1.4L22 4l-1.4.6L20 6l-.6-1.4L18 4l1.4-.6Z"/>',
   task: '<path d="M8 4h8l3 3v14H5V4h3Z"/><path d="M9 4V2h6v2M8 11h8M8 15h4m2 2 2 2 4-5"/>',
   chat: '<path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H7l-4 2 1.5-4.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/>',
-  income: '<path d="M4 7h15a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12"/><path d="M15 12h6v4h-6a2 2 0 0 1 0-4Z"/><circle cx="16" cy="14" r=".6"/>',
+  income: '<circle cx="12" cy="12" r="9"/><path d="M9 6h4.2a3 3 0 1 1 0 6H9M8 10h8M10 12v6"/>',
   arrow: '<path d="m9 5 7 7-7 7"/>', back: '<path d="m15 5-7 7 7 7"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', check: '<path d="m5 12 4 4L19 6"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>', close: '<path d="m6 6 12 12M6 18 18 6"/>',
@@ -80,16 +80,8 @@ function trainerReviewCard(review, compact = false) {
   const client = trainerStore.client(review.clientId);
   return `<button type="button" class="trainer-card trainer-review-card${compact ? ' is-compact' : ''}" data-action="review" data-id="${review.id}" aria-label="${trainerStore.pending(review) ? 'Разобрать' : 'Открыть разбор'}: ${trainerEscape(client.name)}, ${trainerEscape(review.title)}">${trainerAvatar(client)}<span class="trainer-review-copy"><strong>${trainerEscape(client.name)}</strong><span>${trainerEscape(compact ? review.type : review.title)}</span><small>${compact ? trainerRelative(review.occurredAt) : trainerTimeLabel(review.occurredAt)}</small>${!compact ? trainerTags(review.tags) : ''}</span>${!compact ? trainerBadge(review.status, true) : trainerIcon('arrow')}</button>`;
 }
-function trainerAttentionCard(review) {
-  const client = trainerStore.client(review.clientId);
-  return `<article class="trainer-card trainer-attention-card"><div class="trainer-card-heading">${trainerAvatar(client)}<div><strong>${trainerEscape(client.name)}</strong><p>${trainerEscape(review.title)}</p></div><span class="trainer-attention-dot" aria-label="Требуется внимание"></span></div>${trainerTags(review.tags)}<div class="trainer-attention-footer"><small>${trainerEscape(review.note)}</small>${trainerAction('review', `${review.kind === 'inactive' ? 'Посмотреть' : 'Разобрать'} ${trainerIcon('arrow')}`, { id: review.id }, 'trainer-text-button')}</div></article>`;
-}
 function trainerToday() {
   const { clients, reviews } = trainerStore.state;
-  const attention = reviews.filter(r => trainerStore.pending(r) && ['attention', 'inactive'].includes(r.kind)).sort((a, b) => b.priority - a.priority);
-  const decisions = reviews.filter(r => trainerStore.pending(r) && r.kind === 'decision');
-  const fresh = reviews.filter(r => trainerStore.pending(r) && r.kind !== 'decision').sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 3);
-  const count = new Set(attention.map(r => r.clientId)).size;
   const weekStart = trainerDemoDate(6);
   const activeClients = clients.filter(client => client.activityDate && client.activityDate >= weekStart).length;
   const completedWorkouts = clients.reduce((total, client) => total + (Number(client.metrics.workoutCompleted) || 0), 0);
@@ -99,12 +91,8 @@ function trainerToday() {
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('task')}</span><span class="trainer-home-tool-copy"><strong>Мои задачи</strong><small>Личные дела и задачи от TRENZO</small></span>${trainerIcon('arrow')}`, { page: 'tasks' }, 'trainer-card trainer-home-shortcut')}
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('chat')}</span><span class="trainer-home-tool-copy"><strong>Чаты с клиентами</strong><small>Переписки и карточки подопечных</small></span>${trainerIcon('arrow')}`, { page: 'chats' }, 'trainer-card trainer-home-shortcut')}
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('income')}</span><span class="trainer-home-tool-copy"><strong>Доходы</strong><small>Планирование и учёт</small></span>${trainerIcon('arrow')}`, { page: 'income' }, 'trainer-card trainer-home-shortcut')}
-      ${trainerAction('navigate', `<span class="trainer-home-tool-icon is-ai">${trainerIcon('ai')}</span><span class="trainer-home-tool-copy"><strong>Личный ассистент</strong><small>Помощь и разборы на основе данных</small></span>${trainerIcon('arrow')}`, { page: 'ai' }, 'trainer-card trainer-home-shortcut')}
-    </section>
-    ${!clients.length ? trainerEmpty('Добавьте первого подопечного', 'После этого TRENZO сможет отслеживать тренировки, прогресс и отчёты клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
-    ${attention.length ? `<section>${trainerSection('Требуют внимания', count)}<div class="trainer-list">${attention.map(trainerAttentionCard).join('')}</div></section>` : `<section class="trainer-calm-card"><span>${trainerIcon('check')}</span><h2>Сегодня всё спокойно</h2><p>У всех активных подопечных показатели в пределах обычной динамики.</p></section>`}
-    ${decisions.length ? `<section>${trainerSection('Решения на согласование', decisions.length)}<div class="trainer-list">${decisions.map(r => `<article class="trainer-card trainer-decision-card"><div><strong>${trainerEscape(trainerStore.client(r.clientId).name)}</strong><p>${trainerEscape(r.title)}</p>${trainerTags(r.tags)}</div>${trainerAction('review', 'Проверить', { id: r.id }, 'trainer-secondary-button')}</article>`).join('')}</div></section>` : ''}
-    <section>${trainerSection(fresh.length ? 'Новые разборы' : 'Последние разборы', null, trainerAction('navigate', 'Все →', { page: 'reviews' }, 'trainer-text-button'))}<div class="trainer-list">${(fresh.length ? fresh : reviews.slice(0, 3)).map(r => trainerReviewCard(r, true)).join('')}</div></section>`}`;
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon is-ai"><svg class="trainer-ai-card-sparkle" viewBox="0 0 24 24" aria-hidden="true">${trainerIcons.ai}</svg><small class="trainer-ai-card-label">AI</small></span><span class="trainer-home-tool-copy"><strong>Личный ассистент</strong><small>Помощь и разборы на основе данных</small></span>${trainerIcon('arrow')}`, { page: 'ai' }, 'trainer-card trainer-home-shortcut')}
+    </section>`;
 }
 
 function trainerTasks() {
