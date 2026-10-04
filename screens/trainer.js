@@ -10,6 +10,7 @@ const trainerIcons = {
   home: '<path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-6h6v6"/>',
   today: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M5.6 18.4l2-2M16.4 7.6l2-2"/><circle cx="12" cy="12" r="4"/>',
   clients: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M19 14a5 5 0 0 1 2 4v2"/>',
+  clientsSolid: '<circle cx="12" cy="7.5" r="3.3"/><circle cx="5.2" cy="10" r="2.5"/><circle cx="18.8" cy="10" r="2.5"/><path d="M5.5 20v-1.7a6.5 6.5 0 0 1 13 0V20zM1.7 19v-1.2a3.7 3.7 0 0 1 4.7-3.6M22.3 19v-1.2a3.7 3.7 0 0 0-4.7-3.6"/>',
   reviews: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4V2h6v2M9 10h6M9 14h6M9 18h3"/>',
   programs: '<path d="M3 9v6M6 6v12M9 10v4M9 12h6M15 10v4M18 6v12M21 9v6"/>',
   analytics: '<path d="M4 20v-6M10 20V9M16 20V5M22 20V2"/>',
@@ -48,7 +49,18 @@ function trainerTags(tags) { return `<div class="trainer-tags">${tags.map(tag =>
 function trainerSection(title, count, link = '') { return `<div class="trainer-section-heading"><h2>${trainerEscape(title)}${count != null ? `<span class="trainer-count">${count}</span>` : ''}</h2>${link}</div>`; }
 function trainerEmpty(title, text, action = '') { return `<section class="trainer-empty"><span class="trainer-empty-icon">${trainerIcon('clients')}</span><h2>${trainerEscape(title)}</h2><p>${trainerEscape(text)}</p>${action}</section>`; }
 function trainerMetric(label, value, note = '') { return `<div class="trainer-metric"><span>${trainerEscape(label)}</span><strong>${trainerEscape(value)}</strong>${note ? `<small>${trainerEscape(note)}</small>` : ''}</div>`; }
-function trainerDashboardMetric(icon, value, label) { return `<div>${trainerIcon(icon)}<strong>${trainerEscape(value)}</strong><span>${trainerEscape(label)}</span></div>`; }
+function trainerDashboardIcon(name, size = 'side') {
+  if (name === 'clients') return `<svg class="trainer-dashboard-icon is-people is-${size}" viewBox="0 0 24 24" aria-hidden="true">${trainerIcons.clientsSolid}</svg>`;
+  const viewBox = name === 'programs' ? '132 100 684 485' : '1465 100 510 485';
+  const id = `trainer-dashboard-${name}-cutout`;
+  return `<svg class="trainer-dashboard-icon is-${size}" viewBox="${viewBox}" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet"><defs><filter id="${id}" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs><image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#${id})"/></svg>`;
+}
+function trainerDashboardMetric(icon, value, label, center = false) {
+  const labelMarkup = label.split('|').map(part => trainerEscape(part)).join('<br>');
+  const ring = `<svg class="trainer-dashboard-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="trainer-dashboard-ring-track" cx="50" cy="50" r="43"/><circle class="trainer-dashboard-ring-arc" cx="50" cy="50" r="43"/></svg>`;
+  if (center) return `<div class="trainer-dashboard-metric trainer-dashboard-center"><div class="trainer-dashboard-center-gauge">${ring}<div class="trainer-dashboard-center-copy">${trainerDashboardIcon(icon, 'center')}<strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div></div></div>`;
+  return `<div class="trainer-dashboard-metric trainer-dashboard-side"><div class="trainer-dashboard-side-gauge">${ring}${trainerDashboardIcon(icon)}</div><strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div>`;
+}
 function trainerHeader(title = '') {
   const detail = !['today', 'clients', 'reviews', 'programs', 'profile'].includes(trainerUI.route.page);
   return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div>${trainerUI.route.page !== 'ai' ? trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button') : ''}</header>`;
@@ -73,10 +85,11 @@ function trainerToday() {
   const decisions = reviews.filter(r => trainerStore.pending(r) && r.kind === 'decision');
   const fresh = reviews.filter(r => trainerStore.pending(r) && r.kind !== 'decision').sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 3);
   const count = new Set(attention.map(r => r.clientId)).size;
-  const activeClients = clients.filter(client => trainerStore.status(client.id) !== 'inactive').length;
+  const weekStart = trainerDemoDate(6);
+  const activeClients = clients.filter(client => client.activityDate && client.activityDate >= weekStart).length;
   const completedWorkouts = clients.reduce((total, client) => total + (Number(client.metrics.workoutCompleted) || 0), 0);
-  const submittedAnswers = reviews.filter(review => !['inactive', 'decision'].includes(review.kind)).length;
-  return `<section class="trainer-dashboard" aria-label="Ключевые показатели">${trainerDashboardMetric('clients', activeClients, 'Активные клиенты')}${trainerDashboardMetric('programs', completedWorkouts, 'Выполнено тренировок')}${trainerDashboardMetric('reviews', submittedAnswers, 'Сдано ответов')}</section>
+  const submittedAnswers = reviews.filter(review => !['inactive', 'decision'].includes(review.kind) && review.occurredAt?.slice(0, 10) >= weekStart).length;
+  return `<section class="trainer-dashboard" aria-labelledby="trainerDashboardTitle"><h2 id="trainerDashboardTitle">Недельные показатели</h2><div class="trainer-dashboard-metrics">${trainerDashboardMetric('clients', activeClients, 'Активные|клиенты')}${trainerDashboardMetric('programs', completedWorkouts, 'Выполнено|тренировок', true)}${trainerDashboardMetric('reviews', submittedAnswers, 'Сдано|ответов')}</div></section>
     ${!clients.length ? trainerEmpty('Добавьте первого подопечного', 'После этого TRENZO сможет отслеживать тренировки, прогресс и отчёты клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
     ${attention.length ? `<section>${trainerSection('Требуют внимания', count)}<div class="trainer-list">${attention.map(trainerAttentionCard).join('')}</div></section>` : `<section class="trainer-calm-card"><span>${trainerIcon('check')}</span><h2>Сегодня всё спокойно</h2><p>У всех активных подопечных показатели в пределах обычной динамики.</p></section>`}
     ${decisions.length ? `<section>${trainerSection('Решения на согласование', decisions.length)}<div class="trainer-list">${decisions.map(r => `<article class="trainer-card trainer-decision-card"><div><strong>${trainerEscape(trainerStore.client(r.clientId).name)}</strong><p>${trainerEscape(r.title)}</p>${trainerTags(r.tags)}</div>${trainerAction('review', 'Проверить', { id: r.id }, 'trainer-secondary-button')}</article>`).join('')}</div></section>` : ''}
