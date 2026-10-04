@@ -2,7 +2,7 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], toastTimer: null
+  programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null
 };
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
 const trainerReviewLabels = { new: 'Новый', requires_action: 'Требует решения', approved: 'Готово', dismissed: 'Готово' };
@@ -16,6 +16,9 @@ const trainerIcons = {
   analytics: '<path d="M4 20v-6M10 20V9M16 20V5M22 20V2"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   ai: '<path d="m12 3 2.8 6.2L21 12l-6.2 2.8L12 21l-2.8-6.2L3 12l6.2-2.8L12 3Z"/><path d="m20 2 .6 1.4L22 4l-1.4.6L20 6l-.6-1.4L18 4l1.4-.6Z"/>',
+  task: '<path d="M8 4h8l3 3v14H5V4h3Z"/><path d="M9 4V2h6v2M8 11h8M8 15h4m2 2 2 2 4-5"/>',
+  chat: '<path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H7l-4 2 1.5-4.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/>',
+  income: '<path d="M4 7h15a2 2 0 0 1 2 2v10H5a2 2 0 0 1-2-2V6a3 3 0 0 1 3-3h12"/><path d="M15 12h6v4h-6a2 2 0 0 1 0-4Z"/><circle cx="16" cy="14" r=".6"/>',
   arrow: '<path d="m9 5 7 7-7 7"/>', back: '<path d="m15 5-7 7 7 7"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', check: '<path d="m5 12 4 4L19 6"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>', close: '<path d="m6 6 12 12M6 18 18 6"/>',
@@ -64,11 +67,12 @@ function trainerDashboardMetric(icon, value, label, center = false) {
 }
 function trainerHeader(title = '') {
   const detail = !['today', 'clients', 'reviews', 'programs', 'profile'].includes(trainerUI.route.page);
-  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div>${trainerUI.route.page !== 'ai' ? `<div class="trainer-header-actions">${trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button')}<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div>` : ''}</header>`;
+  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div><div class="trainer-header-actions"><button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div></header>`;
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
   if (['client', 'memory'].includes(active)) active = 'clients';
+  if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
   return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Разборы', 'reviews'], ['programs', 'Схемы', 'programs'], ['profile', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.reviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
@@ -91,10 +95,49 @@ function trainerToday() {
   const completedWorkouts = clients.reduce((total, client) => total + (Number(client.metrics.workoutCompleted) || 0), 0);
   const submittedAnswers = reviews.filter(review => !['inactive', 'decision'].includes(review.kind) && review.occurredAt?.slice(0, 10) >= weekStart).length;
   return `<section class="trainer-dashboard" aria-labelledby="trainerDashboardTitle"><h2 id="trainerDashboardTitle">Недельные показатели</h2><div class="trainer-dashboard-metrics">${trainerDashboardMetric('clients', activeClients, 'Активные|клиенты')}${trainerDashboardMetric('programs', completedWorkouts, 'Выполнено|тренировок', true)}${trainerDashboardMetric('reports', submittedAnswers, 'Сдано|отчетов')}</div></section>
+    <section class="trainer-home-tools" aria-label="Инструменты тренера">
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('task')}</span><span class="trainer-home-tool-copy"><strong>Мои задачи</strong><small>Личные дела и задачи от TRENZO</small></span>${trainerIcon('arrow')}`, { page: 'tasks' }, 'trainer-card trainer-home-shortcut')}
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('chat')}</span><span class="trainer-home-tool-copy"><strong>Чаты с клиентами</strong><small>Переписки и карточки подопечных</small></span>${trainerIcon('arrow')}`, { page: 'chats' }, 'trainer-card trainer-home-shortcut')}
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('income')}</span><span class="trainer-home-tool-copy"><strong>Доходы</strong><small>Планирование и учёт</small></span>${trainerIcon('arrow')}`, { page: 'income' }, 'trainer-card trainer-home-shortcut')}
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon is-ai">${trainerIcon('ai')}</span><span class="trainer-home-tool-copy"><strong>Личный ассистент</strong><small>Помощь и разборы на основе данных</small></span>${trainerIcon('arrow')}`, { page: 'ai' }, 'trainer-card trainer-home-shortcut')}
+    </section>
     ${!clients.length ? trainerEmpty('Добавьте первого подопечного', 'После этого TRENZO сможет отслеживать тренировки, прогресс и отчёты клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
     ${attention.length ? `<section>${trainerSection('Требуют внимания', count)}<div class="trainer-list">${attention.map(trainerAttentionCard).join('')}</div></section>` : `<section class="trainer-calm-card"><span>${trainerIcon('check')}</span><h2>Сегодня всё спокойно</h2><p>У всех активных подопечных показатели в пределах обычной динамики.</p></section>`}
     ${decisions.length ? `<section>${trainerSection('Решения на согласование', decisions.length)}<div class="trainer-list">${decisions.map(r => `<article class="trainer-card trainer-decision-card"><div><strong>${trainerEscape(trainerStore.client(r.clientId).name)}</strong><p>${trainerEscape(r.title)}</p>${trainerTags(r.tags)}</div>${trainerAction('review', 'Проверить', { id: r.id }, 'trainer-secondary-button')}</article>`).join('')}</div></section>` : ''}
     <section>${trainerSection(fresh.length ? 'Новые разборы' : 'Последние разборы', null, trainerAction('navigate', 'Все →', { page: 'reviews' }, 'trainer-text-button'))}<div class="trainer-list">${(fresh.length ? fresh : reviews.slice(0, 3)).map(r => trainerReviewCard(r, true)).join('')}</div></section>`}`;
+}
+
+function trainerTasks() {
+  const aiTasks = trainerStore.state.reviews.filter(trainerStore.pending).sort((a, b) => b.priority - a.priority);
+  const personalTasks = trainerUI.tasks;
+  const personalMarkup = personalTasks.length ? personalTasks.map(task => `<article class="trainer-card trainer-task-row${task.done ? ' is-complete' : ''}"><button type="button" class="trainer-task-toggle" data-action="toggle-task" data-id="${trainerEscape(task.id)}" aria-pressed="${task.done}" aria-label="${task.done ? 'Отметить невыполненной' : 'Отметить выполненной'}: ${trainerEscape(task.title)}">${task.done ? trainerIcon('check') : ''}</button><span class="trainer-task-copy"><strong>${trainerEscape(task.title)}</strong><small>${task.done ? 'Выполнено' : 'Личная задача'}</small></span><button type="button" class="trainer-task-delete" data-action="delete-task" data-id="${trainerEscape(task.id)}" aria-label="Удалить задачу">${trainerIcon('close')}</button></article>`).join('') : '<p class="trainer-muted trainer-task-empty">Пока нет личных задач. Добавь первую — она сохранится на этом устройстве.</p>';
+  const aiMarkup = aiTasks.length ? aiTasks.map(review => {
+    const client = trainerStore.client(review.clientId);
+    return `<button type="button" class="trainer-card trainer-ai-task" data-action="review" data-id="${trainerEscape(review.id)}"><span class="trainer-home-tool-icon is-ai">${trainerIcon('ai')}</span><span class="trainer-ai-task-copy"><small>TRENZO AI · ${trainerEscape(client?.name || 'Подопечный')}</small><strong>${trainerEscape(review.title)}</strong><span>${trainerEscape(review.proposedAction)}</span></span>${trainerIcon('arrow')}</button>`;
+  }).join('') : '<p class="trainer-muted trainer-task-empty">Новых рекомендаций пока нет. Здесь появятся задачи, сформированные по отчётам и активности клиентов.</p>';
+  return `<div class="trainer-page-heading"><h1>Мои задачи</h1><p>Личные напоминания и подсказки TRENZO по подопечным.</p></div>
+    <section><div class="trainer-section-heading"><h2>Личные задачи</h2></div><form class="trainer-task-form" data-form="create-task"><label class="trainer-sr-only" for="trainerTaskTitle">Новая задача</label><input id="trainerTaskTitle" name="title" maxlength="140" placeholder="Например, подготовить план на неделю" required><button type="submit" class="trainer-button">Добавить</button></form><div class="trainer-list">${personalMarkup}</div></section>
+    <section><div class="trainer-section-heading"><h2>Задачи от ИИ <span class="trainer-count">${aiTasks.length}</span></h2></div><div class="trainer-list">${aiMarkup}</div></section>`;
+}
+function trainerChats() {
+  const clients = trainerStore.state.clients;
+  const list = clients.map(client => {
+    const messages = trainerUI.chatMessages[client.id] || [];
+    const latest = messages[messages.length - 1];
+    const preview = latest ? `Вы: ${latest.text}` : 'Начать переписку';
+    return `<button type="button" class="trainer-card trainer-chat-list-item" data-action="open-chat" data-id="${trainerEscape(client.id)}">${trainerAvatar(client)}<span class="trainer-chat-list-copy"><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(preview)}</small></span>${trainerIcon('arrow')}</button>`;
+  }).join('');
+  return `<div class="trainer-page-heading"><h1>Чаты с клиентами</h1><p>Открой диалог или перейди в карточку подопечного.</p></div>${clients.length ? `<p class="trainer-demo-note">Демо-режим: сообщения пока сохраняются только в этом приложении.</p><div class="trainer-list">${list}</div>` : trainerEmpty('Пока нет клиентов', 'Добавь подопечного, чтобы открыть с ним диалог.', trainerAction('add-client', 'Добавить клиента'))}`;
+}
+function trainerChat() {
+  const client = trainerStore.client(trainerUI.route.id);
+  if (!client) return trainerEmpty('Диалог недоступен', 'Клиент не найден.', trainerAction('navigate', 'К чатам', { page: 'chats' }, 'trainer-secondary-button'));
+  const messages = trainerUI.chatMessages[client.id] || [];
+  const thread = messages.length ? messages.map(message => `<div class="trainer-chat-message is-trainer"><small>Вы</small><p>${trainerEscape(message.text)}</p></div>`).join('') : '<div class="trainer-chat-empty"><span class="trainer-home-tool-icon">' + trainerIcon('chat') + '</span><strong>Диалог пока пуст</strong><p>Напиши клиенту. Переписка появится здесь.</p></div>';
+  return `<div class="trainer-chat-client-bar">${trainerAvatar(client)}<div><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(client.goal)}</small></div>${trainerAction('client-from-chat', 'Карточка клиента →', { id: client.id }, 'trainer-text-button')}</div><div class="trainer-chat-thread" aria-live="polite">${thread}</div><p class="trainer-demo-note">Демо-режим: сообщения не отправляются клиенту.</p><form class="trainer-chat-compose" data-form="client-chat" data-client-id="${trainerEscape(client.id)}"><label class="trainer-sr-only" for="trainerClientMessage">Сообщение клиенту</label><input id="trainerClientMessage" name="message" maxlength="1000" placeholder="Сообщение…" autocomplete="off" required><button type="submit" aria-label="Отправить сообщение">${trainerIcon('arrow')}</button></form>`;
+}
+function trainerIncome() {
+  return `<div class="trainer-page-heading"><h1>Доходы</h1><p>Планирование и учёт работы с клиентами.</p></div><section class="trainer-card trainer-income-intro"><span class="trainer-home-tool-icon">${trainerIcon('income')}</span><h2>Финансовый блок готовим</h2><p>Здесь будут план дохода, учёт оплат и задолженностей, а также история поступлений. Финансовые данные пока не подключены.</p></section><section class="trainer-income-preview"><div class="trainer-section-heading"><h2>Что появится в разделе</h2></div><div class="trainer-list"><article class="trainer-card trainer-income-row"><span><strong>План дохода</strong><small>Цель на месяц и прогноз</small></span><small>Скоро</small></article><article class="trainer-card trainer-income-row"><span><strong>Оплаты клиентов</strong><small>Поступления и ожидаемые платежи</small></span><small>Скоро</small></article><article class="trainer-card trainer-income-row"><span><strong>История и учёт</strong><small>Финансовые операции по периодам</small></span><small>Скоро</small></article></div></section>`;
 }
 
 function trainerClientCard(client) {
@@ -316,10 +359,27 @@ function trainerModalMarkup() {
   }
   return `<dialog class="trainer-dialog" id="trainerDialog" aria-labelledby="trainerDialogTitle"><div class="trainer-dialog-heading"><h2 id="trainerDialogTitle">${title}</h2>${trainerAction('close-modal', `${trainerIcon('close')}<span class="trainer-sr-only">Закрыть</span>`, {}, 'trainer-icon-button')}</div>${content}</dialog>`;
 }
+function trainerLoadWorkspace(storage, identity) {
+  const key = `trenzo-trainer-workspace-v1:${identity}`;
+  if (trainerUI.workspaceKey === key) return;
+  trainerUI.workspaceKey = key; trainerUI.workspaceStorage = storage; trainerUI.tasks = []; trainerUI.chatMessages = {};
+  try {
+    const saved = JSON.parse(storage?.getItem(key) || 'null');
+    if (saved?.version === 1 && Array.isArray(saved.tasks) && saved.chatMessages && typeof saved.chatMessages === 'object') {
+      trainerUI.tasks = saved.tasks.filter(task => task && typeof task.id === 'string' && typeof task.title === 'string').slice(0, 200);
+      trainerUI.chatMessages = Object.fromEntries(Object.entries(saved.chatMessages).filter(([clientId, messages]) => typeof clientId === 'string' && Array.isArray(messages)).map(([clientId, messages]) => [clientId, messages.filter(message => message && typeof message.text === 'string' && ['trainer'].includes(message.role)).slice(-300)]));
+    }
+  } catch { /* Разделы доступны в течение сессии, даже если хранилище повреждено. */ }
+}
+function trainerSaveWorkspace() {
+  try { trainerUI.workspaceStorage?.setItem(trainerUI.workspaceKey, JSON.stringify({ version: 1, tasks: trainerUI.tasks, chatMessages: trainerUI.chatMessages })); }
+  catch { trainerToast('Не удалось сохранить локально. Изменение доступно до закрытия приложения.'); }
+}
 function trainerStart() {
   let storage = null;
   try { storage = window.localStorage; } catch { /* Демо доступно и без хранилища. */ }
-  trainerStore.load(storage, tg?.initDataUnsafe?.user?.id || 'local');
+  const identity = tg?.initDataUnsafe?.user?.id || 'local';
+  trainerStore.load(storage, identity); trainerLoadWorkspace(storage, identity);
   trainerUI.route = { page: 'today' }; trainerUI.history = []; trainerUI.modal = null;
   const root = document.getElementById('trainerScreen');
   if (!root.dataset.trainerBound) {
@@ -334,9 +394,9 @@ function trainerStart() {
 }
 function trainerRender() {
   const page = trainerUI.route.page;
-  const renderers = { today: trainerToday, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, ai: trainerAI };
-  const title = { client: 'Подопечный', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'TRENZO AI' }[page];
-  const hasNav = ['today', 'clients', 'client', 'memory', 'reviews', 'programs', 'profile'].includes(page);
+  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, ai: trainerAI };
+  const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
+  const hasNav = ['today', 'tasks', 'chats', 'income', 'clients', 'client', 'memory', 'reviews', 'programs', 'profile'].includes(page);
   const root = document.getElementById('trainerScreen');
   root.innerHTML = `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`;
   root.querySelectorAll('.trainer-filter-tabs').forEach(tabs => {
@@ -379,6 +439,10 @@ function trainerHandleClick(event) {
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
+    else if (action === 'open-chat') trainerGo('chat', { id });
+    else if (action === 'client-from-chat') trainerGo('client', { id, tab: 'overview' });
+    else if (action === 'toggle-task') { const task = trainerUI.tasks.find(item => item.id === id); if (task) { task.done = !task.done; trainerSaveWorkspace(); trainerRender(); } }
+    else if (action === 'delete-task') { trainerUI.tasks = trainerUI.tasks.filter(item => item.id !== id); trainerSaveWorkspace(); trainerRender(); }
     else if (action === 'memory') trainerGo('memory', { id });
     else if (action === 'review') trainerGo('review', { id });
     else if (action === 'client-tab') { trainerUI.route.tab = value; trainerRender(); }
@@ -469,6 +533,21 @@ function trainerHandleSubmit(event) {
   const values = Object.fromEntries(new FormData(form));
   try {
     if (form.dataset.form === 'add-client') { const client = trainerStore.addClient(values); trainerGo('client', { id: client.id }); trainerToast('Карточка подопечного добавлена в демо-кабинет.'); }
+    else if (form.dataset.form === 'create-task') {
+      const title = values.title.trim();
+      if (!title) throw new Error('Напиши название задачи.');
+      trainerUI.tasks.unshift({ id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, title, done: false });
+      trainerSaveWorkspace(); trainerRender(); document.getElementById('trainerTaskTitle')?.focus();
+    }
+    else if (form.dataset.form === 'client-chat') {
+      const clientId = form.dataset.clientId, message = values.message.trim();
+      if (!trainerStore.client(clientId)) throw new Error('Клиент не найден.');
+      if (!message) throw new Error('Напиши сообщение.');
+      trainerUI.chatMessages[clientId] ||= [];
+      trainerUI.chatMessages[clientId].push({ role: 'trainer', text: message, sentAt: new Date().toISOString() });
+      trainerUI.chatMessages[clientId] = trainerUI.chatMessages[clientId].slice(-300);
+      trainerSaveWorkspace(); trainerRender(); document.getElementById('trainerClientMessage')?.focus();
+    }
     else if (form.dataset.form === 'edit-review') { trainerStore.editReview(form.dataset.id, values.action); trainerUI.modal = null; trainerRender(); trainerToast('Решение изменено. Подтвердите его после проверки.'); }
     else if (form.dataset.form === 'profile') { trainerStore.saveProfile(values); trainerUI.modal = null; trainerRender(); trainerToast('Профиль сохранён.'); }
     else if (form.dataset.form === 'ai') trainerAskAI(values.question);
