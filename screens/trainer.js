@@ -48,9 +48,10 @@ function trainerTags(tags) { return `<div class="trainer-tags">${tags.map(tag =>
 function trainerSection(title, count, link = '') { return `<div class="trainer-section-heading"><h2>${trainerEscape(title)}${count != null ? `<span class="trainer-count">${count}</span>` : ''}</h2>${link}</div>`; }
 function trainerEmpty(title, text, action = '') { return `<section class="trainer-empty"><span class="trainer-empty-icon">${trainerIcon('clients')}</span><h2>${trainerEscape(title)}</h2><p>${trainerEscape(text)}</p>${action}</section>`; }
 function trainerMetric(label, value, note = '') { return `<div class="trainer-metric"><span>${trainerEscape(label)}</span><strong>${trainerEscape(value)}</strong>${note ? `<small>${trainerEscape(note)}</small>` : ''}</div>`; }
+function trainerDashboardMetric(icon, value, label) { return `<div>${trainerIcon(icon)}<strong>${trainerEscape(value)}</strong><span>${trainerEscape(label)}</span></div>`; }
 function trainerHeader(title = '') {
   const detail = !['today', 'clients', 'reviews', 'programs', 'profile'].includes(trainerUI.route.page);
-  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : '<span class="trainer-demo-label">Демо</span>'}</div>${trainerUI.route.page !== 'ai' ? trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button') : '<span class="trainer-demo-label">Демо</span>'}</header>`;
+  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div>${trainerUI.route.page !== 'ai' ? trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button') : ''}</header>`;
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
@@ -67,14 +68,15 @@ function trainerAttentionCard(review) {
   return `<article class="trainer-card trainer-attention-card"><div class="trainer-card-heading">${trainerAvatar(client)}<div><strong>${trainerEscape(client.name)}</strong><p>${trainerEscape(review.title)}</p></div><span class="trainer-attention-dot" aria-label="Требуется внимание"></span></div>${trainerTags(review.tags)}<div class="trainer-attention-footer"><small>${trainerEscape(review.note)}</small>${trainerAction('review', `${review.kind === 'inactive' ? 'Посмотреть' : 'Разобрать'} ${trainerIcon('arrow')}`, { id: review.id }, 'trainer-text-button')}</div></article>`;
 }
 function trainerToday() {
-  const { clients, reviews, trainer } = trainerStore.state;
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  const greeting = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
+  const { clients, reviews } = trainerStore.state;
   const attention = reviews.filter(r => trainerStore.pending(r) && ['attention', 'inactive'].includes(r.kind)).sort((a, b) => b.priority - a.priority);
   const decisions = reviews.filter(r => trainerStore.pending(r) && r.kind === 'decision');
   const fresh = reviews.filter(r => trainerStore.pending(r) && r.kind !== 'decision').sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, 3);
   const count = new Set(attention.map(r => r.clientId)).size;
-  return `<div class="trainer-intro"><p class="trainer-kicker">ТВОЙ РАБОЧИЙ ДЕНЬ</p><h1>${greeting},<br>${trainerEscape(trainer.name)}</h1><p>${clients.length} подопечных${count ? ` <span>· ${count} требуют внимания</span>` : ''}</p></div>
+  const activeClients = clients.filter(client => trainerStore.status(client.id) !== 'inactive').length;
+  const completedWorkouts = clients.reduce((total, client) => total + (Number(client.metrics.workoutCompleted) || 0), 0);
+  const submittedAnswers = reviews.filter(review => !['inactive', 'decision'].includes(review.kind)).length;
+  return `<section class="trainer-dashboard" aria-label="Ключевые показатели">${trainerDashboardMetric('clients', activeClients, 'Активные клиенты')}${trainerDashboardMetric('programs', completedWorkouts, 'Выполнено тренировок')}${trainerDashboardMetric('reviews', submittedAnswers, 'Сдано ответов')}</section>
     ${!clients.length ? trainerEmpty('Добавьте первого подопечного', 'После этого TRENZO сможет отслеживать тренировки, прогресс и отчёты клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
     ${attention.length ? `<section>${trainerSection('Требуют внимания', count)}<div class="trainer-list">${attention.map(trainerAttentionCard).join('')}</div></section>` : `<section class="trainer-calm-card"><span>${trainerIcon('check')}</span><h2>Сегодня всё спокойно</h2><p>У всех активных подопечных показатели в пределах обычной динамики.</p></section>`}
     ${decisions.length ? `<section>${trainerSection('Решения на согласование', decisions.length)}<div class="trainer-list">${decisions.map(r => `<article class="trainer-card trainer-decision-card"><div><strong>${trainerEscape(trainerStore.client(r.clientId).name)}</strong><p>${trainerEscape(r.title)}</p>${trainerTags(r.tags)}</div>${trainerAction('review', 'Проверить', { id: r.id }, 'trainer-secondary-button')}</article>`).join('')}</div></section>` : ''}
