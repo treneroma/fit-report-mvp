@@ -26,6 +26,9 @@ const trainerIcons = {
 };
 function trainerEscape(value = '') { return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function trainerIcon(name) { return `<svg viewBox="0 0 24 24" aria-hidden="true">${trainerIcons[name] || trainerIcons.arrow}</svg>`; }
+function trainerAssistantIcon() {
+  return '<svg class="trainer-ai-card-icon" viewBox="0 0 40 34" aria-hidden="true"><path d="m14 4 3.7 8.3L26 16l-8.3 3.7L14 28l-3.7-8.3L2 16l8.3-3.7L14 4Z"/><path d="m26 2 .85 2.15L29 5l-2.15.85L26 8l-.85-2.15L23 5l2.15-.85Z"/><text x="27" y="30" fill="currentColor" stroke="none" font-family="Arial, sans-serif" font-size="11" font-weight="700">AI</text></svg>';
+}
 function trainerAction(action, text, values = {}, className = 'trainer-button') {
   return `<button type="button" class="${className}" data-action="${action}" ${Object.entries(values).map(([key, value]) => `data-${key}="${trainerEscape(value)}"`).join(' ')}>${text}</button>`;
 }
@@ -61,7 +64,7 @@ function trainerDashboardIcon(name, size = 'side') {
 }
 function trainerDashboardMetric(icon, value, label, center = false) {
   const labelMarkup = label.split('|').map(part => trainerEscape(part)).join('<br>');
-  const ring = `<svg class="trainer-dashboard-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="trainer-dashboard-ring-track" cx="50" cy="50" r="43"/><circle class="trainer-dashboard-ring-arc" cx="50" cy="50" r="43"/></svg>`;
+  const ring = `<svg class="trainer-dashboard-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="trainer-dashboard-ring-track" cx="50" cy="50" r="43"/><circle class="trainer-dashboard-ring-arc" cx="50" cy="50" r="43" pathLength="100"/></svg>`;
   if (center) return `<div class="trainer-dashboard-metric trainer-dashboard-center"><div class="trainer-dashboard-center-gauge">${ring}<div class="trainer-dashboard-center-copy">${trainerDashboardIcon(icon, 'center')}<strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div></div></div>`;
   return `<div class="trainer-dashboard-metric trainer-dashboard-side"><div class="trainer-dashboard-side-gauge">${ring}${trainerDashboardIcon(icon)}</div><strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div>`;
 }
@@ -91,7 +94,7 @@ function trainerToday() {
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('task')}</span><span class="trainer-home-tool-copy"><strong>Мои задачи</strong><small>Личные дела и задачи от TRENZO</small></span>${trainerIcon('arrow')}`, { page: 'tasks' }, 'trainer-card trainer-home-shortcut')}
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('chat')}</span><span class="trainer-home-tool-copy"><strong>Чаты с клиентами</strong><small>Переписки и карточки подопечных</small></span>${trainerIcon('arrow')}`, { page: 'chats' }, 'trainer-card trainer-home-shortcut')}
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('income')}</span><span class="trainer-home-tool-copy"><strong>Доходы</strong><small>Планирование и учёт</small></span>${trainerIcon('arrow')}`, { page: 'income' }, 'trainer-card trainer-home-shortcut')}
-      ${trainerAction('navigate', `<span class="trainer-home-tool-icon is-ai"><svg class="trainer-ai-card-sparkle" viewBox="0 0 24 24" aria-hidden="true">${trainerIcons.ai}</svg><small class="trainer-ai-card-label">AI</small></span><span class="trainer-home-tool-copy"><strong>Личный ассистент</strong><small>Помощь и разборы на основе данных</small></span>${trainerIcon('arrow')}`, { page: 'ai' }, 'trainer-card trainer-home-shortcut')}
+      ${trainerAction('navigate', `<span class="trainer-home-tool-icon is-ai">${trainerAssistantIcon()}</span><span class="trainer-home-tool-copy"><strong>Личный ассистент</strong><small>Помощь и разборы на основе данных</small></span>${trainerIcon('arrow')}`, { page: 'ai' }, 'trainer-card trainer-home-shortcut')}
     </section>`;
 }
 
