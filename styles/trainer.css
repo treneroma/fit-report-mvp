@@ -45,8 +45,6 @@
 .trainer-header-label { font-weight: 600; color: var(--muted); }
 .trainer-demo-label { border: 1px solid var(--border); border-radius: 9px; padding: 3px 7px; color: var(--muted); font-size: var(--text-caption); letter-spacing: .3px; text-transform: uppercase; }
 .trainer-icon-button,
-.trainer-ai-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 46px; min-width: 46px; flex-shrink: 0; border: 1px solid var(--border); border-radius: var(--trainer-radius-control); background: var(--surface); }
-#trainerScreen .trainer-ai-button { padding: 0 11px; color: var(--accent); border-color: var(--trainer-line-accent); background: var(--trainer-soft-accent); font-size: var(--text-support); font-weight: 700; }
 .trainer-profile-shortcut { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #e6e6e6; cursor: pointer; }
 .trainer-profile-shortcut::before { position: absolute; z-index: 0; width: 32.2px; height: 32.2px; box-sizing: border-box; border: 1px solid rgba(255, 120, 70, .72); border-radius: 50%; background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%); box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16); content: ''; pointer-events: none; }
 #trainerScreen .trainer-profile-shortcut svg { position: relative; z-index: 1; width: 26.6px; height: 26.6px; fill: none; stroke: currentColor; stroke-width: 1.8; }
@@ -237,7 +235,9 @@
 .trainer-home-shortcut { display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px !important; color: var(--text); text-align: left; }
 .trainer-home-tool-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid rgba(255, 120, 70, .14); border-radius: var(--trainer-radius-icon); background: rgba(255, 120, 70, .09); color: var(--accent); }
 .trainer-home-tool-icon svg { width: 23px !important; height: 23px !important; }
-.trainer-home-tool-icon.is-ai { background: linear-gradient(145deg, rgba(255, 120, 70, .16), rgba(255, 120, 70, .06)); }
+.trainer-home-tool-icon.is-ai { gap: 1px; background: linear-gradient(145deg, rgba(255, 120, 70, .16), rgba(255, 120, 70, .06)); }
+.trainer-home-tool-icon .trainer-ai-card-sparkle { width: 22px !important; height: 22px !important; }
+.trainer-home-tool-icon .trainer-ai-card-label { color: var(--accent); font-size: 10px !important; font-weight: 800; line-height: 1; }
 .trainer-home-tool-copy { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
 .trainer-home-tool-copy strong { font-size: var(--text-card-title); line-height: 1.2; }
 .trainer-home-tool-copy small { overflow: hidden; color: var(--muted); font-size: var(--text-caption); line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
