@@ -64,7 +64,7 @@ function trainerDashboardMetric(icon, value, label, center = false) {
 }
 function trainerHeader(title = '') {
   const detail = !['today', 'clients', 'reviews', 'programs', 'profile'].includes(trainerUI.route.page);
-  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div>${trainerUI.route.page !== 'ai' ? trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button') : ''}</header>`;
+  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div>${trainerUI.route.page !== 'ai' ? `<div class="trainer-header-actions">${trainerAction('ai', `${trainerIcon('ai')}<span>AI</span>`, {}, 'trainer-ai-button')}<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div>` : ''}</header>`;
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
