@@ -7,10 +7,12 @@ const trainerUI = {
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
 const trainerReviewLabels = { new: 'Новый', requires_action: 'Требует решения', approved: 'Готово', dismissed: 'Готово' };
 const trainerIcons = {
+  home: '<path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-6h6v6"/>',
   today: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2 2M16.4 16.4l2 2M5.6 18.4l2-2M16.4 7.6l2-2"/><circle cx="12" cy="12" r="4"/>',
   clients: '<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6M19 14a5 5 0 0 1 2 4v2"/>',
   reviews: '<rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4V2h6v2M9 10h6M9 14h6M9 18h3"/>',
   programs: '<path d="M3 9v6M6 6v12M9 10v4M9 12h6M15 10v4M18 6v12M21 9v6"/>',
+  analytics: '<path d="M4 20v-6M10 20V9M16 20V5M22 20V2"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   ai: '<path d="m12 3 2.8 6.2L21 12l-6.2 2.8L12 21l-2.8-6.2L3 12l6.2-2.8L12 3Z"/><path d="m20 2 .6 1.4L22 4l-1.4.6L20 6l-.6-1.4L18 4l1.4-.6Z"/>',
   arrow: '<path d="m9 5 7 7-7 7"/>', back: '<path d="m15 5-7 7 7 7"/>',
@@ -53,7 +55,7 @@ function trainerHeader(title = '') {
 function trainerNavigation() {
   let active = trainerUI.route.page;
   if (['client', 'memory'].includes(active)) active = 'clients';
-  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Сегодня'], ['clients', 'Подопечные'], ['reviews', 'Разборы'], ['programs', 'Программы'], ['profile', 'Профиль']].map(([page, label]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(page)}<span>${label}</span>${page === 'reviews' && trainerStore.state.reviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
+  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Разборы', 'reviews'], ['programs', 'Схемы', 'programs'], ['profile', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.reviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
 function trainerReviewCard(review, compact = false) {
