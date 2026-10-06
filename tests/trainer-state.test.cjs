@@ -103,6 +103,28 @@ test('пустое состояние, добавление клиента и с
   assert.ok(store.state.clients.every(c => store.status(c.id) === 'ok'));
 });
 
+test('поиск клиентов сочетается со статусом и учитывает имена в любом порядке', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const ids = () => Array.from(evaluate('trainerFilteredClients().map(client => client.id)'));
+  evaluate("trainerUI.search = '  ИВАНОВ   Александр  '");
+  assert.deepEqual(ids(), ['alexander']);
+  evaluate("trainerUI.clientFilter = 'waiting'");
+  assert.deepEqual(ids(), []);
+  evaluate("trainerUI.search = ''; trainerUI.clientFilter = 'attention'");
+  assert.equal(ids().length, 4);
+  assert.ok(ids().includes('maxim'));
+  evaluate("trainerStore.approveReview('recovery')");
+  assert.equal(ids().length, 3);
+  assert.ok(!ids().includes('alexander'));
+  evaluate("trainerUI.clientFilter = 'waiting'; trainerUI.search = 'силовых'");
+  assert.deepEqual(ids(), ['ilya']);
+  const added = evaluate("trainerStore.addClient({ name: 'Семён Воробьёв', goal: 'Поддержание формы' })");
+  evaluate("trainerUI.clientFilter = 'ok'; trainerUI.search = 'воробьев семен'");
+  assert.deepEqual(ids(), [added.id]);
+});
+
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
   const { store, storage, context } = fixture();
   store.saveProfile({ name: 'Новый тренер' });
