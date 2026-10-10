@@ -331,6 +331,47 @@
 .trainer-review-card > .trainer-badge { grid-column: 2; justify-self: start; margin-top: 0; }
 .trainer-review-card .trainer-tags { margin-top: 8px; }
 .trainer-review-card.is-compact { grid-template-columns: 40px minmax(0, 1fr) 18px; align-items: center; }
+.trainer-weekly-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.trainer-weekly-schedule { display: flex; flex-direction: column; gap: 4px; margin-top: -12px; }
+.trainer-weekly-schedule > span { font-size: var(--text-support); color: var(--muted); }
+.trainer-weekly-period { margin-top: -8px; }
+#trainerScreen .trainer-weekly-counter { margin: -12px 0; color: var(--muted); }
+.trainer-weekly-card { display: flex; flex-direction: column; gap: 12px; cursor: pointer; }
+.trainer-weekly-card-head { display: flex; align-items: center; gap: 12px; }
+.trainer-weekly-card-head > span:not(.trainer-avatar) { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.trainer-weekly-card-head strong { font-size: var(--text-card-title); line-height: 1.3; overflow-wrap: anywhere; }
+#trainerScreen .trainer-weekly-card-head small { font-size: var(--text-caption); }
+#trainerScreen .trainer-weekly-card-head > svg { color: var(--muted); width: 18px; }
+.trainer-weekly-card-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: var(--text-caption); color: var(--muted); }
+.trainer-weekly-state { color: var(--accent); font-size: var(--text-caption); font-weight: 600; }
+.trainer-weekly-state.is-complete, .trainer-weekly-trend.is-up { color: #80cc89; }
+.trainer-weekly-trend.is-down { color: var(--accent); }
+.trainer-weekly-trend.is-mixed, .trainer-weekly-trend.is-stable, .trainer-weekly-trend.is-unknown { color: var(--muted); }
+.trainer-weekly-heading > .trainer-weekly-state { display: inline-block; margin: 8px 12px 0 0; }
+.trainer-weekly-heading > .trainer-text-button { display: inline-flex; }
+#trainerScreen .trainer-weekly-section-note { margin: -4px 0 12px; }
+.trainer-weekly-exercise { display: flex; flex-direction: column; gap: 4px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.trainer-weekly-exercise > strong { font-size: var(--text-body); font-weight: 600; }
+.trainer-weekly-exercise > span { color: var(--muted); font-size: var(--text-support); }
+#trainerScreen .trainer-weekly-session h3 { margin: 16px 0 4px; }
+#trainerScreen .trainer-weekly-session h3:first-child { margin-top: 0; }
+.trainer-weekly-workout-log + .trainer-weekly-workout-log { margin-top: 16px; }
+.trainer-weekly-comparisons { margin-top: 16px; }
+.trainer-weekly-comparisons > details { border-top: 1px solid var(--border); padding: 12px 0; }
+.trainer-weekly-comparisons > details:first-child { border-top: 0; padding-top: 0; }
+.trainer-weekly-comparisons > details:last-child { padding-bottom: 0; }
+.trainer-weekly-comparisons summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; list-style: none; }
+.trainer-weekly-comparisons summary > span:first-child { flex: 1; }
+#trainerScreen .trainer-weekly-comparisons summary > .trainer-weekly-trend { flex: 0 0 auto; font-size: var(--text-caption); }
+.trainer-weekly-nutrition { margin-top: 16px; }
+.trainer-weekly-nutrition > summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: var(--accent); font-size: var(--text-body); }
+.trainer-weekly-media { display: grid; gap: 16px; margin: 12px 0; }
+.trainer-weekly-media figure { margin: 0; min-width: 0; }
+.trainer-weekly-media img, .trainer-weekly-media video { display: block; width: 100%; max-height: 400px; object-fit: contain; border-radius: var(--trainer-radius-icon); background: #111; }
+.trainer-weekly-media figcaption { margin-top: 6px; color: var(--muted); font-size: var(--text-caption); overflow-wrap: anywhere; }
+.trainer-weekly-decision .trainer-form { margin-top: 16px; }
+.trainer-weekly-decision .trainer-button-row { flex-wrap: wrap; }
+.trainer-weekly-decision .trainer-button-row button { flex: 1 1 140px; }
 #trainerScreen .trainer-review-card.is-compact > svg { width: 18px; color: var(--muted); }
 .trainer-badge { display: inline-flex; width: fit-content; align-items: center; padding: 4px 8px; border: 1px solid var(--border); border-radius: 9px; font-size: var(--text-caption); font-weight: 600; line-height: 1.3; color: #c4c4c4; white-space: nowrap; }
 .trainer-badge.is-attention,
