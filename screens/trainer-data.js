@@ -10,6 +10,69 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
+const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
+function trainerShiftDate(date, days) {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+function trainerDayDistance(start, end) { return Math.round((Date.parse(`${end}T12:00:00Z`) - Date.parse(`${start}T12:00:00Z`)) / 86400000); }
+function trainerScheduleClock(schedule, now = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: schedule.timeZone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(now));
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour}:${values.minute}` };
+}
+// Семь календарных дат, а не 168 часов: границы не ломаются при смене часового пояса/DST.
+function trainerWeeklyPeriod(schedule = trainerDefaultReviewSchedule, now = Date.now()) {
+  const clock = trainerScheduleClock(schedule, now);
+  const weekday = new Date(`${clock.date}T12:00:00Z`).getUTCDay();
+  let reviewDate = trainerShiftDate(clock.date, -((weekday - schedule.day + 7) % 7));
+  if (reviewDate === clock.date && clock.time < schedule.time) reviewDate = trainerShiftDate(reviewDate, -7);
+  return { start: trainerShiftDate(reviewDate, -7), end: trainerShiftDate(reviewDate, -1), reviewDate };
+}
+function trainerPlanAt(client, date) {
+  const assignment = (client.planHistory || []).filter(entry => entry.effectiveOn <= date).sort((a, b) => b.effectiveOn.localeCompare(a.effectiveOn))[0];
+  if (!assignment?.program) return null;
+  const weekIndex = (assignment.startWeek || 1) - 1 + Math.floor(trainerDayDistance(assignment.effectiveOn, date) / 7);
+  const week = assignment.program.weeks[weekIndex];
+  if (!week) return null;
+  return trainerCopy({ title: assignment.program.title, weekNumber: weekIndex + 1, sessions: week.sessions, nutritionTarget: assignment.nutritionTarget });
+}
+function trainerWorkoutComparison(current, previous) {
+  if (!previous || current.sets.length !== previous.sets.length || !current.sets.length) return 'unknown';
+  const valid = set => Number.isFinite(set.weight_kg) && set.weight_kg >= 0 && Number.isFinite(set.reps) && set.reps > 0 && !set.duration_seconds;
+  if (![...current.sets, ...previous.sets].every(valid)) return 'unknown';
+  const changes = current.sets.flatMap((set, i) => [set.weight_kg - previous.sets[i].weight_kg, set.reps - previous.sets[i].reps]);
+  if (changes.every(value => value === 0)) return 'stable';
+  if (changes.every(value => value >= 0)) return 'up';
+  if (changes.every(value => value <= 0)) return 'down';
+  return 'mixed';
+}
+function trainerWeeklyData(client, review) {
+  if (review.reportSnapshot) return trainerCopy(review.reportSnapshot);
+  const inPeriod = date => date >= review.start && date <= review.end;
+  const workouts = client.workouts.filter(item => inPeriod(item.workout_date)).sort((a, b) => a.workout_date.localeCompare(b.workout_date));
+  const previous = client.workouts.filter(item => item.workout_date >= trainerShiftDate(review.start, -7) && item.workout_date < review.start).sort((a, b) => a.workout_date.localeCompare(b.workout_date));
+  const key = (workout, exercise) => `${workout.title}\u0000${workout.sessionId || ''}\u0000${exercise.exerciseId || exercise.name}`;
+  const before = new Map(), after = new Map();
+  previous.forEach(workout => workout.exercises.forEach(exercise => before.set(key(workout, exercise), { exercise, date: workout.workout_date })));
+  workouts.forEach(workout => {
+    const dayIndex = review.plan?.sessions.findIndex(session => session.id && session.id === workout.sessionId) ?? -1;
+    const sessionLabel = dayIndex >= 0 ? `${workout.title} · день ${dayIndex + 1}` : workout.title;
+    workout.exercises.forEach(exercise => after.set(key(workout, exercise), { exercise, date: workout.workout_date, session: sessionLabel }));
+  });
+  const comparisons = [...after].map(([id, entry]) => ({ name: entry.exercise.name, session: entry.session, date: entry.date, previousDate: before.get(id)?.date || null, previous: before.get(id)?.exercise || null, current: entry.exercise, direction: trainerWorkoutComparison(entry.exercise, before.get(id)?.exercise) }));
+  const weights = client.weights.filter(item => item.measured_on <= review.end).sort((a, b) => a.measured_on.localeCompare(b.measured_on));
+  const latestWeight = weights[weights.length - 1] || null;
+  const baseline = weights.filter(item => item.measured_on < review.start).pop();
+  const measurements = (client.measurementHistory || []).filter(item => item.measured_on <= review.end).sort((a, b) => a.measured_on.localeCompare(b.measured_on)).pop() || null;
+  // Последняя запись дня, не сумма повторно отправленных дневников.
+  const nutrition = [...new Map(client.nutrition.filter(item => inPeriod(item.report_date)).map(item => [item.report_date, item])).values()].sort((a, b) => a.report_date.localeCompare(b.report_date));
+  return trainerCopy({ workouts, nutrition, latestWeight, measurements, comparisons,
+    weightDelta: latestWeight && inPeriod(latestWeight.measured_on) && baseline ? Number((latestWeight.weight_kg - baseline.weight_kg).toFixed(1)) : null,
+    media: (client.mediaReports || []).filter(item => inPeriod(item.recorded_on) && ['photo', 'video'].includes(item.type)) });
+}
+
 function trainerProgramWeeks(count = 6, days = 3) {
   const exercises = [
     { name: 'Присед со штангой', sets: 3, reps: '8–10', weightKg: 80, effortType: 'RIR', effort: 2, restSeconds: 120, notes: 'Сохраняй устойчивую технику.' },
@@ -21,6 +84,7 @@ function trainerProgramWeeks(count = 6, days = 3) {
   return Array.from({ length: count }, (_, week) => ({
     number: week + 1,
     sessions: Array.from({ length: days }, (_, day) => ({
+      id: `day-${day + 1}`,
       title: days === 4 ? (day % 2 ? 'Lower · Низ тела' : 'Upper · Верх тела') : `Full Body · ${['A', 'B', 'C', 'D', 'E', 'F'][day]}`,
       exercises: trainerCopy(days === 4 ? exercises.filter((_, i) => day % 2 ? [0, 3, 4].includes(i) : [1, 2, 4].includes(i)) : exercises)
     }))
@@ -28,29 +92,30 @@ function trainerProgramWeeks(count = 6, days = 3) {
 }
 
 function trainerCreateDemoData(now = Date.now()) {
+  const period = trainerWeeklyPeriod(trainerDefaultReviewSchedule, now);
   const specs = [
-    ['alexander', 'Александр', 'Иванов', 'Снижение веса', 82.4, 79, -0.4, 3, 3, 91, 8.8, '6 ч 05 мин', 'fullbody'],
-    ['maria', 'Мария', 'Петрова', 'Снижение веса', 65.2, 62, 0, 2, 2, 97, 7.1, '7 ч 40 мин', 'fullbody-two'],
-    ['maxim', 'Максим', 'Соколов', 'Набор мышечной массы', 76.8, 80, 0.1, 0, 3, null, null, null, 'fullbody'],
-    ['anna', 'Анна', 'Орлова', 'Изменение состава тела', 59.6, 59, -0.2, 3, 3, 94, 7.2, '7 ч 35 мин', 'fullbody'],
-    ['ilya', 'Илья', 'Морозов', 'Рост силовых показателей', 88.5, 89, 0.2, 4, 4, 96, 7, '7 ч 20 мин', 'upperlower'],
-    ['ekaterina', 'Екатерина', 'Волкова', 'Снижение веса', 71.1, 68, -0.3, 2, 3, 86, 7.6, '7 ч 10 мин', 'fullbody'],
-    ['andrey', 'Андрей', 'Козлов', 'Поддержание формы', 81.3, 81, 0, 4, 4, 98, 7.3, '7 ч 25 мин', 'upperlower']
+    ['alexander', 'Александр', 'Иванов', 'Снижение веса', 82.4, 79, -0.4, 3, 3, 91, 8.8, 'fullbody'],
+    ['maria', 'Мария', 'Петрова', 'Снижение веса', 65.2, 62, 0, 2, 2, 97, 7.1, 'fullbody-two'],
+    ['maxim', 'Максим', 'Соколов', 'Набор мышечной массы', 76.8, 80, 0.1, 0, 3, null, null, 'fullbody'],
+    ['anna', 'Анна', 'Орлова', 'Изменение состава тела', 59.6, 59, -0.2, 3, 3, 94, 7.2, 'fullbody'],
+    ['ilya', 'Илья', 'Морозов', 'Рост силовых показателей', 88.5, 89, 0.2, 4, 4, 96, 7, 'upperlower'],
+    ['ekaterina', 'Екатерина', 'Волкова', 'Снижение веса', 71.1, 68, -0.3, 2, 3, 86, 7.6, 'fullbody'],
+    ['andrey', 'Андрей', 'Козлов', 'Поддержание формы', 81.3, 81, 0, 4, 4, 98, 7.3, 'upperlower']
   ];
-  const clients = specs.map(([id, name, surname, goal, weight, target, delta, completed, planned, nutrition, rpe, sleep, programId], index) => ({
+  const clients = specs.map(([id, name, surname, goal, weight, target, delta, completed, planned, nutrition, rpe, programId], index) => ({
     id, name, surname, goal, targetWeight: target, currentWeek: 5, totalWeeks: programId.startsWith('fullbody') ? 6 : 8,
     activityDate: trainerDemoDate(id === 'maxim' ? 8 : 0, now),
-    metrics: { workoutCompleted: completed, workoutTarget: planned, weightDelta: delta, nutritionPercent: nutrition, rpe, sleep },
+    metrics: { workoutCompleted: completed, workoutTarget: planned, weightDelta: delta, nutritionPercent: nutrition, rpe },
     programId, programCompleted: completed, programOverrides: {}, equipment: 'Тренажёрный зал',
     restrictions: id === 'alexander' ? 'Дискомфорт плеча при вертикальном жиме' : 'Не указаны',
     preferences: id === 'maria' ? 'Предпочитает тренировки без выпадов' : 'Без специальных предпочтений',
     // Совместимый формат существующих weight-history и nutrition-report.
     weights: Array.from({ length: 5 }, (_, point) => ({
-      id: index * 10 + point + 1, measured_on: trainerDemoDate((4 - point) * 7, now),
+      id: index * 10 + point + 1, measured_on: trainerShiftDate(period.end, -(4 - point) * 7),
       weight_kg: Number((weight - delta * (4 - point)).toFixed(1)), source: 'manual'
     })),
     nutrition: nutrition === null ? [] : Array.from({ length: 7 }, (_, day) => ({
-      id: index * 10 + day + 1, report_date: trainerDemoDate(6 - day, now),
+      id: index * 10 + day + 1, report_date: trainerShiftDate(period.start, day),
       calories: 2280 + day * 15, protein_g: 142 + day, fat_g: 70, carbs_g: 275 + day
     })),
     nutritionTarget: { calories: 2500, protein_g: 160, fat_g: 75, carbs_g: 295 },
@@ -68,12 +133,12 @@ function trainerCreateDemoData(now = Date.now()) {
   }));
   const reviews = [
     { id: 'recovery', clientId: 'alexander', type: 'Тренировка', title: 'Восстановление ухудшается', kind: 'attention', status: 'requires_action', priority: 95, minutesAgo: 12,
-      tags: ['Сон ↓', 'RPE ↑', '3 тренировки подряд'], note: 'TRENZO заметил изменение',
+      tags: ['RPE ↑', '3 тренировки подряд'], note: 'TRENZO заметил изменение',
       event: 'Жим лёжа: 80 кг × 9 · 80 кг × 8 · 80 кг × 7 · 75 кг × 8',
-      context: [{ label: 'RPE', value: '9 ↑' }, { label: 'Сон', value: '6 ч 05 мин ↓' }, { label: 'Прошлая тренировка', value: 'RPE 7,5' }],
-      facts: ['Средний сон снизился с 7 ч 20 мин до 6 ч 05 мин.', 'RPE вырос с 7,5 до 9.', 'Повторы снижаются две тренировки подряд.'],
-      analysis: 'Производительность снизилась на фоне ухудшения восстановления.',
-      hypothesis: 'Снижение восстановления может быть связано с уменьшением сна. Причину нужно уточнить у подопечного.',
+      context: [{ label: 'RPE', value: '9 ↑' }, { label: 'Прошлая тренировка', value: 'RPE 7,5' }],
+      facts: ['RPE вырос с 7,5 до 9.', 'Повторы снижаются в сопоставимых подходах жима лёжа.'],
+      analysis: 'В записи жима лёжа снизились повторения и выросла субъективная тяжесть.',
+      hypothesis: 'Причину изменения нужно уточнить у подопечного; RPE не является количеством повторений.',
       proposedAction: 'Не увеличивать нагрузку. Сохранить 80 кг в жиме лёжа и повторно оценить восстановление через 48 часов.' },
     { id: 'plateau', clientId: 'maria', type: 'Итоги недели', title: 'Вес без изменений 16 дней', kind: 'attention', status: 'requires_action', priority: 80, minutesAgo: 46,
       tags: ['Питание 97%', 'Тренировки 8/8', 'Активность стабильна'], note: 'Есть вариант корректировки', event: 'Средний вес за последние две недели: 65,2 кг → 65,2 кг.',
@@ -88,12 +153,12 @@ function trainerCreateDemoData(now = Date.now()) {
       hypothesis: 'Отсутствие записи не подтверждает пропуск тренировки. Максим мог не внести данные.', proposedAction: 'Связаться с Максимом и уточнить, тренируется ли он и нужна ли помощь с возвращением к плану.' },
     { id: 'weekly', clientId: 'ekaterina', type: 'Отчёт недели', title: 'Новый отчёт недели', kind: 'attention', status: 'new', priority: 40, minutesAgo: 34,
       tags: ['Тренировки 2/3', 'Вес −0,3 кг'], note: 'Отчёт готов к разбору', event: 'Екатерина прислала отчёт: две тренировки выполнены, третья перенесена. Средний вес снизился на 0,3 кг.',
-      context: [{ label: 'Тренировки', value: '2 / 3' }, { label: 'Питание', value: '86%' }, { label: 'Сон', value: '7 ч 10 мин' }],
+      context: [{ label: 'Тренировки', value: '2 / 3' }, { label: 'Питание', value: '86%' }],
       facts: ['Выполнено 2 из 3 тренировок.', 'Вес снизился на 0,3 кг за неделю.'], analysis: 'Динамика веса сохраняется, но одна тренировка пока не отмечена.',
       hypothesis: 'Перенос одной тренировки сам по себе не требует изменения программы.', proposedAction: 'Согласовать удобный день перенесённой тренировки и сохранить текущую программу.' },
     { id: 'squat', clientId: 'ilya', type: 'Прогрессия нагрузки', title: 'Изменить рабочий вес в приседе', kind: 'decision', status: 'requires_action', priority: 60, minutesAgo: 70,
       tags: ['80 кг → 82,5 кг'], note: 'Решение на согласование', event: 'Присед со штангой: 80 кг × 10 · 80 кг × 10 · 80 кг × 10.',
-      context: [{ label: 'RPE', value: '7' }, { label: 'Техника', value: 'По отчёту стабильна' }, { label: 'Сон', value: '7 ч 20 мин' }],
+      context: [{ label: 'RPE', value: '7' }, { label: 'Техника', value: 'По отчёту стабильна' }],
       facts: ['В трёх подходах достигнута верхняя граница повторений.', 'Рабочий вес 80 кг, субъективная нагрузка RPE 7.'],
       analysis: 'Показатели позволяют рассмотреть минимальное повышение нагрузки.', hypothesis: 'Повышение уместно, если техника и восстановление действительно сохраняются.',
       proposedAction: 'На следующей тренировке повысить вес в приседе со штангой с 80 до 82,5 кг.', change: { exercise: 'Присед со штангой', weightKg: 82.5 } },
@@ -101,10 +166,10 @@ function trainerCreateDemoData(now = Date.now()) {
       tags: ['Цель выполнена'], note: 'Разобрано тренером', event: 'КБЖУ за неделю внесены за 7 дней. Средняя калорийность близка к целевой.', context: [{ label: 'Выполнение цели', value: '98%' }],
       facts: ['Есть записи питания за все 7 дней.'], analysis: 'Рацион стабилен относительно плана.', hypothesis: '', proposedAction: 'Сохранить текущие цели питания.' }
   ].map(review => ({ ...review, occurredAt: new Date(now - review.minutesAgo * 60000).toISOString() }));
-  return {
+  const data = {
     version: 1,
-    trainer: { name: 'Роман', surname: '', description: 'Помогаю выстроить устойчивые привычки и прогрессировать в тренировках.', specialization: 'Силовые тренировки · Онлайн-ведение', notifications: true },
-    clients, reviews,
+    trainer: { name: 'Роман', surname: '', description: 'Помогаю выстроить устойчивые привычки и прогрессировать в тренировках.', specialization: 'Силовые тренировки · Онлайн-ведение', notifications: true, reviewSchedule: trainerCopy(trainerDefaultReviewSchedule) },
+    clients, reviews, weeklyReviews: [], firstReviewStart: period.start,
     programs: [
       { id: 'fullbody', title: 'Full Body · Начальный', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 3) },
       { id: 'fullbody-two', title: 'Full Body · Два дня', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 2) },
@@ -113,6 +178,22 @@ function trainerCreateDemoData(now = Date.now()) {
       { id: 'template-upperlower', title: 'Upper / Lower · Сила', goal: 'Рост силы', source: 'template', duration: 60, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(8, 4) }
     ]
   };
+  clients.forEach(client => {
+    const program = data.programs.find(item => item.id === client.programId);
+    client.joinedOn = trainerShiftDate(period.start, -35);
+    client.planHistory = [{ effectiveOn: trainerShiftDate(period.start, -28), startWeek: 1, program: trainerCopy(program), nutritionTarget: trainerCopy(client.nutritionTarget) }];
+    client.measurementHistory = [{ measured_on: period.end, ...client.measurements }];
+    client.mediaReports = [];
+    const sessions = program.weeks[4].sessions;
+    client.workouts = Array.from({ length: client.metrics.workoutCompleted }, (_, day) => {
+      const session = sessions[day];
+      return { id: `workout-${client.id}-${day}`, sessionId: session.id, workout_date: trainerShiftDate(period.start, Math.min(6, day * 2)), title: session.title, rpe: client.metrics.rpe,
+        exercises: session.exercises.map(exercise => ({ name: exercise.name, sets: Array.from({ length: exercise.sets }, () => exercise.reps.includes('сек') ? { weight_kg: 0, duration_seconds: 35 } : { weight_kg: exercise.weightKg, reps: client.id === 'ilya' ? 10 : 9 }) })) };
+    });
+    const previous = client.workouts.map(workout => ({ ...trainerCopy(workout), id: `${workout.id}-previous`, workout_date: trainerShiftDate(workout.workout_date, -7), exercises: workout.exercises.map(exercise => ({ ...trainerCopy(exercise), sets: exercise.sets.map(set => ({ ...set, ...(set.reps ? { reps: client.id === 'ilya' ? 9 : set.reps } : {}) })) })) }));
+    client.workouts.unshift(...previous);
+  });
+  return data;
 }
 
 function createTrainerStore() {
@@ -123,7 +204,7 @@ function createTrainerStore() {
   let storageWarning = '';
   const pending = review => ['new', 'requires_action'].includes(review.status);
   const client = id => state.clients.find(item => item.id === id);
-  const review = id => state.reviews.find(item => item.id === id);
+  const review = id => state.weeklyReviews.find(item => item.id === id) || state.reviews.find(item => item.id === id);
   const program = id => state.programs.find(item => item.id === id);
   function persist() {
     if (!storage) { storageWarning = 'Изменения сохраняются до закрытия приложения.'; return; }
@@ -142,12 +223,80 @@ function createTrainerStore() {
     if (reviews.length) return 'waiting';
     return 'ok';
   }
+  function captureAssignment(item, now = Date.now()) {
+    ensureWeeklyReviews(now, false);
+    const source = program(item.programId);
+    if (!source) return;
+    const plan = trainerCopy(source);
+    plan.weeks.forEach(week => week.sessions.forEach(session => session.exercises.forEach(exercise => {
+      if (Object.prototype.hasOwnProperty.call(item.programOverrides || {}, exercise.name)) exercise.weightKg = item.programOverrides[exercise.name];
+    })));
+    item.planHistory ||= [];
+    const effectiveOn = trainerScheduleClock(state.trainer.reviewSchedule, now).date;
+    // Изменения внутри дня заменяют назначение этого дня, но не более ранние назначения.
+    item.planHistory = item.planHistory.filter(entry => entry.effectiveOn !== effectiveOn);
+    item.planHistory.push({ effectiveOn, startWeek: item.currentWeek || 1, program: plan, nutritionTarget: trainerCopy(item.nutritionTarget) });
+  }
+  function ensureWeeklyReviews(now = Date.now(), save = true) {
+    const latest = trainerWeeklyPeriod(state.trainer.reviewSchedule, now);
+    let changed = false;
+    for (let start = state.firstReviewStart; start <= latest.start; start = trainerShiftDate(start, 7)) {
+      const end = trainerShiftDate(start, 6);
+      state.clients.filter(item => !item.joinedOn || item.joinedOn <= end).forEach(item => {
+        const id = `weekly:${item.id}:${start}:${end}`;
+        if (state.weeklyReviews.some(entry => entry.id === id)) return;
+        const captured = (item.weekPlans || []).find(entry => entry.start === start);
+        state.weeklyReviews.push({ id, clientId: item.id, start, end, reviewDate: trainerShiftDate(start, 7), kind: 'weekly', status: 'new', title: 'Недельный разбор',
+          plan: trainerCopy(captured ? captured.plan : trainerPlanAt(item, start)), planMissingReason: 'План на начало этой недели не сохранён, не был назначен либо программа завершена. Текущая программа не подставляется вместо исторической.',
+          note: '', timeZone: state.trainer.reviewSchedule.timeZone, createdAt: new Date(now).toISOString() });
+        changed = true;
+      });
+    }
+    // Фиксируем план уже в текущей неделе, до будущих изменений конструктора.
+    const currentStart = trainerWeeklyPeriod({ ...state.trainer.reviewSchedule, time: '00:00' }, now).reviewDate;
+    state.clients.forEach(item => {
+      item.weekPlans ||= [];
+      if (item.weekPlans.some(entry => entry.start === currentStart)) return;
+      item.weekPlans.push({ start: currentStart, plan: trainerPlanAt(item, currentStart) }); changed = true;
+    });
+    if (changed && save) persist();
+    return changed;
+  }
+  ensureWeeklyReviews(Date.now(), false);
   return {
     get state() { return state; }, get storageWarning() { return storageWarning; },
-    client, review, program, pending, status,
+    client, review, program, pending, status, ensureWeeklyReviews,
+    weeklyData(id) { const item = review(id); if (!item || item.kind !== 'weekly') throw new Error('Недельный разбор не найден.'); return trainerWeeklyData(client(item.clientId), item); },
+    saveWeeklyNote(id, note, complete = false) {
+      const item = review(id);
+      if (!item || item.kind !== 'weekly') throw new Error('Недельный разбор не найден.');
+      if (!pending(item)) return false;
+      if (typeof note !== 'string' || note.length > 2000 || (complete && !note.trim())) throw new Error('Запиши итог и решение на следующую неделю (до 2000 символов).');
+      item.note = note.trim();
+      if (complete) {
+        item.reportSnapshot = trainerWeeklyData(client(item.clientId), item);
+        item.status = 'approved'; item.decidedAt = new Date().toISOString();
+        decision(item.clientId, `Разбор ${item.start} — ${item.end}: ${item.note}`, item.id);
+      }
+      persist(); return true;
+    },
+    saveReviewSchedule(values, now = Date.now()) {
+      const day = Number(values.day), time = values.time, timeZone = values.timeZone;
+      if (!Number.isInteger(day) || day < 0 || day > 6 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw new Error('Выбери день и время разбора.');
+      try { new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(now)); } catch { throw new Error('Укажи корректный часовой пояс, например Europe/Moscow.'); }
+      if (!timeZone) throw new Error('Укажи часовой пояс.');
+      ensureWeeklyReviews(now, false);
+      const old = state.trainer.reviewSchedule;
+      if (day !== old.day || timeZone !== old.timeZone) {
+        const next = trainerWeeklyPeriod({ day, time, timeZone }, now);
+        // Не создаём задним числом новую очередь после смены дня. Архив не переписывается.
+        state.firstReviewStart = trainerShiftDate(next.start, 7);
+      }
+      state.trainer.reviewSchedule = { day, time, timeZone }; persist();
+    },
     load(browserStorage, identity = 'local') {
       const nextKey = `trenzo-trainer-demo-v1:${identity}`;
-      if (loadedKey === nextKey) return;
+      if (loadedKey === nextKey) { ensureWeeklyReviews(); return; }
       storage = browserStorage; storageKey = nextKey; loadedKey = nextKey;
       state = trainerCreateDemoData();
       try {
@@ -159,11 +308,30 @@ function createTrainerStore() {
           state = saved;
         }
       } catch { storageWarning = 'Сохранённый пример недоступен. Загружены исходные демо-данные.'; }
+      state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
+      state.weeklyReviews ||= [];
+      state.firstReviewStart ||= trainerWeeklyPeriod(state.trainer.reviewSchedule).start;
+      state.clients.forEach(item => {
+        delete item.metrics.sleep;
+        item.measurementHistory ||= []; item.mediaReports ||= [];
+        // Старый прототип не сохранял историю назначений: не выдаём текущий план за прошлый.
+        if (!item.planHistory) { item.planHistory = []; captureAssignment(item); }
+      });
+      state.reviews.forEach(item => {
+        const excluded = text => /(^|\s)(сон|сна|вода|воды|воду)(\s|[↓↑.,]|$)/i.test(text);
+        item.tags = item.tags.filter(text => !excluded(text));
+        item.context = item.context.filter(entry => !excluded(entry.label));
+        item.facts = item.facts.filter(text => !excluded(text));
+        if (excluded(item.analysis)) item.analysis = 'Нужно проверить записи тренировок и питания.';
+        if (excluded(item.hypothesis)) item.hypothesis = 'Причину изменений уточняет тренер.';
+      });
+      ensureWeeklyReviews();
       if (!storage) storageWarning = 'Изменения сохраняются до закрытия приложения.';
     },
     approveReview(id) {
       const item = review(id);
       if (!item || !client(item.clientId)) throw new Error('Разбор не найден.');
+      if (item.kind === 'weekly') throw new Error('Запиши итог недели и заверши недельный разбор.');
       if (!pending(item)) return false;
       item.status = 'approved'; item.decidedAt = new Date().toISOString();
       decision(item.clientId, item.proposedAction, item.id);
@@ -171,6 +339,7 @@ function createTrainerStore() {
         // Индивидуальная нагрузка хранится в назначении клиента, а не меняет
         // общую программу остальных подопечных.
         client(item.clientId).programOverrides[item.change.exercise] = item.change.weightKg;
+        captureAssignment(client(item.clientId));
       }
       persist(); return true;
     },
@@ -208,6 +377,7 @@ function createTrainerStore() {
       if (!result.id || program(result.id)?.source === 'template') result.id = `program-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const index = state.programs.findIndex(item => item.id === result.id);
       if (index === -1) state.programs.unshift(result); else state.programs[index] = result;
+      state.clients.filter(item => item.programId === result.id).forEach(item => captureAssignment(item));
       persist(); return result;
     },
     assignProgram(programId, clientId) {
@@ -216,6 +386,7 @@ function createTrainerStore() {
       item.programId = plan.id; item.currentWeek = 1; item.totalWeeks = plan.weeks.length;
       // Новое назначение не переписывает статистику уже прошедших семи дней.
       item.programOverrides = {}; item.programCompleted = 0;
+      captureAssignment(item);
       decision(clientId, `Назначена программа «${plan.title}» на ${plan.weeks.length} недель.`);
       persist();
     },
@@ -224,9 +395,10 @@ function createTrainerStore() {
       const [name, ...surname] = values.name.trim().split(/\s+/);
       const id = `client-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const item = { id, name, surname: surname.join(' '), goal: values.goal.trim(), targetWeight: null, currentWeek: 0, totalWeeks: 0, activityDate: null,
-        metrics: { workoutCompleted: 0, workoutTarget: 0, weightDelta: null, nutritionPercent: null, rpe: null, sleep: null },
+        joinedOn: trainerScheduleClock(state.trainer.reviewSchedule).date,
+        metrics: { workoutCompleted: 0, workoutTarget: 0, weightDelta: null, nutritionPercent: null, rpe: null },
         programId: null, programCompleted: 0, programOverrides: {}, equipment: 'Не указано', restrictions: 'Не указаны', preferences: 'Не указаны',
-        weights: [], nutrition: [], nutritionTarget: null, workouts: [], measurements: {}, records: [], decisions: [] };
+        weights: [], nutrition: [], nutritionTarget: null, workouts: [], measurements: {}, measurementHistory: [], mediaReports: [], planHistory: [], records: [], decisions: [] };
       state.clients.push(item); persist(); return item;
     },
     saveProfile(values) {
@@ -236,7 +408,9 @@ function createTrainerStore() {
     reset(mode = 'demo') {
       state = trainerCreateDemoData();
       if (mode === 'empty') { state.clients = []; state.reviews = []; }
+      ensureWeeklyReviews(Date.now(), false);
       if (mode === 'calm') state.reviews.filter(pending).forEach(item => this.approveReview(item.id));
+      if (mode === 'calm') state.weeklyReviews.filter(pending).forEach(item => this.saveWeeklyNote(item.id, 'Неделя просмотрена. Сохранить действующий план.', true));
       persist();
     }
   };
