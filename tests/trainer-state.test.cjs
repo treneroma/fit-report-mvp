@@ -164,3 +164,157 @@ test('все экраны рендерятся на обычных и пусты
   evaluate("trainerStore.reset('empty')");
   for (const page of pages) assert.equal(typeof evaluate(page), 'string');
 });
+
+test('недельные границы учитывают день, время, год и часовой пояс', () => {
+  const { context } = fixture();
+  const period = (schedule, date) => JSON.parse(JSON.stringify(vm.runInContext(`trainerWeeklyPeriod(${JSON.stringify(schedule)}, Date.parse('${date}'))`, context)));
+  const monday = { day: 1, time: '09:00', timeZone: 'Europe/Moscow' };
+  assert.deepEqual(period(monday, '2026-10-05T05:59:00Z'), { start: '2026-09-21', end: '2026-09-27', reviewDate: '2026-09-28' });
+  assert.deepEqual(period(monday, '2026-10-05T06:00:00Z'), { start: '2026-09-28', end: '2026-10-04', reviewDate: '2026-10-05' });
+  assert.deepEqual(period(monday, '2026-01-05T08:00:00Z'), { start: '2025-12-29', end: '2026-01-04', reviewDate: '2026-01-05' });
+  assert.deepEqual(period({ day: 0, time: '09:00', timeZone: 'America/New_York' }, '2026-11-01T14:00:00Z'), { start: '2026-10-25', end: '2026-10-31', reviewDate: '2026-11-01' });
+});
+
+test('для каждого клиента создаётся один разбор, в том числе без записей; пропущенные недели догружаются', () => {
+  const { store } = fixture();
+  const batch = store.state.weeklyReviews;
+  assert.equal(batch.length, 7);
+  assert.equal(new Set(batch.map(item => item.clientId)).size, 7);
+  assert.ok(batch.every(item => item.plan));
+  assert.equal(store.weeklyData(batch.find(item => item.clientId === 'maxim').id).workouts.length, 0);
+  assert.equal(store.weeklyData(batch.find(item => item.clientId === 'maxim').id).nutrition.length, 0);
+  store.ensureWeeklyReviews(); store.ensureWeeklyReviews();
+  assert.equal(batch.length, 7);
+  const firstDate = batch[0].reviewDate;
+  const next = new Date(`${firstDate}T20:00:00Z`); next.setUTCDate(next.getUTCDate() + 14);
+  store.ensureWeeklyReviews(next.getTime());
+  assert.equal(batch.length, 21);
+  assert.equal(new Set(batch.map(item => item.id)).size, 21);
+  assert.equal(new Set(batch.map(item => item.start)).size, 3);
+});
+
+test('исторический план не меняется после редактирования и нового назначения', () => {
+  const { store } = fixture();
+  const review = store.state.weeklyReviews.find(item => item.clientId === 'anna');
+  const before = JSON.stringify(review.plan);
+  const edited = JSON.parse(JSON.stringify(store.program('fullbody')));
+  edited.weeks[4].sessions[0].exercises[0].weightKg = 120;
+  store.saveProgram(edited); store.assignProgram('upperlower', 'anna');
+  assert.equal(JSON.stringify(review.plan), before);
+  assert.equal(store.clientProgram('anna').title, 'Upper / Lower');
+  assert.ok(store.client('anna').planHistory.length >= 2);
+});
+
+test('план текущей недели фиксируется до изменений и попадёт неизменным в будущий разбор', () => {
+  const { store } = fixture();
+  const client = store.client('anna'), current = client.weekPlans[client.weekPlans.length - 1];
+  const before = JSON.stringify(current.plan);
+  const edited = JSON.parse(JSON.stringify(store.program('fullbody')));
+  edited.weeks.forEach(week => week.sessions.forEach(session => session.exercises.forEach(exercise => { exercise.weightKg = 120; })));
+  store.saveProgram(edited);
+  assert.equal(JSON.stringify(current.plan), before);
+  const due = new Date(`${current.start}T20:00:00Z`); due.setUTCDate(due.getUTCDate() + 7);
+  store.ensureWeeklyReviews(due.getTime());
+  const nextReview = store.state.weeklyReviews.find(item => item.clientId === client.id && item.start === current.start);
+  assert.equal(JSON.stringify(nextReview.plan), before);
+});
+
+test('разбор фильтрует даты и дубли питания; не использует сегодняшний вес как итог прошлой недели', () => {
+  const { store } = fixture();
+  const review = store.state.weeklyReviews.find(item => item.clientId === 'alexander'), client = store.client('alexander');
+  client.weights.push({ measured_on: review.reviewDate, weight_kg: 100 });
+  client.nutrition.push({ report_date: review.start, calories: 2000, protein_g: 150, fat_g: 70, carbs_g: 220 });
+  const data = store.weeklyData(review.id);
+  assert.equal(data.workouts.length, 3);
+  assert.equal(data.nutrition.length, 7);
+  assert.equal(data.nutrition[0].calories, 2000);
+  assert.equal(data.latestWeight.weight_kg, 82.4);
+  assert.equal(data.weightDelta, -0.4);
+});
+
+test('сравнение упражнений не смешивает ноги и грудь, разные подходы, время и RPE', () => {
+  const { context, store } = fixture();
+  const compare = (now, before) => vm.runInContext(`trainerWorkoutComparison(${JSON.stringify(now)}, ${JSON.stringify(before)})`, context);
+  const exercise = sets => ({ name: 'Жим', sets });
+  const before = exercise([{ weight_kg: 60, reps: 8 }]);
+  assert.equal(compare(exercise([{ weight_kg: 60, reps: 9 }]), before), 'up');
+  assert.equal(compare(exercise([{ weight_kg: 62.5, reps: 7 }]), before), 'mixed');
+  assert.equal(compare(exercise([{ weight_kg: 60, reps: 8 }, { weight_kg: 60, reps: 8 }]), before), 'unknown');
+  assert.equal(compare(exercise([{ weight_kg: 0, duration_seconds: 40 }]), exercise([{ weight_kg: 0, duration_seconds: 30 }])), 'unknown');
+  const review = store.state.weeklyReviews.find(item => item.clientId === 'ilya');
+  assert.ok(store.weeklyData(review.id).comparisons.some(item => item.direction === 'up'));
+  const client = store.client('ilya');
+  client.workouts.filter(item => item.workout_date < review.start).forEach(item => { item.title = 'Другая тренировка'; });
+  assert.ok(store.weeklyData(review.id).comparisons.every(item => item.direction === 'unknown'));
+});
+
+test('черновик и завершение сохраняются; завершение идемпотентно и не меняет программу', () => {
+  const { store, storage, context } = fixture();
+  const review = store.state.weeklyReviews.find(item => item.clientId === 'alexander'), client = store.client('alexander');
+  const beforePlan = JSON.stringify(store.clientProgram(client.id)), beforeDecisions = client.decisions.length;
+  assert.throws(() => store.saveWeeklyNote(review.id, '', true), /Запиши/);
+  store.saveWeeklyNote(review.id, 'Проверить питание');
+  assert.equal(review.status, 'new');
+  assert.equal(client.decisions.length, beforeDecisions);
+  store.saveWeeklyNote(review.id, 'Сохранить нагрузку. Уточнить дневник.', true);
+  assert.equal(review.status, 'approved');
+  assert.equal(client.decisions.length, beforeDecisions + 1);
+  assert.equal(store.saveWeeklyNote(review.id, 'Повторно', true), false);
+  const snapshot = JSON.stringify(store.weeklyData(review.id));
+  client.workouts = []; client.nutrition = [];
+  assert.equal(JSON.stringify(store.weeklyData(review.id)), snapshot);
+  assert.equal(JSON.stringify(store.clientProgram(client.id)), beforePlan);
+  const restored = vm.runInContext('createTrainerStore()', context); restored.load(storage, 'test');
+  assert.equal(restored.review(review.id).status, 'approved');
+  assert.equal(JSON.stringify(restored.weeklyData(review.id)), snapshot);
+});
+
+test('расписание валидируется, сохраняется и не переписывает архив', () => {
+  const { store, storage, context } = fixture();
+  const before = JSON.stringify(store.state.weeklyReviews);
+  assert.throws(() => store.saveReviewSchedule({ day: 7, time: '09:00', timeZone: 'Europe/Moscow' }), /день/);
+  assert.throws(() => store.saveReviewSchedule({ day: 1, time: '25:00', timeZone: 'Europe/Moscow' }), /день/);
+  assert.throws(() => store.saveReviewSchedule({ day: 1, time: '09:00', timeZone: 'Invalid/TimeZone' }), /пояс/);
+  store.saveReviewSchedule({ day: 1, time: '09:30', timeZone: 'Europe/Moscow' });
+  store.ensureWeeklyReviews();
+  assert.equal(JSON.stringify(store.state.weeklyReviews), before);
+  const restored = vm.runInContext('createTrainerStore()', context); restored.load(storage, 'test');
+  assert.equal(restored.state.trainer.reviewSchedule.day, 1);
+  assert.equal(restored.state.trainer.reviewSchedule.time, '09:30');
+});
+
+test('миграция старого кабинета сохраняет данные и не выдумывает исторический план', () => {
+  const { store, storage, context } = fixture();
+  const saved = JSON.parse(JSON.stringify(store.state));
+  delete saved.weeklyReviews; delete saved.firstReviewStart; delete saved.trainer.reviewSchedule;
+  saved.clients.forEach(client => { delete client.planHistory; delete client.measurementHistory; client.metrics.sleep = '7 часов'; });
+  storage.setItem('trenzo-trainer-demo-v1:old', JSON.stringify(saved));
+  const restored = vm.runInContext('createTrainerStore()', context); restored.load(storage, 'old');
+  assert.equal(restored.state.clients.length, 7);
+  assert.equal(restored.client('alexander').weights.length, 5);
+  assert.equal(restored.state.weeklyReviews.length, 7);
+  assert.ok(restored.state.weeklyReviews.every(item => item.plan === null));
+  assert.equal(restored.client('alexander').metrics.sleep, undefined);
+});
+
+test('новый клиент не добавляется задним числом в разбор завершившейся недели', () => {
+  const { store } = fixture();
+  const added = store.addClient({ name: 'Новый Клиент', goal: 'Рост силы' });
+  store.ensureWeeklyReviews();
+  assert.ok(!store.state.weeklyReviews.some(item => item.clientId === added.id));
+  const nextDate = new Date(`${added.joinedOn}T20:00:00Z`); nextDate.setUTCDate(nextDate.getUTCDate() + 8);
+  store.ensureWeeklyReviews(nextDate.getTime());
+  assert.ok(store.state.weeklyReviews.some(item => item.clientId === added.id));
+});
+
+test('недельный UI содержит все разделы, нет сна/воды; небезопасное медиа не вставляется', () => {
+  const { context } = fixture(); vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  evaluate("trainerUI.route = { page: 'review', id: trainerStore.state.weeklyReviews[0].id }");
+  const html = evaluate('trainerReview()');
+  for (const label of ['Вес и замеры', 'Назначено', 'Факт из дневника', 'Питание', 'Фотоотчёт', 'Видеоотчёты', 'Итог и следующая неделя', 'Завершить разбор']) assert.ok(html.includes(label));
+  assert.ok(!html.includes('Сон')); assert.ok(!html.includes('Вода'));
+  const media = evaluate("trainerWeeklyMedia({media:[{type:'photo',recorded_on:'2026-10-01',url:'javascript:alert(1)'},{type:'video',recorded_on:'2026-10-01',url:'https://example.com/report.mp4',caption:'Видео'}]}, 'video')");
+  assert.ok(media.includes('<video')); assert.ok(media.includes('controls'));
+  assert.ok(!evaluate("trainerWeeklyMedia({media:[{type:'photo',recorded_on:'2026-10-01',url:'javascript:alert(1)'}]}, 'photo')").includes('src='));
+});
