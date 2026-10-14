@@ -11,6 +11,10 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
 const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
+const trainerDefaultProfile = {
+  name: 'Роман', surname: '', trainingFormat: 'Онлайн', experience: '',
+  education: '', regalia: '', notifications: true
+};
 function trainerShiftDate(date, days) {
   const value = new Date(`${date}T12:00:00Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -168,7 +172,7 @@ function trainerCreateDemoData(now = Date.now()) {
   ].map(review => ({ ...review, occurredAt: new Date(now - review.minutesAgo * 60000).toISOString() }));
   const data = {
     version: 1,
-    trainer: { name: 'Роман', surname: '', description: 'Помогаю выстроить устойчивые привычки и прогрессировать в тренировках.', specialization: 'Силовые тренировки · Онлайн-ведение', notifications: true, reviewSchedule: trainerCopy(trainerDefaultReviewSchedule) },
+    trainer: { ...trainerDefaultProfile, reviewSchedule: trainerCopy(trainerDefaultReviewSchedule) },
     clients, reviews, weeklyReviews: [], firstReviewStart: period.start,
     programs: [
       { id: 'fullbody', title: 'Full Body · Начальный', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 3) },
@@ -309,6 +313,20 @@ function createTrainerStore() {
         }
       } catch { storageWarning = 'Сохранённый пример недоступен. Загружены исходные демо-данные.'; }
       state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
+      const savedTrainer = state.trainer;
+      const oldSpecialization = String(savedTrainer.specialization || '').toLocaleLowerCase('ru-RU');
+      state.trainer = {
+        ...trainerDefaultProfile,
+        ...savedTrainer,
+        trainingFormat: savedTrainer.trainingFormat ?? (
+          oldSpecialization.includes('онлайн') && oldSpecialization.includes('офлайн') ? 'Онлайн и офлайн' :
+            oldSpecialization.includes('онлайн') ? 'Онлайн' :
+              oldSpecialization.includes('офлайн') ? 'Офлайн' : ''
+        ),
+        experience: savedTrainer.experience || '',
+        education: savedTrainer.education || '',
+        regalia: savedTrainer.regalia || ''
+      };
       state.weeklyReviews ||= [];
       state.firstReviewStart ||= trainerWeeklyPeriod(state.trainer.reviewSchedule).start;
       state.clients.forEach(item => {
@@ -402,8 +420,16 @@ function createTrainerStore() {
       state.clients.push(item); persist(); return item;
     },
     saveProfile(values) {
-      if (!values.name?.trim()) throw new Error('Укажи имя тренера.');
-      state.trainer = { ...state.trainer, ...values, name: values.name.trim() }; persist();
+      const name = typeof values.name === 'string' ? values.name.trim() : '';
+      const surname = typeof values.surname === 'string' ? values.surname.trim() : state.trainer.surname || '';
+      const trainingFormat = String(values.trainingFormat ?? state.trainer.trainingFormat ?? '');
+      const experience = String(values.experience ?? state.trainer.experience ?? '').trim();
+      const education = String(values.education ?? state.trainer.education ?? '').trim();
+      const regalia = String(values.regalia ?? state.trainer.regalia ?? '').trim();
+      if (!name || name.length > 50 || surname.length > 50) throw new Error('Проверь имя и фамилию тренера.');
+      if (!['', 'Онлайн', 'Офлайн', 'Онлайн и офлайн'].includes(trainingFormat)) throw new Error('Выбери формат работы.');
+      if (experience.length > 120 || education.length > 2000 || regalia.length > 2000) throw new Error('Проверь длину полей профиля.');
+      state.trainer = { ...state.trainer, name, surname, trainingFormat, experience, education, regalia }; persist();
     },
     reset(mode = 'demo') {
       state = trainerCreateDemoData();
