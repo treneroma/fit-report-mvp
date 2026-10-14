@@ -528,10 +528,24 @@
 .trainer-form-error { color: var(--accent) !important; font-size: var(--text-support); }
 .trainer-form-error:empty { display: none; }
 .trainer-muted { color: var(--muted) !important; font-size: var(--text-support); }
-.trainer-profile-summary { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 24px 18px; }
-.trainer-profile-summary > span:not(.trainer-avatar) { color: var(--accent); font-size: var(--text-support); }
-.trainer-profile-summary p { color: var(--muted); margin: 0 !important; }
-.trainer-profile-summary button { width: 100%; margin-top: 6px; }
+.trainer-profile-summary { display: flex; flex-direction: column; gap: 18px; }
+.trainer-profile-identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.trainer-profile-identity > div { min-width: 0; }
+.trainer-profile-overline { display: block; margin-bottom: 3px; color: var(--accent); font-size: var(--text-caption); font-weight: 700; letter-spacing: .7px; }
+#trainerScreen .trainer-profile-identity h2 { overflow-wrap: anywhere; }
+.trainer-profile-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.trainer-profile-facts > div { min-width: 0; padding-top: 11px; border-top: 1px solid var(--border); }
+.trainer-profile-facts dt { color: var(--muted); font-size: var(--text-caption); }
+.trainer-profile-facts dd { margin: 4px 0 0; color: var(--text); font-size: var(--text-body-emphasis); font-weight: 600; overflow-wrap: anywhere; }
+.trainer-profile-summary > button { width: 100%; }
+.trainer-profile-section h2 { margin-bottom: 10px !important; }
+.trainer-profile-items { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.trainer-profile-items li { padding: 10px 0; border-top: 1px solid var(--border); color: #e3e3e3; overflow-wrap: anywhere; }
+.trainer-profile-items li:first-child { border-top: 0; padding-top: 2px; }
+.trainer-profile-empty { color: var(--muted) !important; }
+.trainer-profile-edit-group { display: flex; flex-direction: column; gap: 14px; min-width: 0; margin: 0; padding: 16px 0 0; border: 0; border-top: 1px solid var(--border); }
+.trainer-profile-edit-group:first-child { padding-top: 0; border-top: 0; }
+.trainer-profile-edit-group legend { padding: 0 10px 0 0; color: var(--text); font-size: var(--text-subsection-title); font-weight: 700; }
 .trainer-settings h2,
 .trainer-demo-settings h2 { margin-bottom: 16px !important; }
 .trainer-settings-link { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 12px 0; border: 0; border-top: 1px solid var(--border); background: transparent; text-align: left; font-size: var(--text-body); }
