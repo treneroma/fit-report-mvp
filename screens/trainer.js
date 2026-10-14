@@ -380,13 +380,23 @@ function trainerProgramEditor() {
     ${week.sessions.map((session, index) => `<details class="trainer-card trainer-editor-day" ${index === 0 ? 'open' : ''}><summary><span><small>ДЕНЬ ${index + 1}</small><strong>${trainerEscape(session.title)}</strong></span>${trainerIcon('arrow')}</summary><div>${trainerField('Название тренировочного дня', `day-${index}`, session.title, { required: true, extra: `data-day-title="${index}"` })}${session.exercises.map((exercise, i) => trainerEditorExercise(exercise, index, i)).join('')}<div class="trainer-button-row">${trainerAction('add-exercise', '+ Упражнение', { day: index }, 'trainer-secondary-button')}${trainerAction('remove-day', 'Убрать день', { day: index }, 'trainer-text-button')}</div></div></details>`).join('')}
     ${trainerAction('add-day', '+ Тренировочный день', {}, 'trainer-secondary-button')}<p class="trainer-form-error" role="alert"></p><div class="trainer-editor-save"><button type="submit" class="trainer-button">Сохранить программу</button></div></form>`;
 }
+function trainerProfileEntries(value, emptyText) {
+  const entries = String(value || '').split(/\r?\n/).map(item => item.trim()).filter(Boolean);
+  return entries.length
+    ? `<ul class="trainer-profile-items">${entries.map(item => `<li>${trainerEscape(item)}</li>`).join('')}</ul>`
+    : `<p class="trainer-profile-empty">${trainerEscape(emptyText)}</p>`;
+}
 function trainerProfile() {
   const profile = trainerStore.state.trainer;
-  return `<div class="trainer-page-heading"><h1>Профиль</h1><p>Твой кабинет и настройки.</p></div><section class="trainer-card trainer-profile-summary">${trainerAvatar({ name: profile.name, surname: profile.surname }, true)}<h2>${trainerEscape(profile.name)} ${trainerEscape(profile.surname)}</h2><span>${trainerEscape(profile.specialization || 'Специализация не указана')}</span><p>${trainerEscape(profile.description)}</p>${trainerAction('edit-profile', 'Редактировать профиль', {}, 'trainer-secondary-button')}</section>
-    <section class="trainer-card">${trainerSection('Расписание разборов')}${trainerReviewScheduleForm()}</section>
-    <section class="trainer-card trainer-settings"><h2>Настройки аккаунта</h2><label class="trainer-toggle"><span><strong>Уведомления</strong><small>Настройка для будущих событий подопечных</small></span><input type="checkbox" role="switch" data-notifications ${profile.notifications ? 'checked' : ''}></label>
-      ${trainerAction('ai', `${trainerIcon('ai')}<span>TRENZO AI</span>${trainerIcon('arrow')}`, {}, 'trainer-settings-link')}${trainerAction('switch-role', `${trainerIcon('clients')}<span>Переключить роль</span>${trainerIcon('arrow')}`, {}, 'trainer-settings-link')}${trainerAction('exit', 'Выйти к заставке', {}, 'trainer-settings-link')}
-    </section><section class="trainer-card trainer-demo-settings"><h2>Данные примера</h2><p>Для проверки прототипа. Изменения хранятся на этом устройстве и не затрагивают кабинет спортсмена.</p>${trainerAction('scenario', 'Обычный рабочий день', { mode: 'demo' }, 'trainer-settings-link')}${trainerAction('scenario', 'Сегодня всё спокойно', { mode: 'calm' }, 'trainer-settings-link')}${trainerAction('scenario', 'Без подопечных', { mode: 'empty' }, 'trainer-settings-link')}</section>`;
+  const fullName = [profile.name, profile.surname].filter(Boolean).join(' ');
+  return `<div class="trainer-page-heading"><h1>Профиль тренера</h1></div>
+    <section class="trainer-card trainer-profile-summary">
+      <div class="trainer-profile-identity">${trainerAvatar({ name: profile.name, surname: profile.surname }, true)}<div><span class="trainer-profile-overline">Ответы из анкеты</span><h2>${trainerEscape(fullName)}</h2></div></div>
+      <dl class="trainer-profile-facts"><div><dt>Формат работы</dt><dd>${trainerEscape(profile.trainingFormat || 'Не указан')}</dd></div><div><dt>Опыт</dt><dd>${trainerEscape(profile.experience || 'Не указан')}</dd></div></dl>
+      ${trainerAction('edit-profile', 'Редактировать профиль', {}, 'trainer-secondary-button')}
+    </section>
+    <section class="trainer-card trainer-profile-section"><h2>Образование</h2>${trainerProfileEntries(profile.education, 'Пока не добавлено.')}</section>
+    <section class="trainer-card trainer-profile-section"><h2>Регалии</h2>${trainerProfileEntries(profile.regalia, 'Пока не добавлены.')}</section>`;
 }
 function trainerAIAnswer(question, clientId = null) {
   const query = question.toLocaleLowerCase('ru-RU');
@@ -426,7 +436,15 @@ function trainerModalMarkup() {
       : `<p>Программа: ${trainerEscape(trainerStore.program(modal.id).title)}</p><div class="trainer-list">${trainerStore.state.clients.map(c => trainerAction('assign-select', `${trainerAvatar(c)}<span>${trainerEscape(trainerFullName(c))}</span>${trainerIcon('arrow')}`, { id: modal.id, client: c.id }, 'trainer-card trainer-client-shortcut')).join('') || '<p>Сначала добавьте подопечного.</p>'}</div>`;
   } else if (modal.type === 'edit-profile') {
     title = 'Профиль тренера'; const p = trainerStore.state.trainer;
-    content = `<form class="trainer-form" data-form="profile">${trainerField('Имя', 'name', p.name, { required: true, maxlength: 50 })}${trainerField('Фамилия', 'surname', p.surname, { maxlength: 50 })}${trainerField('Специализация', 'specialization', p.specialization)}${trainerField('Описание', 'description', p.description, { multiline: true })}<p class="trainer-form-error" role="alert"></p><button class="trainer-button" type="submit">Сохранить профиль</button></form>`;
+    content = `<form class="trainer-form" data-form="profile">
+      <fieldset class="trainer-profile-edit-group"><legend>Ответы из анкеты</legend>
+        <div class="trainer-form-grid">${trainerField('Имя', 'name', p.name, { required: true, maxlength: 50 })}${trainerField('Фамилия', 'surname', p.surname, { maxlength: 50 })}</div>
+        <label class="trainer-field">Формат работы<select name="trainingFormat"><option value="" ${!p.trainingFormat ? 'selected' : ''}>Не указан</option><option value="Онлайн" ${p.trainingFormat === 'Онлайн' ? 'selected' : ''}>Онлайн</option><option value="Офлайн" ${p.trainingFormat === 'Офлайн' ? 'selected' : ''}>Офлайн</option><option value="Онлайн и офлайн" ${p.trainingFormat === 'Онлайн и офлайн' ? 'selected' : ''}>Онлайн и офлайн</option></select></label>
+        ${trainerField('Опыт', 'experience', p.experience, { maxlength: 120, extra: 'placeholder="Например, 5 лет"' })}
+      </fieldset>
+      <fieldset class="trainer-profile-edit-group"><legend>Образование</legend>${trainerField('Учебные заведения, курсы, квалификация', 'education', p.education, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
+      <fieldset class="trainer-profile-edit-group"><legend>Регалии</legend>${trainerField('Достижения, звания, награды', 'regalia', p.regalia, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
+      <p class="trainer-form-error" role="alert"></p><button class="trainer-button" type="submit">Сохранить профиль</button></form>`;
   } else if (modal.type === 'review-schedule') {
     title = 'Расписание разборов'; content = trainerReviewScheduleForm();
   } else if (modal.type === 'scenario') {
