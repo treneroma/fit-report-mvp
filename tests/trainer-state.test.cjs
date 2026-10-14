@@ -165,6 +165,33 @@ test('все экраны рендерятся на обычных и пусты
   for (const page of pages) assert.equal(typeof evaluate(page), 'string');
 });
 
+test('профиль тренера показывает ответы анкеты, образование и регалии', () => {
+  const { context, storage } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  context.profileStorage = storage;
+  evaluate("trainerStore.load(profileStorage, 'test')");
+  const initial = evaluate('trainerProfile()');
+  assert.match(initial, /Ответы из анкеты/);
+  assert.match(initial, /Формат работы/);
+  assert.match(initial, /Образование/);
+  assert.match(initial, /Регалии/);
+  assert.doesNotMatch(initial, /Настройки аккаунта|Расписание разборов|Данные примера|TRENZO AI/);
+
+  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
+  const updated = evaluate('trainerProfile()');
+  assert.match(updated, /Анна Тренерова/);
+  assert.match(updated, /Онлайн и офлайн/);
+  assert.match(updated, /7 лет/);
+  assert.match(updated, /Курс тренеров/);
+  assert.match(updated, /Чемпион региона/);
+
+  const restored = vm.runInContext('createTrainerStore()', context);
+  restored.load(storage, 'test');
+  assert.equal(restored.state.trainer.education, 'Университет\nКурс тренеров');
+  assert.equal(restored.state.trainer.regalia, 'КМС\nЧемпион региона');
+});
+
 test('недельные границы учитывают день, время, год и часовой пояс', () => {
   const { context } = fixture();
   const period = (schedule, date) => JSON.parse(JSON.stringify(vm.runInContext(`trainerWeeklyPeriod(${JSON.stringify(schedule)}, Date.parse('${date}'))`, context)));
