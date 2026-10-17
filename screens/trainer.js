@@ -41,33 +41,6 @@ function trainerDateLabel(date) {
   if (date.slice(0, 10) === trainerDemoDate()) return 'Сегодня';
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'Europe/Moscow' }).format(new Date(date.length === 10 ? `${date}T12:00:00Z` : date));
 }
-function trainerAddCalendarMonths(date, months) {
-  const monthIndex = date.getUTCMonth() + months;
-  const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
-  const month = ((monthIndex % 12) + 12) % 12;
-  const day = Math.min(date.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
-  return new Date(Date.UTC(year, month, day));
-}
-function trainerClientTenure(client, today = trainerDemoDate()) {
-  if (!client.joinedOn) return 'Срок не указан';
-  const start = new Date(`${client.joinedOn}T12:00:00Z`);
-  const end = new Date(`${today}T12:00:00Z`);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return 'Срок не указан';
-
-  let years = end.getUTCFullYear() - start.getUTCFullYear();
-  while (years > 0 && trainerAddCalendarMonths(start, years * 12) > end) years--;
-  let cursor = trainerAddCalendarMonths(start, years * 12);
-  let months = (end.getUTCFullYear() - cursor.getUTCFullYear()) * 12 + end.getUTCMonth() - cursor.getUTCMonth();
-  if (trainerAddCalendarMonths(cursor, months) > end) months--;
-  cursor = trainerAddCalendarMonths(cursor, months);
-  const weeks = Math.floor((end.getTime() - cursor.getTime()) / (7 * 86400000));
-  const plural = (count, forms) => forms[new Intl.PluralRules('ru-RU').select(count)];
-  const parts = [];
-  if (years) parts.push(`${years} ${plural(years, { one: 'год', few: 'года', many: 'лет', other: 'лет' })}`);
-  if (months) parts.push(`${months} ${plural(months, { one: 'месяц', few: 'месяца', many: 'месяцев', other: 'месяцев' })}`);
-  if (weeks) parts.push(`${weeks} ${plural(weeks, { one: 'неделя', few: 'недели', many: 'недель', other: 'недель' })}`);
-  return parts.length ? `Занимается ${parts.join(' · ')}` : 'Занимается меньше недели';
-}
 function trainerTimeLabel(date) { return `${trainerDateLabel(date)} · ${new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }).format(new Date(date))}`; }
 function trainerRelative(date) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 60000));
@@ -231,20 +204,19 @@ function trainerIncome() {
 }
 
 function trainerClientCard(client) {
-  const status = trainerStore.status(client.id);
-  const displayStatus = status === 'inactive' ? 'attention' : status;
-  const label = { attention: 'Требует внимания', waiting: 'Ждёт решения', ok: 'Всё хорошо' }[displayStatus];
-  return `<button type="button" class="trainer-card trainer-client-card" data-action="client" data-id="${client.id}" aria-label="Открыть подопечного ${trainerEscape(trainerFullName(client))}">
-    ${trainerAvatar(client)}<span class="trainer-client-copy"><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(trainerClientTenure(client))}</small></span>
-    <span class="trainer-client-status is-${displayStatus}">${label}</span>${trainerIcon('arrow')}</button>`;
+  const status = trainerStore.clientState(client.id);
+  const label = trainerClientStateOptions.find(([value]) => value === status)?.[1] || 'Мало данных';
+  const tag = String(client.tag || '').trim() || client.goal;
+  return `<button type="button" class="trainer-card trainer-client-card" data-action="client" data-id="${client.id}" aria-label="Открыть подопечного ${trainerEscape(trainerFullName(client))}, статус: ${trainerEscape(label)}, тег: ${trainerEscape(tag)}">
+    ${trainerAvatar(client)}<span class="trainer-client-copy"><span class="trainer-client-primary"><strong>${trainerEscape(trainerFullName(client))}</strong><span class="trainer-client-status is-${status}">${label}</span></span><small>${trainerEscape(tag)}</small></span>
+    ${trainerIcon('arrow')}</button>`;
 }
 function trainerFilteredClients() {
   const normalize = text => text.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е');
   const words = normalize(trainerUI.search.trim()).split(/\s+/).filter(Boolean);
   return trainerStore.state.clients.filter(client => {
-    const status = trainerStore.status(client.id);
-    const matches = trainerUI.clientFilter === 'all' || (trainerUI.clientFilter === 'attention' ? ['attention', 'inactive'].includes(status) : status === trainerUI.clientFilter);
-    const text = normalize(`${trainerFullName(client)} ${client.goal}`);
+    const matches = trainerUI.clientFilter === 'all' || trainerStore.clientState(client.id) === trainerUI.clientFilter;
+    const text = normalize(`${trainerFullName(client)} ${client.tag || ''} ${client.goal}`);
     return matches && words.every(word => text.includes(word));
   });
 }
@@ -255,7 +227,8 @@ function trainerClientListMarkup() {
 function trainerClients() {
   return !trainerStore.state.clients.length ? trainerEmpty('Добавьте первого подопечного', 'Начните с имени и цели. Отчёты появятся после подключения клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
     <label class="trainer-search">${trainerIcon('search')}<input type="search" placeholder="Найти подопечного" aria-label="Найти подопечного" maxlength="100" value="${trainerEscape(trainerUI.search)}" data-search></label>
-    ${trainerFilterTabs([['all', 'Все'], ['attention', 'Требуют внимания'], ['waiting', 'Ждут решения'], ['ok', 'Всё хорошо']], trainerUI.clientFilter, 'client-filter')}
+    <p class="trainer-clients-state-note">Состояние рассчитывается автоматически по тренировкам, питанию, динамике веса и активности.</p>
+    ${trainerFilterTabs([['all', 'Все'], ...trainerClientStateOptions], trainerUI.clientFilter, 'client-filter')}
     <p class="trainer-sr-only" id="trainerClientResults" role="status">Найдено: ${trainerFilteredClients().length}</p>
     <ul class="trainer-list trainer-clients-list" id="trainerClientList" aria-label="Клиенты">${trainerClientListMarkup()}</ul>`;
 }
@@ -311,7 +284,9 @@ function trainerClient() {
   const client = trainerStore.client(trainerUI.route.id);
   if (!client) return trainerEmpty('Подопечный не найден', 'Вернитесь к списку подопечных.', trainerAction('navigate', 'Подопечные', { page: 'clients' }));
   const tab = trainerUI.route.tab || 'overview', weight = trainerLatestWeight(client);
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div><h1>${trainerEscape(client.name)}</h1><p>${trainerEscape(client.goal)}</p><small>${weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`}${client.targetWeight ? ` → цель ${trainerNumber(client.targetWeight)} кг` : ''}${client.currentWeek ? `<br>Неделя ${client.currentWeek} из ${client.totalWeeks}` : ''}</small>${trainerBadge(trainerStore.status(client.id))}</div></section>
+  const clientState = trainerStore.clientState(client.id);
+  const clientStateLabel = trainerClientStateOptions.find(([value]) => value === clientState)?.[1] || 'Мало данных';
+  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div><h1>${trainerEscape(trainerFullName(client))}</h1><p>${trainerEscape(client.goal)}</p><small>${weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`}${client.targetWeight ? ` → цель ${trainerNumber(client.targetWeight)} кг` : ''}${client.currentWeek ? `<br>Неделя ${client.currentWeek} из ${client.totalWeeks}` : ''}</small><span class="trainer-client-status is-${clientState}">${clientStateLabel}</span>${trainerAction('edit-client-tag', 'Изменить тег', { id: client.id }, 'trainer-text-button')}</div></section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
@@ -459,7 +434,11 @@ function trainerModalMarkup() {
   if (!modal) return '';
   let title = '', content = '';
   if (modal.type === 'add-client') {
-    title = 'Добавить подопечного'; content = `<p>Укажи имя и цель подопечного.</p><form class="trainer-form" data-form="add-client">${trainerField('Имя и фамилия', 'name', '', { required: true, maxlength: 100 })}${trainerField('Цель', 'goal', '', { required: true })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Добавить</button>${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}</form>`;
+    title = 'Добавить подопечного'; content = `<p>Укажи имя, цель и короткий тег для карточки.</p><form class="trainer-form" data-form="add-client">${trainerField('Имя и фамилия', 'name', '', { required: true, maxlength: 100 })}${trainerField('Цель', 'goal', '', { required: true })}${trainerField('Тег карточки · необязательно', 'tag', '', { maxlength: trainerClientTagMaxLength, extra: `placeholder="Например, К свадьбе · до ${trainerClientTagMaxLength} символов"` })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Добавить</button>${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}</form>`;
+  } else if (modal.type === 'edit-client-tag') {
+    title = 'Тег клиента';
+    const client = trainerStore.client(modal.id);
+    content = client ? `<p>Короткая рабочая пометка. Если оставить поле пустым, в карточке будет показана цель клиента.</p><form class="trainer-form" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}">${trainerField('Тег карточки', 'tag', client.tag || '', { maxlength: trainerClientTagMaxLength, extra: `placeholder="Например, После травмы · до ${trainerClientTagMaxLength} символов"` })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Сохранить тег</button></form>` : '<p>Подопечный не найден.</p>';
   } else if (modal.type === 'invite') {
     title = 'Пригласить по ссылке';
     const link = new URL(window.location.href); link.hash = ''; link.search = '?trainerInvite=demo-trenzo';
@@ -572,6 +551,7 @@ function trainerHandleClick(event) {
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
+    else if (action === 'edit-client-tag') trainerOpenModal('edit-client-tag', { id });
     else if (action === 'open-chat') trainerGo('chat', { id });
     else if (action === 'client-from-chat') trainerGo('client', { id, tab: 'overview' });
     else if (action === 'toggle-task') { const task = trainerUI.tasks.find(item => item.id === id); if (task) { task.done = !task.done; trainerSaveWorkspace(); trainerRender(); } }
@@ -675,6 +655,7 @@ function trainerHandleSubmit(event) {
   const values = Object.fromEntries(formData);
   try {
     if (form.dataset.form === 'add-client') { const client = trainerStore.addClient(values); trainerGo('client', { id: client.id }); trainerToast('Карточка подопечного добавлена в демо-кабинет.'); }
+    else if (form.dataset.form === 'edit-client-tag') { trainerStore.saveClientTag(form.dataset.id, values.tag); trainerUI.modal = null; trainerRender(); trainerToast(values.tag.trim() ? 'Тег сохранён.' : 'В карточке снова показывается цель клиента.'); }
     else if (form.dataset.form === 'create-task') {
       const title = values.title.trim();
       if (!title) throw new Error('Напиши название задачи.');
