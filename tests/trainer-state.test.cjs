@@ -9,6 +9,7 @@ const uiSource = fs.readFileSync(path.join(__dirname, '../screens/trainer.js'), 
 function fixture() {
   const context = vm.createContext({ console, URL });
   vm.runInContext(dataSource, context);
+  vm.runInContext("Date.now = () => Date.parse('2026-10-17T09:00:00Z')", context);
   const store = vm.runInContext('createTrainerStore()', context);
   const records = new Map();
   const storage = { getItem: key => records.get(key) || null, setItem: (key, value) => records.set(key, value) };
@@ -207,6 +208,10 @@ test('обзор клиента сводит тренировки, питани�
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
   const summary = evaluate("trainerClientOverview(trainerStore.client('alexander'), Date.parse('2026-10-16T09:00:00Z'))");
+  assert.match(summary, /<strong>AI TRENZO<\/strong>/);
+  assert.match(summary, /недельный отчёт/);
+  assert.match(summary, /Проверить отчёт/);
+  assert.doesNotMatch(summary, /Разобрать неделю|недельный разбор/);
   assert.match(summary, /Текущая неделя/);
   assert.match(summary, /11\.10\.2026 — 17\.10\.2026/);
   assert.match(summary, /Текущая неделя[\s\S]*?trainer-current-week-range/);
