@@ -174,17 +174,21 @@ test('шапка клиента показывает тег, вес и срок 
   evaluate("trainerUI.route = { page: 'client', id: 'alexander' }");
   const card = evaluate('trainerClient()');
   assert.match(card, /Александр Иванов/);
+  assert.match(card, /trainer-client-detail-status is-overload/);
+  assert.match(card, /Перегруз/);
+  assert.match(card, /# Тег:/);
   assert.match(card, /Снижение веса/);
   assert.match(card, /Изменить тег/);
   assert.match(card, /82,4 кг → цель 79,0 кг/);
   assert.match(card, /Занимается: 1 нед/);
-  assert.doesNotMatch(card, /Перегруз|data-action="back"/);
+  assert.doesNotMatch(card, /data-action="back"/);
   assert.match(card, /Обзор/);
   assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-10-10' }, '2026-10-17')"), '1 нед');
-  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-08-17' }, '2026-10-17')"), '2 мес');
-  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2025-08-17' }, '2026-10-17')"), '1 г 2 мес');
-  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2025-10-03' }, '2026-10-17')"), '1 г 2 нед');
-  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-10-08' }, '2026-10-17')"), '1 нед 2 дн');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-09-12' }, '2026-10-17')"), '1 мес');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-08-17' }, '2026-10-17')"), '1 мес 4 нед');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2025-08-09' }, '2026-10-17')"), '1 г 2 нед');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-10-06' }, '2026-10-17')"), '2 нед');
+  assert.doesNotMatch(evaluate("trainerClientTenure({ joinedOn: '2026-10-08' }, '2026-10-17')"), /дн/);
 });
 
 test('свайп назад с левого края срабатывает только для горизонтального жеста при наличии истории', () => {
