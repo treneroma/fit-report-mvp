@@ -41,6 +41,33 @@ function trainerDateLabel(date) {
   if (date.slice(0, 10) === trainerDemoDate()) return 'Сегодня';
   return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', timeZone: 'Europe/Moscow' }).format(new Date(date.length === 10 ? `${date}T12:00:00Z` : date));
 }
+function trainerAddCalendarMonths(date, months) {
+  const monthIndex = date.getUTCMonth() + months;
+  const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
+  const month = ((monthIndex % 12) + 12) % 12;
+  const day = Math.min(date.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
+  return new Date(Date.UTC(year, month, day));
+}
+function trainerClientTenure(client, today = trainerDemoDate()) {
+  if (!client.joinedOn) return 'Срок не указан';
+  const start = new Date(`${client.joinedOn}T12:00:00Z`);
+  const end = new Date(`${today}T12:00:00Z`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return 'Срок не указан';
+
+  let years = end.getUTCFullYear() - start.getUTCFullYear();
+  while (years > 0 && trainerAddCalendarMonths(start, years * 12) > end) years--;
+  let cursor = trainerAddCalendarMonths(start, years * 12);
+  let months = (end.getUTCFullYear() - cursor.getUTCFullYear()) * 12 + end.getUTCMonth() - cursor.getUTCMonth();
+  if (trainerAddCalendarMonths(cursor, months) > end) months--;
+  cursor = trainerAddCalendarMonths(cursor, months);
+  const weeks = Math.floor((end.getTime() - cursor.getTime()) / (7 * 86400000));
+  const plural = (count, forms) => forms[new Intl.PluralRules('ru-RU').select(count)];
+  const parts = [];
+  if (years) parts.push(`${years} ${plural(years, { one: 'год', few: 'года', many: 'лет', other: 'лет' })}`);
+  if (months) parts.push(`${months} ${plural(months, { one: 'месяц', few: 'месяца', many: 'месяцев', other: 'месяцев' })}`);
+  if (weeks) parts.push(`${weeks} ${plural(weeks, { one: 'неделя', few: 'недели', many: 'недель', other: 'недель' })}`);
+  return parts.length ? `Занимается ${parts.join(' · ')}` : 'Занимается меньше недели';
+}
 function trainerTimeLabel(date) { return `${trainerDateLabel(date)} · ${new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }).format(new Date(date))}`; }
 function trainerRelative(date) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 60000));
@@ -208,7 +235,7 @@ function trainerClientCard(client) {
   const displayStatus = status === 'inactive' ? 'attention' : status;
   const label = { attention: 'Требует внимания', waiting: 'Ждёт решения', ok: 'Всё хорошо' }[displayStatus];
   return `<button type="button" class="trainer-card trainer-client-card" data-action="client" data-id="${client.id}" aria-label="Открыть подопечного ${trainerEscape(trainerFullName(client))}">
-    ${trainerAvatar(client)}<span class="trainer-client-copy"><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(client.goal)}</small></span>
+    ${trainerAvatar(client)}<span class="trainer-client-copy"><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(trainerClientTenure(client))}</small></span>
     <span class="trainer-client-status is-${displayStatus}">${label}</span>${trainerIcon('arrow')}</button>`;
 }
 function trainerFilteredClients() {
