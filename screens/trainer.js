@@ -2,8 +2,9 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  reviewPeriod: '', reviewNoteDrafts: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null
+  reviewPeriod: '', reviewNoteDrafts: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
+let trainerTouchStart = null;
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
 const trainerReviewLabels = { new: 'Новый', requires_action: 'Требует решения', approved: 'Готово', dismissed: 'Готово' };
 const trainerIcons = {
@@ -20,7 +21,7 @@ const trainerIcons = {
   chat: '<path d="M14.5 5a6 6 0 0 1 5.8 7.5l1 2.8-3.2-.8a6 6 0 0 1-2.6.5"/><path d="M10 7a7 7 0 0 0-6.7 9.1L2 20l3.8-.8A7 7 0 1 0 10 7Z"/><path d="M7 13h.01M10 13h.01M13 13h.01"/>',
   income: '<path d="M4.5 7H19a2 2 0 0 1 2 2v11H5a2 2 0 0 1-2-2V7a3 3 0 0 1 3-3h13"/><path d="M3 9h18M14 12h7v5h-7a2.5 2.5 0 0 1 0-5Z"/><path d="M16.5 14.5h.01"/>',
   arrow: '<path d="m9 5 7 7-7 7"/>', back: '<path d="m15 5-7 7 7 7"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>', check: '<path d="m5 12 4 4L19 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', check: '<path d="m5 12 4 4L19 6"/>', edit: '<path d="m15 5 4 4M4 20l4.3-1 10.6-10.6a2.1 2.1 0 0 0-3-3L5.3 16 4 20Z"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>', close: '<path d="m6 6 12 12M6 18 18 6"/>',
   memory: '<path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/><circle cx="12" cy="12" r="4"/>'
 };
@@ -36,6 +37,32 @@ function trainerNumber(value, digits = 1) { return value == null ? '—' : Numbe
 function trainerDelta(value) { return value == null ? 'Нет измерений' : `${value > 0 ? '+' : value < 0 ? '−' : ''}${trainerNumber(Math.abs(value))} кг`; }
 function trainerFullName(client) { return `${client.name} ${client.surname || ''}`.trim(); }
 function trainerLatestWeight(client) { return client.weights.length ? client.weights[client.weights.length - 1].weight_kg : null; }
+function trainerAddCalendarMonths(date, months) {
+  const monthIndex = date.getUTCMonth() + months;
+  const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
+  const month = ((monthIndex % 12) + 12) % 12;
+  const day = Math.min(date.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
+  return new Date(Date.UTC(year, month, day));
+}
+function trainerClientTenure(client, today = trainerDemoDate()) {
+  if (!client?.joinedOn) return 'Срок не указан';
+  const start = new Date(`${client.joinedOn}T12:00:00Z`), end = new Date(`${today}T12:00:00Z`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return 'Срок не указан';
+  let years = end.getUTCFullYear() - start.getUTCFullYear();
+  while (years > 0 && trainerAddCalendarMonths(start, years * 12) > end) years--;
+  let cursor = trainerAddCalendarMonths(start, years * 12);
+  let months = (end.getUTCFullYear() - cursor.getUTCFullYear()) * 12 + end.getUTCMonth() - cursor.getUTCMonth();
+  if (trainerAddCalendarMonths(cursor, months) > end) months--;
+  cursor = trainerAddCalendarMonths(cursor, months);
+  const remainingDays = trainerDayDistance(cursor.toISOString().slice(0, 10), today);
+  const weeks = Math.floor(remainingDays / 7), days = remainingDays % 7;
+  const parts = [];
+  if (years) parts.push(`${years} г`);
+  if (months) parts.push(`${months} мес`);
+  if (weeks) parts.push(`${weeks} нед`);
+  if (days) parts.push(`${days} дн`);
+  return parts.join(' ') || 'меньше 1 дн';
+}
 function trainerDateLabel(date) {
   if (!date) return 'Нет активности';
   if (date.slice(0, 10) === trainerDemoDate()) return 'Сегодня';
@@ -78,9 +105,7 @@ function trainerHeader(title = '') {
     const plural = new Intl.PluralRules('ru-RU').select(count);
     return `<header class="trainer-header trainer-clients-header"><h1>В команде ${count} ${plural === 'few' ? 'человека' : 'человек'}</h1><div class="trainer-header-actions">${trainerAction('add-client', `${trainerIcon('plus')}<span class="trainer-sr-only">Добавить подопечного</span>`, {}, 'trainer-clients-add')}</div></header>`;
   }
-  const detail = !['reviews', 'programs', 'profile', 'analytics'].includes(trainerUI.route.page);
-  if (!detail) return '';
-  return `<header class="trainer-header"><div class="trainer-header-brand">${trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button')}<span class="trainer-header-label">${trainerEscape(title)}</span></div></header>`;
+  return '';
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
@@ -289,9 +314,14 @@ function trainerClient() {
   const client = trainerStore.client(trainerUI.route.id);
   if (!client) return trainerEmpty('Подопечный не найден', 'Вернитесь к списку подопечных.', trainerAction('navigate', 'Подопечные', { page: 'clients' }));
   const tab = trainerUI.route.tab || 'overview', weight = trainerLatestWeight(client);
-  const clientState = trainerStore.clientState(client.id);
-  const clientStateLabel = trainerClientStateOptions.find(([value]) => value === clientState)?.[1] || 'Мало данных';
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div><h1>${trainerEscape(trainerFullName(client))}</h1><p>${trainerEscape(client.goal)}</p><small>${weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`}${client.targetWeight ? ` → цель ${trainerNumber(client.targetWeight)} кг` : ''}${client.currentWeek ? `<br>Неделя ${client.currentWeek} из ${client.totalWeeks}` : ''}</small><span class="trainer-client-status is-${clientState}">${clientStateLabel}</span>${trainerAction('edit-client-tag', 'Изменить тег', { id: client.id }, 'trainer-text-button')}</div></section>
+  const tag = String(client.tag || '').trim() || client.goal;
+  const editingTag = trainerUI.editingClientTag === client.id;
+  const tagMarkup = editingTag
+    ? `<form class="trainer-client-tag-edit" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}"><input name="tag" data-client-tag-input maxlength="${trainerClientTagMaxLength}" value="${trainerEscape(tag)}" placeholder="Тег · до ${trainerClientTagMaxLength} символов" aria-label="Тег клиента"><button type="submit" aria-label="Сохранить тег">${trainerIcon('check')}</button><button type="button" data-action="cancel-client-tag" aria-label="Отменить изменение тега">${trainerIcon('close')}</button></form>`
+    : `<div class="trainer-client-tag-row"><span>${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
+  const weightSummary = weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`;
+  const targetSummary = client.targetWeight != null ? ` → цель ${trainerNumber(client.targetWeight)} кг` : '';
+  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
@@ -440,10 +470,6 @@ function trainerModalMarkup() {
   let title = '', content = '';
   if (modal.type === 'add-client') {
     title = 'Добавить подопечного'; content = `<p>Укажи имя, цель и короткий тег для карточки.</p><form class="trainer-form" data-form="add-client">${trainerField('Имя и фамилия', 'name', '', { required: true, maxlength: 100 })}${trainerField('Цель', 'goal', '', { required: true })}${trainerField('Тег карточки · необязательно', 'tag', '', { maxlength: trainerClientTagMaxLength, extra: `placeholder="Например, К свадьбе · до ${trainerClientTagMaxLength} символов"` })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Добавить</button>${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}</form>`;
-  } else if (modal.type === 'edit-client-tag') {
-    title = 'Тег клиента';
-    const client = trainerStore.client(modal.id);
-    content = client ? `<p>Короткая рабочая пометка. Если оставить поле пустым, в карточке будет показана цель клиента.</p><form class="trainer-form" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}">${trainerField('Тег карточки', 'tag', client.tag || '', { maxlength: trainerClientTagMaxLength, extra: `placeholder="Например, После травмы · до ${trainerClientTagMaxLength} символов"` })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Сохранить тег</button></form>` : '<p>Подопечный не найден.</p>';
   } else if (modal.type === 'invite') {
     title = 'Пригласить по ссылке';
     const link = new URL(window.location.href); link.hash = ''; link.search = '?trainerInvite=demo-trenzo';
@@ -504,6 +530,8 @@ function trainerStart() {
     root.addEventListener('input', trainerHandleInput);
     root.addEventListener('change', trainerHandleChange);
     root.addEventListener('submit', trainerHandleSubmit);
+    root.addEventListener('touchstart', trainerHandleTouchStart, { passive: true });
+    root.addEventListener('touchend', trainerHandleTouchEnd, { passive: true });
     root.addEventListener('cancel', event => { if (event.target.id === 'trainerDialog') trainerUI.modal = null; }, true);
   }
   trainerRender();
@@ -524,13 +552,31 @@ function trainerRender() {
 }
 function trainerGo(page, params = {}, replace = false) {
   trainerUI.modal = null;
+  trainerUI.editingClientTag = null;
   if (!replace) trainerUI.history.push({ route: { ...trainerUI.route }, scroll: window.scrollY });
   trainerUI.route = { page, ...params }; trainerRender(); window.scrollTo(0, 0);
 }
 function trainerBack() {
   if (trainerUI.route.page === 'program-edit' && trainerUI.draft) { trainerUI.modal = { type: 'leave-editor' }; trainerRender(); return; }
   const previous = trainerUI.history.pop();
-  trainerUI.route = previous?.route || { page: 'today' }; trainerUI.modal = null; trainerRender(); window.scrollTo(0, previous?.scroll || 0);
+  trainerUI.route = previous?.route || { page: 'today' }; trainerUI.modal = null; trainerUI.editingClientTag = null; trainerRender(); window.scrollTo(0, previous?.scroll || 0);
+}
+function trainerShouldHandleBackSwipe(startX, startY, endX, endY, historyLength, blocked = false) {
+  return !blocked && historyLength > 0 && startX <= 36 && endX - startX >= 72 && Math.abs(endY - startY) <= 64;
+}
+function trainerHandleTouchStart(event) {
+  trainerTouchStart = null;
+  if (trainerUI.modal || event.touches?.length !== 1) return;
+  if (event.target.closest?.('button, a, input, textarea, select, [role="button"], .trainer-filter-tabs, [data-no-back-swipe]')) return;
+  const touch = event.touches[0];
+  if (touch.clientX <= 36) trainerTouchStart = { x: touch.clientX, y: touch.clientY };
+}
+function trainerHandleTouchEnd(event) {
+  const start = trainerTouchStart;
+  trainerTouchStart = null;
+  const touch = event.changedTouches?.[0];
+  if (!start || !touch || trainerUI.modal) return;
+  if (trainerShouldHandleBackSwipe(start.x, start.y, touch.clientX, touch.clientY, trainerUI.history.length)) trainerBack();
 }
 function trainerToast(message) {
   const toast = document.getElementById('trainerToast');
@@ -556,7 +602,8 @@ function trainerHandleClick(event) {
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
-    else if (action === 'edit-client-tag') trainerOpenModal('edit-client-tag', { id });
+    else if (action === 'edit-client-tag') { trainerUI.editingClientTag = id; trainerRender(); document.querySelector('[data-client-tag-input]')?.focus(); }
+    else if (action === 'cancel-client-tag') { trainerUI.editingClientTag = null; trainerRender(); }
     else if (action === 'open-chat') trainerGo('chat', { id });
     else if (action === 'client-from-chat') trainerGo('client', { id, tab: 'overview' });
     else if (action === 'toggle-task') { const task = trainerUI.tasks.find(item => item.id === id); if (task) { task.done = !task.done; trainerSaveWorkspace(); trainerRender(); } }
@@ -660,7 +707,7 @@ function trainerHandleSubmit(event) {
   const values = Object.fromEntries(formData);
   try {
     if (form.dataset.form === 'add-client') { const client = trainerStore.addClient(values); trainerGo('client', { id: client.id }); trainerToast('Карточка подопечного добавлена в демо-кабинет.'); }
-    else if (form.dataset.form === 'edit-client-tag') { trainerStore.saveClientTag(form.dataset.id, values.tag); trainerUI.modal = null; trainerRender(); trainerToast(values.tag.trim() ? 'Тег сохранён.' : 'В карточке снова показывается цель клиента.'); }
+    else if (form.dataset.form === 'edit-client-tag') { trainerStore.saveClientTag(form.dataset.id, values.tag); trainerUI.editingClientTag = null; trainerRender(); trainerToast(values.tag.trim() ? 'Тег сохранён.' : 'В карточке снова показывается цель клиента.'); }
     else if (form.dataset.form === 'create-task') {
       const title = values.title.trim();
       if (!title) throw new Error('Напиши название задачи.');
