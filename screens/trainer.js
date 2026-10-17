@@ -275,10 +275,12 @@ function trainerClientOverview(client, now = Date.now()) {
   const currentWeek = { start: trainerShiftDate(nextReportDate, -7), end: trainerShiftDate(nextReportDate, -1) };
   const workouts = Number(metrics.workoutCompleted) || 0;
   const workoutPlan = Number(metrics.workoutTarget) > 0 ? `${metrics.workoutTarget}` : null;
-  const weeklySummary = `<section class="trainer-card trainer-current-week"><div class="trainer-section-heading"><h2>Текущая неделя</h2></div><p class="trainer-current-week-range">${trainerPeriodLabel(currentWeek)}</p><div class="trainer-metrics-grid">
-      ${trainerMetric('Тренировки', workoutPlan ? `${workouts} из ${workoutPlan}` : 'План не задан')}${trainerMetric('Соблюдение питания', metrics.nutritionPercent == null ? 'Нет данных' : `${metrics.nutritionPercent}%`)}
-      ${trainerMetric('Изменение веса', trainerOverviewWeightChange(metrics.weightDelta))}${trainerMetric('Система тренировок', trainerProgramSystem(program))}
-      ${trainerMetric('Следующий отчёт', nextReportDate.split('-').reverse().join('.'))}
+  const clientState = trainerStore.clientState(client.id);
+  const clientStateLabel = trainerClientStateOptions.find(([value]) => value === clientState)?.[1] || 'Мало данных';
+  const weeklySummary = `<section class="trainer-card trainer-current-week"><div class="trainer-current-week-heading"><h2>Текущая неделя</h2><span class="trainer-current-week-range">${trainerPeriodLabel(currentWeek)}</span></div><div class="trainer-metrics-grid">
+      ${trainerMetric('Тренировки', workoutPlan ? `${workouts} из ${workoutPlan}` : 'План не задан')}<div class="trainer-metric"><span>Статус</span><strong class="trainer-client-status trainer-current-week-status is-${clientState}">${trainerEscape(clientStateLabel)}</strong></div>
+      ${trainerMetric('Соблюдение питания', metrics.nutritionPercent == null ? 'Нет данных' : `${metrics.nutritionPercent}%`)}${trainerMetric('Система тренировок', trainerProgramSystem(program))}
+      ${trainerMetric('Изменение веса', trainerOverviewWeightChange(metrics.weightDelta))}${trainerMetric('Следующий отчёт', nextReportDate.split('-').reverse().join('.'))}
     </div></section>`;
   const outstanding = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end));
   const lastReview = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && !trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end))[0];
@@ -328,15 +330,13 @@ function trainerClient() {
   if (!client) return trainerEmpty('Подопечный не найден', 'Вернитесь к списку подопечных.', trainerAction('navigate', 'Подопечные', { page: 'clients' }));
   const tab = trainerUI.route.tab || 'overview', weight = trainerLatestWeight(client);
   const tag = String(client.tag || '').trim() || client.goal;
-  const clientState = trainerStore.clientState(client.id);
-  const clientStateLabel = trainerClientStateOptions.find(([value]) => value === clientState)?.[1] || 'Мало данных';
   const editingTag = trainerUI.editingClientTag === client.id;
   const tagMarkup = editingTag
     ? `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><form class="trainer-client-tag-edit" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}"><input name="tag" data-client-tag-input maxlength="${trainerClientTagMaxLength}" value="${trainerEscape(tag)}" placeholder="до ${trainerClientTagMaxLength} символов" aria-label="Тег клиента"><button type="submit" aria-label="Сохранить тег">${trainerIcon('check')}</button><button type="button" data-action="cancel-client-tag" aria-label="Отменить изменение тега">${trainerIcon('close')}</button></form></div>`
     : `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><span class="trainer-client-tag-value">${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
   const weightSummary = weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`;
   const targetSummary = client.targetWeight != null ? ` → цель ${trainerNumber(client.targetWeight)} кг` : '';
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1><span class="trainer-client-status trainer-client-detail-status is-${clientState}">${trainerEscape(clientStateLabel)}</span>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
+  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
