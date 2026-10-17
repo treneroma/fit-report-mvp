@@ -202,6 +202,26 @@ test('свайп назад с левого края срабатывает то
   assert.equal(evaluate('trainerShouldHandleBackSwipe(20, 100, 100, 100, 1, true)'), false);
 });
 
+test('обзор клиента сводит тренировки, питание, вес, систему и дату следующего отчёта', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const summary = evaluate("trainerClientOverview(trainerStore.client('alexander'), Date.parse('2026-10-16T09:00:00Z'))");
+  assert.match(summary, /Текущая неделя/);
+  assert.match(summary, /11\.10\.2026 — 17\.10\.2026/);
+  assert.match(summary, /Тренировки[\s\S]*?3 из 3/);
+  assert.match(summary, /Соблюдение питания[\s\S]*?91%/);
+  assert.match(summary, /Изменение веса[\s\S]*?−400 г/);
+  assert.match(summary, /Система тренировок[\s\S]*?Full Body/);
+  assert.match(summary, /Следующий отчёт[\s\S]*?18\.10\.2026/);
+  assert.doesNotMatch(summary, /Средний RPE/);
+  assert.equal(evaluate("trainerProgramSystem(trainerStore.clientProgram('ilya'))"), 'Сплит');
+  assert.equal(evaluate("trainerOverviewWeightChange(1.2)"), '+1,2 кг');
+  assert.equal(evaluate("trainerOverviewWeightChange(-0.9)"), '−900 г');
+  const noNutrition = evaluate("trainerClientOverview(trainerStore.client('maxim'), Date.parse('2026-10-16T09:00:00Z'))");
+  assert.match(noNutrition, /Соблюдение питания[\s\S]*?Нет данных/);
+});
+
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
   const { store, storage, context } = fixture();
   store.saveProfile({ name: 'Новый тренер' });
