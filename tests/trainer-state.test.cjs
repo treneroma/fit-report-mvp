@@ -103,43 +103,65 @@ test('пустое состояние, добавление клиента и с
   assert.ok(store.state.clients.every(c => store.status(c.id) === 'ok'));
 });
 
-test('поиск клиентов сочетается со статусом и учитывает имена в любом порядке', () => {
+test('состояния клиентов вычисляются по данным недели и фильтры работают по состояниям', () => {
   const { context } = fixture();
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
   const ids = () => Array.from(evaluate('trainerFilteredClients().map(client => client.id)'));
   evaluate("trainerUI.search = '  ИВАНОВ   Александр  '");
   assert.deepEqual(ids(), ['alexander']);
-  evaluate("trainerUI.clientFilter = 'waiting'");
+  assert.deepEqual(Array.from(evaluate("trainerStore.state.clients.map(client => trainerStore.clientState(client.id))")), ['overload', 'plateau', 'off_plan', 'stable', 'stable', 'slump', 'stable']);
+  const progressing = evaluate("trainerStore.client('anna')");
+  progressing.goal = 'Снижение веса';
+  progressing.metrics.weightDelta = -0.3;
+  progressing.metrics.nutritionPercent = 95;
+  assert.equal(evaluate("trainerStore.clientState('anna')"), 'progress');
+  progressing.paused = true;
+  assert.equal(evaluate("trainerStore.clientState('anna')"), 'paused');
+  progressing.paused = false;
+  progressing.goal = 'Изменение состава тела';
+  progressing.metrics.weightDelta = -0.2;
+  evaluate("trainerUI.clientFilter = 'plateau'");
   assert.deepEqual(ids(), []);
-  evaluate("trainerUI.search = ''; trainerUI.clientFilter = 'attention'");
-  assert.equal(ids().length, 4);
-  assert.ok(ids().includes('maxim'));
-  evaluate("trainerStore.approveReview('recovery')");
-  assert.equal(ids().length, 3);
-  assert.ok(!ids().includes('alexander'));
-  evaluate("trainerUI.clientFilter = 'waiting'; trainerUI.search = 'силовых'");
-  assert.deepEqual(ids(), ['ilya']);
+  evaluate("trainerUI.search = ''; trainerUI.clientFilter = 'off_plan'");
+  assert.deepEqual(ids(), ['maxim']);
+  evaluate("trainerUI.clientFilter = 'stable'; trainerUI.search = 'орлов'");
+  assert.deepEqual(ids(), ['anna']);
   const added = evaluate("trainerStore.addClient({ name: 'Семён Воробьёв', goal: 'Поддержание формы' })");
-  evaluate("trainerUI.clientFilter = 'ok'; trainerUI.search = 'воробьев семен'");
+  assert.equal(evaluate(`trainerStore.clientState('${added.id}')`), 'low_data');
+  evaluate("trainerUI.clientFilter = 'low_data'; trainerUI.search = 'воробьев семен'");
   assert.deepEqual(ids(), [added.id]);
 });
 
-test('срок работы с клиентом считает годы, месяцы и полные недели', () => {
-  const { context, store, storage } = fixture();
+test('карточка клиента показывает один тег, допускает ручную замену и использует цель по умолчанию', () => {
+  const { context, storage } = fixture();
   vm.runInContext(uiSource, context);
-  context.tenureStorage = storage;
-  vm.runInContext("trainerStore.load(tenureStorage, 'test')", context);
-  const tenure = (joinedOn, today = '2026-10-17') => vm.runInContext(`trainerClientTenure({ joinedOn: '${joinedOn}' }, '${today}')`, context);
-  assert.equal(tenure('2026-10-10'), 'Занимается 1 неделя');
-  assert.equal(tenure('2026-08-17'), 'Занимается 2 месяца');
-  assert.equal(tenure('2025-08-17'), 'Занимается 1 год · 2 месяца');
-  assert.equal(tenure('2025-10-03'), 'Занимается 1 год · 2 недели');
-  assert.equal(tenure('2026-10-18'), 'Срок не указан');
-  assert.match(vm.runInContext("trainerClientCard(trainerStore.client('alexander'))", context), /Занимается 1 неделя/);
-  assert.ok(!vm.runInContext("trainerClientCard(trainerStore.client('alexander'))", context).includes('Снижение веса'));
-  const added = store.addClient({ name: 'Новый Клиент', goal: 'Набор массы' });
+  context.clientTagStorage = storage;
+  vm.runInContext("trainerStore.load(clientTagStorage, 'test')", context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const initialCard = evaluate("trainerClientCard(trainerStore.client('alexander'))");
+  assert.match(initialCard, /Александр Иванов/);
+  assert.match(initialCard, /Снижение веса/);
+  assert.match(initialCard, /Перегруз/);
+  assert.equal((initialCard.match(/class="trainer-client-status/g) || []).length, 1);
+  assert.doesNotMatch(initialCard, /Требует внимания|Всё хорошо|Ждёт решения/);
+  assert.doesNotMatch(initialCard, /Занимается/);
+  evaluate("trainerUI.modal = { type: 'add-client' }");
+  assert.match(evaluate('trainerModalMarkup()'), /maxlength="24"/);
+  const added = evaluate("trainerStore.addClient({ name: 'Новый Клиент', goal: 'Набор массы', tag: 'Старт в ноябре' })");
   assert.match(added.joinedOn, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(added.tag, 'Старт в ноябре');
+  assert.equal(evaluate(`trainerStore.clientState('${added.id}')`), 'low_data');
+  evaluate(`trainerUI.modal = { type: 'edit-client-tag', id: '${added.id}' }`);
+  assert.match(evaluate('trainerModalMarkup()'), /Старт в ноябре/);
+  evaluate(`trainerStore.saveClientTag('${added.id}', '')`);
+  assert.equal(added.tag, '');
+  assert.match(evaluate(`trainerClientCard(trainerStore.client('${added.id}'))`), /Набор массы/);
+  evaluate(`trainerStore.saveClientTag('${added.id}', 'К свадьбе')`);
+  assert.equal(added.tag, 'К свадьбе');
+  assert.match(evaluate(`trainerClientCard(trainerStore.client('${added.id}'))`), /К свадьбе/);
+  assert.throws(() => vm.runInContext(`trainerStore.saveClientTag('${added.id}', 'Подготовка к соревнованиям')`, context), /не длиннее 24 символов/);
+  assert.throws(() => vm.runInContext("trainerStore.addClient({ name: 'Слишком ДлинныйТег', goal: 'Цель', tag: 'x'.repeat(25) })", context), /не длиннее 24 символов/);
 });
 
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
