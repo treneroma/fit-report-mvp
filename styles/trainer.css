@@ -403,11 +403,11 @@
 .trainer-clients-list > li { min-width: 0; }
 #trainerScreen .trainer-client-card { display: grid; grid-template-columns: 34px minmax(0, 1fr) 12px; align-items: center; gap: 10px; min-height: 64px; padding: 9px 10px; border-radius: var(--trainer-radius-card); background: linear-gradient(120deg, rgba(255, 255, 255, .025), rgba(0, 0, 0, .15)), var(--surface); }
 .trainer-client-card .trainer-avatar { width: 34px; height: 36px; border-radius: 12px; border-color: rgba(255, 120, 70, .12); background: linear-gradient(145deg, #473022, #32271f); font-size: 14px; }
-.trainer-client-copy { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
-.trainer-client-primary { display: flex; align-items: center; justify-content: space-between; gap: 7px; min-width: 0; }
-.trainer-client-copy strong { flex: 1 1 auto; min-width: 0; overflow: hidden; font-size: clamp(13px, 3.6vw, 15px); line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-#trainerScreen .trainer-client-copy > small { overflow: hidden; color: var(--muted); font-size: 12px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.trainer-client-status { display: inline-flex; flex: 0 0 auto; justify-content: center; align-items: center; max-width: 46%; padding: 5px 7px; border: 1px solid currentColor; border-radius: 9px; font-size: clamp(10px, 2.8vw, 12px); line-height: 1.2; font-weight: 600; white-space: nowrap; }
+.trainer-client-copy { display: grid; grid-template-rows: 28px auto; row-gap: 1px; align-content: center; min-width: 0; }
+.trainer-client-primary { display: grid; grid-template-columns: minmax(0, 1fr) 112px; align-items: center; gap: 8px; min-width: 0; height: 28px; }
+.trainer-client-copy strong { min-width: 0; overflow: hidden; font-size: clamp(13px, 3.6vw, 15px); line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+#trainerScreen .trainer-client-copy > small { display: block; overflow: hidden; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.trainer-client-status { display: inline-flex; justify-content: center; align-items: center; width: 112px; height: 28px; padding: 0 5px; border: 1px solid currentColor; border-radius: 9px; font-size: clamp(10px, 2.8vw, 12px); line-height: 1; font-weight: 600; white-space: nowrap; }
 .trainer-client-status.is-progress { color: #79d965; background: rgba(121, 217, 101, .06); }
 .trainer-client-status.is-stable { color: #b9c8cf; background: rgba(185, 200, 207, .05); }
 .trainer-client-status.is-plateau { color: #ffda36; background: rgba(255, 218, 54, .06); }
@@ -619,7 +619,8 @@
   .trainer-client-footer { flex-wrap: wrap; }
   .trainer-attention-footer { align-items: flex-end; }
   #trainerScreen .trainer-client-card { grid-template-columns: 34px minmax(0, 1fr) 12px; gap: 8px; }
-  .trainer-client-status { max-width: 52%; padding: 4px 5px; }
+  .trainer-client-primary { grid-template-columns: minmax(0, 1fr) 96px; gap: 6px; }
+  .trainer-client-status { width: 96px; font-size: 10px; }
 }
 @media (max-width: 420px) {
   .trainer-header { margin-bottom: 10px; }
