@@ -115,7 +115,7 @@ function trainerNavigation() {
   let active = trainerUI.route.page;
   if (['client', 'memory'].includes(active)) active = 'clients';
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
-  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Разборы', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
+  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Отчёты', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
 function trainerReviewCard(review, compact = false) {
@@ -284,6 +284,7 @@ function trainerClientOverview(client, now = Date.now()) {
     </div></section>`;
   const outstanding = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end));
   const lastReview = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && !trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end))[0];
+  const incomingReports = trainerStore.state.reviews.filter(r => r.clientId === client.id && trainerStore.pending(r) && (r.kind === 'report' || /отч[её]т/i.test(`${r.type || ''} ${r.title || ''}`))).sort((a, b) => (b.occurredAt || '').localeCompare(a.occurredAt || ''));
   const summary = outstanding.length ? `Готов недельный разбор за ${trainerPeriodLabel(outstanding[0])}: тренировки, питание, вес и отчётные материалы.` : lastReview
     ? `Последний разбор завершён. Решение тренера: ${lastReview.note}` : client.programId
     ? 'Следующий недельный разбор появится по расписанию тренера, даже если клиент не внесёт данные.'
@@ -291,8 +292,7 @@ function trainerClientOverview(client, now = Date.now()) {
   return `${weeklySummary}
     <section class="trainer-card trainer-ai-summary"><div class="trainer-ai-summary-heading">${trainerIcon('ai')}<strong>TRENZO</strong><span>Вывод по данным</span></div><p>${trainerEscape(summary)}</p>
       ${outstanding.length ? trainerAction('review', 'Разобрать неделю', { id: outstanding[0].id }) : trainerAction('ai-client', 'Разобрать неделю', { id: client.id }, 'trainer-secondary-button')}</section>
-    ${outstanding.length ? `<section>${trainerSection('Открытые разборы', outstanding.length)}<div class="trainer-list">${outstanding.map(r => trainerReviewCard(r, true)).join('')}</div></section>` : ''}
-    ${trainerAction('memory', `${trainerIcon('memory')}<span><strong>Память TRENZO</strong><small>Факты и последние решения</small></span>${trainerIcon('arrow')}`, { id: client.id }, 'trainer-card trainer-link-card')}`;
+    <section>${trainerSection('Неразобранные отчёты', incomingReports.length)}${incomingReports.length ? `<div class="trainer-list">${incomingReports.map(r => trainerReviewCard(r, true)).join('')}</div>` : '<p class="trainer-muted">Новых отчётов от клиента пока нет.</p>'}</section>`;
 }
 function trainerClientTraining(client) {
   const program = trainerStore.clientProgram(client.id);
@@ -323,7 +323,8 @@ function trainerClientProgress(client) {
 }
 function trainerClientReports(client, type = null) {
   const reviews = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id).sort((a, b) => b.end.localeCompare(a.end));
-  return reviews.length ? `<section>${trainerSection('Недельные разборы', reviews.length)}<div class="trainer-list">${reviews.map(r => trainerReviewCard(r)).join('')}</div></section>` : trainerEmpty('Разборов пока нет', 'Первый недельный разбор появится по расписанию тренера.');
+  const reviewHistory = reviews.length ? `<section>${trainerSection('Недельные отчёты', reviews.length)}<div class="trainer-list">${reviews.map(r => trainerReviewCard(r)).join('')}</div></section>` : trainerEmpty('Недельных отчётов пока нет', 'Первый отчёт по неделе появится по расписанию тренера.');
+  return `${trainerAction('memory', `${trainerIcon('memory')}<span><strong>Память TRENZO</strong><small>Факты и последние решения</small></span>${trainerIcon('arrow')}`, { id: client.id }, 'trainer-card trainer-link-card')}${reviewHistory}`;
 }
 function trainerClient() {
   const client = trainerStore.client(trainerUI.route.id);
@@ -356,7 +357,7 @@ function trainerReviews() {
   const pendingCount = batch.filter(trainerStore.pending).length;
   const filtered = batch.filter(review => trainerUI.reviewFilter === 'all' || (trainerUI.reviewFilter === 'pending' ? trainerStore.pending(review) : !trainerStore.pending(review))).sort((a, b) => Number(trainerStore.pending(b)) - Number(trainerStore.pending(a)) || trainerFullName(trainerStore.client(a.clientId)).localeCompare(trainerFullName(trainerStore.client(b.clientId)), 'ru'));
   const next = trainerWeeklyPeriod(schedule), nextDate = trainerShiftDate(next.reviewDate, 7);
-  return `<div class="trainer-page-heading"><div class="trainer-weekly-title-row"><h1>Разборы</h1>${trainerAction('review-schedule', 'Расписание', {}, 'trainer-text-button')}</div><p>Каждый клиент · одна неделя · решение тренера</p></div><div class="trainer-weekly-schedule"><span>${trainerWeekdays[schedule.day]} · ${trainerEscape(schedule.time)} · ${trainerEscape(schedule.timeZone)}</span><small>Следующая очередь ${trainerDateLabel(nextDate)}: ${trainerPeriodLabel({ start: trainerShiftDate(nextDate, -7), end: trainerShiftDate(nextDate, -1) })}</small></div>${periods.length ? `<label class="trainer-field trainer-weekly-period">Период разбора<select data-review-period>${periods.map(item => `<option value="${item.start}" ${item.start === selected.start ? 'selected' : ''}>${trainerPeriodLabel(item)}</option>`).join('')}</select></label><p class="trainer-weekly-counter" role="status">Разобрано ${batch.length - pendingCount} из ${batch.length}</p>${trainerFilterTabs([['all', 'Все'], ['pending', `К разбору · ${pendingCount}`], ['done', 'Разобрано']], trainerUI.reviewFilter, 'review-filter')}<div class="trainer-list">${filtered.map(r => trainerWeeklyReviewCard(r)).join('') || trainerEmpty('В этом фильтре нет разборов', 'Смени фильтр, чтобы увидеть остальные карточки.')}</div>` : trainerEmpty('Разборов пока нет', trainerStore.state.clients.length ? 'Очередь за первую неделю появится по выбранному расписанию.' : 'Добавь клиентов. Для каждого появится отдельный недельный разбор.', trainerStore.state.clients.length ? '' : trainerAction('add-client', 'Добавить клиента'))}`;
+  return `<div class="trainer-page-heading"><div class="trainer-weekly-title-row"><h1>Отчёты</h1>${trainerAction('review-schedule', 'Расписание', {}, 'trainer-text-button')}</div><p>Каждый клиент · одна неделя · решение тренера</p></div><div class="trainer-weekly-schedule"><span>${trainerWeekdays[schedule.day]} · ${trainerEscape(schedule.time)} · ${trainerEscape(schedule.timeZone)}</span><small>Следующая очередь ${trainerDateLabel(nextDate)}: ${trainerPeriodLabel({ start: trainerShiftDate(nextDate, -7), end: trainerShiftDate(nextDate, -1) })}</small></div>${periods.length ? `<label class="trainer-field trainer-weekly-period">Период разбора<select data-review-period>${periods.map(item => `<option value="${item.start}" ${item.start === selected.start ? 'selected' : ''}>${trainerPeriodLabel(item)}</option>`).join('')}</select></label><p class="trainer-weekly-counter" role="status">Разобрано ${batch.length - pendingCount} из ${batch.length}</p>${trainerFilterTabs([['all', 'Все'], ['pending', `К разбору · ${pendingCount}`], ['done', 'Разобрано']], trainerUI.reviewFilter, 'review-filter')}<div class="trainer-list">${filtered.map(r => trainerWeeklyReviewCard(r)).join('') || trainerEmpty('В этом фильтре нет отчётов', 'Смени фильтр, чтобы увидеть остальные карточки.')}</div>` : trainerEmpty('Отчётов пока нет', trainerStore.state.clients.length ? 'Очередь за первую неделю появится по выбранному расписанию.' : 'Добавь клиентов. Для каждого появится отдельный недельный отчёт.', trainerStore.state.clients.length ? '' : trainerAction('add-client', 'Добавить клиента'))}`;
 }
 function trainerReview() {
   const review = trainerStore.review(trainerUI.route.id);
