@@ -183,12 +183,12 @@ test('профиль тренера показывает личные данны
   evaluate("trainerUI.modal = { type: 'edit-profile' }");
   const editModal = evaluate('trainerModalMarkup()');
   assert.doesNotMatch(editModal, /Ответы из анкеты/);
-  for (const specialty of ['Реабилитация', 'Похудение', 'Набор мышечной массы', 'Подготовка к выступлению']) {
-    assert.match(editModal, new RegExp(specialty));
-  }
-  assert.match(editModal, /name="specializations"/);
+  assert.match(editModal, /На чём специализируется тренер/);
+  assert.match(editModal, /Каждый пункт — с новой строки/);
+  assert.match(editModal, /textarea[^>]*name="specializations"/);
+  assert.doesNotMatch(editModal, /type="checkbox"/);
 
-  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', specializations: ['Реабилитация', 'Похудение'], education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
+  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', specializations: 'Реабилитация\\nПохудение\\n\\nПодготовка к выступлению', education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
   const updated = evaluate('trainerProfile()');
   assert.match(updated, /Анна Тренерова/);
   assert.match(updated, /Онлайн и офлайн/);
@@ -202,8 +202,8 @@ test('профиль тренера показывает личные данны
   restored.load(storage, 'test');
   assert.equal(restored.state.trainer.education, 'Университет\nКурс тренеров');
   assert.equal(restored.state.trainer.regalia, 'КМС\nЧемпион региона');
-  assert.deepEqual(Array.from(restored.state.trainer.specializations), ['Реабилитация', 'Похудение']);
-  assert.throws(() => restored.saveProfile({ name: 'Анна', specializations: ['Неизвестно'] }), /специализацию из списка/);
+  assert.deepEqual(Array.from(restored.state.trainer.specializations), ['Реабилитация', 'Похудение', 'Подготовка к выступлению']);
+  assert.throws(() => restored.saveProfile({ name: 'Анна', specializations: 'x'.repeat(1001) }), /длину специализаций/);
 });
 
 test('недельные границы учитывают день, время, год и часовой пояс', () => {
