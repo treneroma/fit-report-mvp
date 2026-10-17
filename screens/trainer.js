@@ -208,8 +208,8 @@ function trainerClientCard(client) {
   const label = trainerClientStateOptions.find(([value]) => value === status)?.[1] || 'Мало данных';
   const tag = String(client.tag || '').trim() || client.goal;
   return `<button type="button" class="trainer-card trainer-client-card" data-action="client" data-id="${client.id}" aria-label="Открыть подопечного ${trainerEscape(trainerFullName(client))}, статус: ${trainerEscape(label)}, тег: ${trainerEscape(tag)}">
-    ${trainerAvatar(client)}<span class="trainer-client-copy"><span class="trainer-client-primary"><strong>${trainerEscape(trainerFullName(client))}</strong><span class="trainer-client-status is-${status}">${label}</span></span><small>${trainerEscape(tag)}</small></span>
-    ${trainerIcon('arrow')}</button>`;
+    ${trainerAvatar(client)}<span class="trainer-client-copy"><strong>${trainerEscape(trainerFullName(client))}</strong><small>${trainerEscape(tag)}</small></span>
+    <span class="trainer-client-status is-${status}">${label}</span>${trainerIcon('arrow')}</button>`;
 }
 function trainerFilteredClients() {
   const normalize = text => text.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е');
