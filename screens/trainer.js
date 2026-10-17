@@ -285,13 +285,13 @@ function trainerClientOverview(client, now = Date.now()) {
   const outstanding = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end));
   const lastReview = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && !trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end))[0];
   const incomingReports = trainerStore.state.reviews.filter(r => r.clientId === client.id && trainerStore.pending(r) && (r.kind === 'report' || /отч[её]т/i.test(`${r.type || ''} ${r.title || ''}`))).sort((a, b) => (b.occurredAt || '').localeCompare(a.occurredAt || ''));
-  const summary = outstanding.length ? `Готов недельный разбор за ${trainerPeriodLabel(outstanding[0])}: тренировки, питание, вес и отчётные материалы.` : lastReview
-    ? `Последний разбор завершён. Решение тренера: ${lastReview.note}` : client.programId
-    ? 'Следующий недельный разбор появится по расписанию тренера, даже если клиент не внесёт данные.'
-    : 'Подопечный добавлен. Чтобы подготовить первый разбор, назначьте программу и дождитесь данных о тренировках и питании.';
+  const summary = outstanding.length ? `Готов недельный отчёт за ${trainerPeriodLabel(outstanding[0])}: тренировки, питание, вес и отчётные материалы.` : lastReview
+    ? `Последний отчёт проверен. Решение тренера: ${lastReview.note}` : client.programId
+    ? 'Следующий недельный отчёт появится по расписанию тренера, даже если клиент не внесёт данные.'
+    : 'Подопечный добавлен. Чтобы подготовить первый отчёт, назначьте программу и дождитесь данных о тренировках и питании.';
   return `${weeklySummary}
-    <section class="trainer-card trainer-ai-summary"><div class="trainer-ai-summary-heading">${trainerIcon('ai')}<strong>TRENZO</strong><span>Вывод по данным</span></div><p>${trainerEscape(summary)}</p>
-      ${outstanding.length ? trainerAction('review', 'Разобрать неделю', { id: outstanding[0].id }) : trainerAction('ai-client', 'Разобрать неделю', { id: client.id }, 'trainer-secondary-button')}</section>
+    <section class="trainer-card trainer-ai-summary"><div class="trainer-ai-summary-heading">${trainerIcon('ai')}<strong>AI TRENZO</strong><span>Вывод по данным</span></div><p>${trainerEscape(summary)}</p>
+      ${outstanding.length ? trainerAction('review', 'Проверить отчёт', { id: outstanding[0].id }) : trainerAction('ai-client', 'Проверить отчёт', { id: client.id }, 'trainer-secondary-button')}</section>
     <section>${trainerSection('Неразобранные отчёты', incomingReports.length)}${incomingReports.length ? `<div class="trainer-list">${incomingReports.map(r => trainerReviewCard(r, true)).join('')}</div>` : '<p class="trainer-muted">Новых отчётов от клиента пока нет.</p>'}</section>`;
 }
 function trainerClientTraining(client) {
