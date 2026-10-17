@@ -11,6 +11,7 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
 const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
+const trainerDemoTenureDays = { alexander: 7, maria: 60, maxim: 14, anna: 425, ilya: 365, ekaterina: 90, andrey: 730 };
 const trainerClientTagMaxLength = 24;
 const trainerClientStateOptions = [
   ['progress', 'Прогресс'], ['stable', 'Стабильно'], ['plateau', 'Застой'], ['slump', 'Просадка'],
@@ -223,7 +224,7 @@ function trainerCreateDemoData(now = Date.now()) {
   };
   clients.forEach(client => {
     const program = data.programs.find(item => item.id === client.programId);
-    client.joinedOn = trainerShiftDate(period.start, -35);
+    client.joinedOn = trainerDemoDate(trainerDemoTenureDays[client.id] ?? 0, now);
     client.planHistory = [{ effectiveOn: trainerShiftDate(period.start, -28), startWeek: 1, program: trainerCopy(program), nutritionTarget: trainerCopy(client.nutritionTarget) }];
     client.measurementHistory = [{ measured_on: period.end, ...client.measurements }];
     client.mediaReports = [];
@@ -374,8 +375,11 @@ function createTrainerStore() {
       };
       state.weeklyReviews ||= [];
       state.firstReviewStart ||= trainerWeeklyPeriod(state.trainer.reviewSchedule).start;
+      const legacyDemoJoinDate = trainerShiftDate(state.firstReviewStart, -35);
       state.clients.forEach(item => {
         delete item.metrics.sleep;
+        const demoTenure = trainerDemoTenureDays[item.id];
+        if (demoTenure != null && (!item.joinedOn || item.joinedOn === legacyDemoJoinDate)) item.joinedOn = trainerDemoDate(demoTenure);
         item.measurementHistory ||= []; item.mediaReports ||= [];
         // Старый прототип не сохранял историю назначений: не выдаём текущий план за прошлый.
         if (!item.planHistory) { item.planHistory = []; captureAssignment(item); }
