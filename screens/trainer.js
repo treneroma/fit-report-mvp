@@ -69,13 +69,18 @@ function trainerDashboardMetric(icon, value, label, center = false) {
   return `<div class="trainer-dashboard-metric trainer-dashboard-side"><div class="trainer-dashboard-side-gauge">${ring}${trainerDashboardIcon(icon)}</div><strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div>`;
 }
 function trainerHeader(title = '') {
+  const profileShortcut = `<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button>`;
+  if (trainerUI.route.page === 'today') {
+    return `<header class="trainer-header"><div class="trainer-header-brand"><div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div></div><div class="trainer-header-actions">${profileShortcut}</div></header>`;
+  }
   if (trainerUI.route.page === 'clients') {
     const count = trainerStore.state.clients.length;
     const plural = new Intl.PluralRules('ru-RU').select(count);
-    return `<header class="trainer-header trainer-clients-header"><h1>В команде ${count} ${plural === 'few' ? 'человека' : 'человек'}</h1><div class="trainer-header-actions">${trainerAction('add-client', `${trainerIcon('plus')}<span class="trainer-sr-only">Добавить подопечного</span>`, {}, 'trainer-clients-add')}<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div></header>`;
+    return `<header class="trainer-header trainer-clients-header"><h1>В команде ${count} ${plural === 'few' ? 'человека' : 'человек'}</h1><div class="trainer-header-actions">${trainerAction('add-client', `${trainerIcon('plus')}<span class="trainer-sr-only">Добавить подопечного</span>`, {}, 'trainer-clients-add')}</div></header>`;
   }
-  const detail = !['today', 'clients', 'reviews', 'programs', 'profile', 'analytics'].includes(trainerUI.route.page);
-  return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div><div class="trainer-header-actions"><button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div></header>`;
+  const detail = !['reviews', 'programs', 'profile', 'analytics'].includes(trainerUI.route.page);
+  if (!detail) return '';
+  return `<header class="trainer-header"><div class="trainer-header-brand">${trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button')}<span class="trainer-header-label">${trainerEscape(title)}</span></div></header>`;
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
