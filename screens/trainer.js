@@ -37,31 +37,21 @@ function trainerNumber(value, digits = 1) { return value == null ? '—' : Numbe
 function trainerDelta(value) { return value == null ? 'Нет измерений' : `${value > 0 ? '+' : value < 0 ? '−' : ''}${trainerNumber(Math.abs(value))} кг`; }
 function trainerFullName(client) { return `${client.name} ${client.surname || ''}`.trim(); }
 function trainerLatestWeight(client) { return client.weights.length ? client.weights[client.weights.length - 1].weight_kg : null; }
-function trainerAddCalendarMonths(date, months) {
-  const monthIndex = date.getUTCMonth() + months;
-  const year = date.getUTCFullYear() + Math.floor(monthIndex / 12);
-  const month = ((monthIndex % 12) + 12) % 12;
-  const day = Math.min(date.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
-  return new Date(Date.UTC(year, month, day));
-}
 function trainerClientTenure(client, today = trainerDemoDate()) {
   if (!client?.joinedOn) return 'Срок не указан';
-  const start = new Date(`${client.joinedOn}T12:00:00Z`), end = new Date(`${today}T12:00:00Z`);
-  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start > end) return 'Срок не указан';
-  let years = end.getUTCFullYear() - start.getUTCFullYear();
-  while (years > 0 && trainerAddCalendarMonths(start, years * 12) > end) years--;
-  let cursor = trainerAddCalendarMonths(start, years * 12);
-  let months = (end.getUTCFullYear() - cursor.getUTCFullYear()) * 12 + end.getUTCMonth() - cursor.getUTCMonth();
-  if (trainerAddCalendarMonths(cursor, months) > end) months--;
-  cursor = trainerAddCalendarMonths(cursor, months);
-  const remainingDays = trainerDayDistance(cursor.toISOString().slice(0, 10), today);
-  const weeks = Math.floor(remainingDays / 7), days = remainingDays % 7;
+  const totalDays = trainerDayDistance(client.joinedOn, today);
+  if (!Number.isFinite(totalDays) || totalDays < 0) return 'Срок не указан';
+  const totalWeeks = Math.round(totalDays / 7);
+  if (totalWeeks < 1) return 'меньше 1 нед';
+  const totalMonths = Math.floor(totalWeeks / 5);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  const weeks = totalWeeks % 5;
   const parts = [];
   if (years) parts.push(`${years} г`);
   if (months) parts.push(`${months} мес`);
   if (weeks) parts.push(`${weeks} нед`);
-  if (days) parts.push(`${days} дн`);
-  return parts.join(' ') || 'меньше 1 дн';
+  return parts.join(' ');
 }
 function trainerDateLabel(date) {
   if (!date) return 'Нет активности';
@@ -315,13 +305,15 @@ function trainerClient() {
   if (!client) return trainerEmpty('Подопечный не найден', 'Вернитесь к списку подопечных.', trainerAction('navigate', 'Подопечные', { page: 'clients' }));
   const tab = trainerUI.route.tab || 'overview', weight = trainerLatestWeight(client);
   const tag = String(client.tag || '').trim() || client.goal;
+  const clientState = trainerStore.clientState(client.id);
+  const clientStateLabel = trainerClientStateOptions.find(([value]) => value === clientState)?.[1] || 'Мало данных';
   const editingTag = trainerUI.editingClientTag === client.id;
   const tagMarkup = editingTag
-    ? `<form class="trainer-client-tag-edit" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}"><input name="tag" data-client-tag-input maxlength="${trainerClientTagMaxLength}" value="${trainerEscape(tag)}" placeholder="Тег · до ${trainerClientTagMaxLength} символов" aria-label="Тег клиента"><button type="submit" aria-label="Сохранить тег">${trainerIcon('check')}</button><button type="button" data-action="cancel-client-tag" aria-label="Отменить изменение тега">${trainerIcon('close')}</button></form>`
-    : `<div class="trainer-client-tag-row"><span>${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
+    ? `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><form class="trainer-client-tag-edit" data-form="edit-client-tag" data-id="${trainerEscape(client.id)}"><input name="tag" data-client-tag-input maxlength="${trainerClientTagMaxLength}" value="${trainerEscape(tag)}" placeholder="до ${trainerClientTagMaxLength} символов" aria-label="Тег клиента"><button type="submit" aria-label="Сохранить тег">${trainerIcon('check')}</button><button type="button" data-action="cancel-client-tag" aria-label="Отменить изменение тега">${trainerIcon('close')}</button></form></div>`
+    : `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><span class="trainer-client-tag-value">${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
   const weightSummary = weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`;
   const targetSummary = client.targetWeight != null ? ` → цель ${trainerNumber(client.targetWeight)} кг` : '';
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
+  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1><span class="trainer-client-status trainer-client-detail-status is-${clientState}">${trainerEscape(clientStateLabel)}</span>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
