@@ -165,24 +165,36 @@ test('все экраны рендерятся на обычных и пусты
   for (const page of pages) assert.equal(typeof evaluate(page), 'string');
 });
 
-test('профиль тренера показывает ответы анкеты, образование и регалии', () => {
+test('профиль тренера показывает личные данные, специализацию, образование и регалии', () => {
   const { context, storage } = fixture();
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
   context.profileStorage = storage;
   evaluate("trainerStore.load(profileStorage, 'test')");
   const initial = evaluate('trainerProfile()');
-  assert.match(initial, /Ответы из анкеты/);
+  assert.doesNotMatch(initial, /Ответы из анкеты/);
   assert.match(initial, /Формат работы/);
+  assert.match(initial, /Специализация/);
+  assert.match(initial, /Не указана\./);
   assert.match(initial, /Образование/);
   assert.match(initial, /Регалии/);
   assert.doesNotMatch(initial, /Настройки аккаунта|Расписание разборов|Данные примера|TRENZO AI/);
 
-  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
+  evaluate("trainerUI.modal = { type: 'edit-profile' }");
+  const editModal = evaluate('trainerModalMarkup()');
+  assert.doesNotMatch(editModal, /Ответы из анкеты/);
+  for (const specialty of ['Реабилитация', 'Похудение', 'Набор мышечной массы', 'Подготовка к выступлению']) {
+    assert.match(editModal, new RegExp(specialty));
+  }
+  assert.match(editModal, /name="specializations"/);
+
+  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', specializations: ['Реабилитация', 'Похудение'], education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
   const updated = evaluate('trainerProfile()');
   assert.match(updated, /Анна Тренерова/);
   assert.match(updated, /Онлайн и офлайн/);
   assert.match(updated, /7 лет/);
+  assert.match(updated, /Реабилитация/);
+  assert.match(updated, /Похудение/);
   assert.match(updated, /Курс тренеров/);
   assert.match(updated, /Чемпион региона/);
 
@@ -190,6 +202,8 @@ test('профиль тренера показывает ответы анкет
   restored.load(storage, 'test');
   assert.equal(restored.state.trainer.education, 'Университет\nКурс тренеров');
   assert.equal(restored.state.trainer.regalia, 'КМС\nЧемпион региона');
+  assert.deepEqual(Array.from(restored.state.trainer.specializations), ['Реабилитация', 'Похудение']);
+  assert.throws(() => restored.saveProfile({ name: 'Анна', specializations: ['Неизвестно'] }), /специализацию из списка/);
 });
 
 test('недельные границы учитывают день, время, год и часовой пояс', () => {
