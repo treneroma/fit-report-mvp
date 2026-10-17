@@ -152,8 +152,11 @@ test('карточка клиента показывает один тег, до
   assert.match(added.joinedOn, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(added.tag, 'Старт в ноябре');
   assert.equal(evaluate(`trainerStore.clientState('${added.id}')`), 'low_data');
-  evaluate(`trainerUI.modal = { type: 'edit-client-tag', id: '${added.id}' }`);
-  assert.match(evaluate('trainerModalMarkup()'), /Старт в ноябре/);
+  evaluate(`trainerUI.route = { page: 'client', id: '${added.id}' }; trainerUI.editingClientTag = '${added.id}'`);
+  const editingClient = evaluate('trainerClient()');
+  assert.match(editingClient, /data-form="edit-client-tag"/);
+  assert.match(editingClient, /value="Старт в ноябре"/);
+  assert.match(editingClient, /maxlength="24"/);
   evaluate(`trainerStore.saveClientTag('${added.id}', '')`);
   assert.equal(added.tag, '');
   assert.match(evaluate(`trainerClientCard(trainerStore.client('${added.id}'))`), /Набор массы/);
@@ -162,6 +165,37 @@ test('карточка клиента показывает один тег, до
   assert.match(evaluate(`trainerClientCard(trainerStore.client('${added.id}'))`), /К свадьбе/);
   assert.throws(() => vm.runInContext(`trainerStore.saveClientTag('${added.id}', 'Подготовка к соревнованиям')`, context), /не длиннее 24 символов/);
   assert.throws(() => vm.runInContext("trainerStore.addClient({ name: 'Слишком ДлинныйТег', goal: 'Цель', tag: 'x'.repeat(25) })", context), /не длиннее 24 символов/);
+});
+
+test('шапка клиента показывает тег, вес и срок занятий; срок форматируется календарно', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  evaluate("trainerUI.route = { page: 'client', id: 'alexander' }");
+  const card = evaluate('trainerClient()');
+  assert.match(card, /Александр Иванов/);
+  assert.match(card, /Снижение веса/);
+  assert.match(card, /Изменить тег/);
+  assert.match(card, /82,4 кг → цель 79,0 кг/);
+  assert.match(card, /Занимается: 1 нед/);
+  assert.doesNotMatch(card, /Перегруз|data-action="back"/);
+  assert.match(card, /Обзор/);
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-10-10' }, '2026-10-17')"), '1 нед');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-08-17' }, '2026-10-17')"), '2 мес');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2025-08-17' }, '2026-10-17')"), '1 г 2 мес');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2025-10-03' }, '2026-10-17')"), '1 г 2 нед');
+  assert.equal(evaluate("trainerClientTenure({ joinedOn: '2026-10-08' }, '2026-10-17')"), '1 нед 2 дн');
+});
+
+test('свайп назад с левого края срабатывает только для горизонтального жеста при наличии истории', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  assert.equal(evaluate('trainerShouldHandleBackSwipe(20, 100, 100, 120, 1)'), true);
+  assert.equal(evaluate('trainerShouldHandleBackSwipe(40, 100, 130, 100, 1)'), false);
+  assert.equal(evaluate('trainerShouldHandleBackSwipe(20, 100, 100, 180, 1)'), false);
+  assert.equal(evaluate('trainerShouldHandleBackSwipe(20, 100, 100, 100, 0)'), false);
+  assert.equal(evaluate('trainerShouldHandleBackSwipe(20, 100, 100, 100, 1, true)'), false);
 });
 
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
@@ -208,8 +242,7 @@ test('все экраны рендерятся на обычных и пусты
   evaluate("trainerUI.route = {page: 'profile'}");
   assert.equal(evaluate('trainerHeader()'), '');
   evaluate("trainerUI.route = {page: 'client', id: 'alexander'}");
-  assert.match(evaluate('trainerHeader(\'Подопечный\')'), /data-action="back"/);
-  assert.doesNotMatch(evaluate('trainerHeader(\'Подопечный\')'), /class="logo"|trainer-profile-shortcut/);
+  assert.equal(evaluate('trainerHeader(\'Подопечный\')'), '');
   assert.match(evaluate('trainerNavigation()'), /data-page="analytics"/);
   assert.doesNotMatch(evaluate('trainerNavigation()'), /data-page="analytics"[^>]*aria-current/);
   assert.doesNotMatch(evaluate('trainerNavigation()'), /data-page="profile"/);
