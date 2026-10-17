@@ -72,16 +72,16 @@ function trainerHeader(title = '') {
   if (trainerUI.route.page === 'clients') {
     const count = trainerStore.state.clients.length;
     const plural = new Intl.PluralRules('ru-RU').select(count);
-    return `<header class="trainer-header trainer-clients-header"><h1>В команде ${count} ${plural === 'few' ? 'человека' : 'человек'}</h1>${trainerAction('add-client', `${trainerIcon('plus')}<span class="trainer-sr-only">Добавить подопечного</span>`, {}, 'trainer-clients-add')}</header>`;
+    return `<header class="trainer-header trainer-clients-header"><h1>В команде ${count} ${plural === 'few' ? 'человека' : 'человек'}</h1><div class="trainer-header-actions">${trainerAction('add-client', `${trainerIcon('plus')}<span class="trainer-sr-only">Добавить подопечного</span>`, {}, 'trainer-clients-add')}<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div></header>`;
   }
-  const detail = !['today', 'clients', 'reviews', 'programs', 'profile'].includes(trainerUI.route.page);
+  const detail = !['today', 'clients', 'reviews', 'programs', 'profile', 'analytics'].includes(trainerUI.route.page);
   return `<header class="trainer-header"><div class="trainer-header-brand">${detail ? trainerAction('back', `${trainerIcon('back')}<span class="trainer-sr-only">Назад</span>`, {}, 'trainer-icon-button') : '<div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div>'}${detail ? `<span class="trainer-header-label">${trainerEscape(title)}</span>` : ''}</div><div class="trainer-header-actions"><button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button></div></header>`;
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
   if (['client', 'memory'].includes(active)) active = 'clients';
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
-  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Разборы', 'reviews'], ['programs', 'Схемы', 'programs'], ['profile', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
+  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Разборы', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
 function trainerReviewCard(review, compact = false) {
@@ -404,6 +404,9 @@ function trainerProfile() {
     <section class="trainer-card trainer-profile-section"><h2>Образование</h2>${trainerProfileEntries(profile.education, 'Пока не добавлено.')}</section>
     <section class="trainer-card trainer-profile-section"><h2>Регалии</h2>${trainerProfileEntries(profile.regalia, 'Пока не добавлены.')}</section>`;
 }
+function trainerAnalytics() {
+  return `<div class="trainer-page-heading"><h1>Аналитика</h1><p>Раздел в разработке.</p></div>${trainerEmpty('Здесь будет аналитика', 'Позже добавим графики и динамику результатов клиентов.')}`;
+}
 function trainerAIAnswer(question, clientId = null) {
   const query = question.toLocaleLowerCase('ru-RU');
   const client = trainerStore.client(clientId) || trainerStore.state.clients.find(c => query.includes(c.name.toLocaleLowerCase('ru-RU').slice(0, -1)));
@@ -497,9 +500,9 @@ function trainerStart() {
 function trainerRender() {
   trainerStore.ensureWeeklyReviews();
   const page = trainerUI.route.page;
-  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, ai: trainerAI };
+  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
   const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
-  const hasNav = ['today', 'tasks', 'chats', 'income', 'clients', 'client', 'memory', 'reviews', 'programs', 'profile'].includes(page);
+  const hasNav = ['today', 'tasks', 'chats', 'income', 'clients', 'client', 'memory', 'reviews', 'programs', 'profile', 'analytics'].includes(page);
   const root = document.getElementById('trainerScreen');
   root.innerHTML = `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`;
   root.querySelectorAll('.trainer-filter-tabs').forEach(tabs => {
