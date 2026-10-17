@@ -35,6 +35,20 @@ function trainerAction(action, text, values = {}, className = 'trainer-button') 
 }
 function trainerNumber(value, digits = 1) { return value == null ? '—' : Number(value).toLocaleString('ru-RU', { maximumFractionDigits: digits, minimumFractionDigits: digits }); }
 function trainerDelta(value) { return value == null ? 'Нет измерений' : `${value > 0 ? '+' : value < 0 ? '−' : ''}${trainerNumber(Math.abs(value))} кг`; }
+function trainerOverviewWeightChange(value) {
+  if (value == null || !Number.isFinite(Number(value))) return 'Нет данных';
+  const amount = Number(value), sign = amount > 0 ? '+' : amount < 0 ? '−' : '';
+  return Math.abs(amount) > 0 && Math.abs(amount) < 1
+    ? `${sign}${Math.round(Math.abs(amount) * 1000)} г`
+    : `${sign}${trainerNumber(Math.abs(amount))} кг`;
+}
+function trainerProgramSystem(program) {
+  if (!program) return 'Не назначена';
+  const title = String(program.title || '').toLocaleLowerCase('ru-RU');
+  if (/full\s*body|фулл\s*боди|все тело|всё тело/.test(title)) return 'Full Body';
+  if (/upper|lower|сплит/.test(title)) return 'Сплит';
+  return 'Не определена';
+}
 function trainerFullName(client) { return `${client.name} ${client.surname || ''}`.trim(); }
 function trainerLatestWeight(client) { return client.weights.length ? client.weights[client.weights.length - 1].weight_kg : null; }
 function trainerClientTenure(client, today = trainerDemoDate()) {
@@ -252,18 +266,27 @@ function trainerClients() {
     <p class="trainer-sr-only" id="trainerClientResults" role="status">Найдено: ${trainerFilteredClients().length}</p>
     <ul class="trainer-list trainer-clients-list" id="trainerClientList" aria-label="Клиенты">${trainerClientListMarkup()}</ul>`;
 }
-function trainerClientOverview(client) {
+function trainerClientOverview(client, now = Date.now()) {
   const metrics = client.metrics;
+  const program = trainerStore.clientProgram(client.id);
+  const schedule = trainerStore.state.trainer.reviewSchedule;
+  const lastScheduledReview = trainerWeeklyPeriod(schedule, now);
+  const nextReportDate = trainerShiftDate(lastScheduledReview.reviewDate, 7);
+  const currentWeek = { start: trainerShiftDate(nextReportDate, -7), end: trainerShiftDate(nextReportDate, -1) };
+  const workouts = Number(metrics.workoutCompleted) || 0;
+  const workoutPlan = Number(metrics.workoutTarget) > 0 ? `${metrics.workoutTarget}` : null;
+  const weeklySummary = `<section class="trainer-card trainer-current-week"><div class="trainer-section-heading"><h2>Текущая неделя</h2></div><p class="trainer-current-week-range">${trainerPeriodLabel(currentWeek)}</p><div class="trainer-metrics-grid">
+      ${trainerMetric('Тренировки', workoutPlan ? `${workouts} из ${workoutPlan}` : 'План не задан')}${trainerMetric('Соблюдение питания', metrics.nutritionPercent == null ? 'Нет данных' : `${metrics.nutritionPercent}%`)}
+      ${trainerMetric('Изменение веса', trainerOverviewWeightChange(metrics.weightDelta))}${trainerMetric('Система тренировок', trainerProgramSystem(program))}
+      ${trainerMetric('Следующий отчёт', nextReportDate.split('-').reverse().join('.'))}
+    </div></section>`;
   const outstanding = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end));
   const lastReview = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && !trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end))[0];
   const summary = outstanding.length ? `Готов недельный разбор за ${trainerPeriodLabel(outstanding[0])}: тренировки, питание, вес и отчётные материалы.` : lastReview
     ? `Последний разбор завершён. Решение тренера: ${lastReview.note}` : client.programId
     ? 'Следующий недельный разбор появится по расписанию тренера, даже если клиент не внесёт данные.'
     : 'Подопечный добавлен. Чтобы подготовить первый разбор, назначьте программу и дождитесь данных о тренировках и питании.';
-  return `<section class="trainer-card">${trainerSection('Последние 7 дней')}<div class="trainer-metrics-grid">
-      ${trainerMetric('Тренировки', `${metrics.workoutCompleted} / ${metrics.workoutTarget || '—'}`)}${trainerMetric('Изменение веса', trainerDelta(metrics.weightDelta))}
-      ${trainerMetric('Питание', metrics.nutritionPercent == null ? '—' : `${metrics.nutritionPercent}%`)}${trainerMetric('Средний RPE', metrics.rpe == null ? '—' : trainerNumber(metrics.rpe))}
-    </div></section>
+  return `${weeklySummary}
     <section class="trainer-card trainer-ai-summary"><div class="trainer-ai-summary-heading">${trainerIcon('ai')}<strong>TRENZO</strong><span>Вывод по данным</span></div><p>${trainerEscape(summary)}</p>
       ${outstanding.length ? trainerAction('review', 'Разобрать неделю', { id: outstanding[0].id }) : trainerAction('ai-client', 'Разобрать неделю', { id: client.id }, 'trainer-secondary-button')}</section>
     ${outstanding.length ? `<section>${trainerSection('Открытые разборы', outstanding.length)}<div class="trainer-list">${outstanding.map(r => trainerReviewCard(r, true)).join('')}</div></section>` : ''}
