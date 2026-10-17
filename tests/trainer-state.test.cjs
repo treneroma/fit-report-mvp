@@ -143,7 +143,7 @@ test('все экраны рендерятся на обычных и пусты
   const { context } = fixture();
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
-  const pages = ['trainerToday()', 'trainerClients()', 'trainerReviews()', 'trainerPrograms()', 'trainerProfile()', 'trainerAI()'];
+  const pages = ['trainerToday()', 'trainerClients()', 'trainerReviews()', 'trainerPrograms()', 'trainerProfile()', 'trainerAnalytics()', 'trainerAI()'];
   for (const page of pages) assert.equal(typeof evaluate(page), 'string');
   for (const tab of ['overview', 'training', 'nutrition', 'progress', 'reports']) {
     evaluate(`trainerUI.route = {page: 'client', id: 'alexander', tab: '${tab}'}`);
@@ -158,6 +158,14 @@ test('все экраны рендерятся на обычных и пусты
   assert.match(evaluate('trainerMemory()'), /4 раза в неделю/);
   evaluate("trainerUI.route = {page: 'program-new', mode: 'ai'}"); assert.match(evaluate('trainerProgramNew()'), /Собрать программу/);
   evaluate("trainerUI.draft = trainerCopy(trainerStore.program('fullbody'))"); assert.match(evaluate('trainerProgramEditor()'), /Сохранить программу/);
+  evaluate("trainerUI.route = {page: 'profile'}");
+  assert.match(evaluate('trainerHeader()'), /data-page="profile"/);
+  assert.match(evaluate('trainerNavigation()'), /data-page="analytics"/);
+  assert.doesNotMatch(evaluate('trainerNavigation()'), /data-page="analytics"[^>]*aria-current/);
+  assert.doesNotMatch(evaluate('trainerNavigation()'), /data-page="profile"/);
+  evaluate("trainerUI.route = {page: 'analytics'}");
+  assert.match(evaluate('trainerNavigation()'), /data-page="analytics" aria-current="page"/);
+  assert.match(evaluate('trainerAnalytics()'), /Здесь будет аналитика/);
   const factsCount = evaluate("trainerStore.review('plateau').facts.length");
   evaluate("trainerAIAnswer('Что изменилось у Марии за месяц?')");
   assert.equal(evaluate("trainerStore.review('plateau').facts.length"), factsCount);
