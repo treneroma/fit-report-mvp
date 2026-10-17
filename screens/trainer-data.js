@@ -11,9 +11,12 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
 const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
+const trainerSpecializationOptions = [
+  'Реабилитация', 'Похудение', 'Набор мышечной массы', 'Подготовка к выступлению'
+];
 const trainerDefaultProfile = {
   name: 'Роман', surname: '', trainingFormat: 'Онлайн', experience: '',
-  education: '', regalia: '', notifications: true
+  specializations: [], education: '', regalia: '', notifications: true
 };
 function trainerShiftDate(date, days) {
   const value = new Date(`${date}T12:00:00Z`);
@@ -315,6 +318,7 @@ function createTrainerStore() {
       state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
       const savedTrainer = state.trainer;
       const oldSpecialization = String(savedTrainer.specialization || '').toLocaleLowerCase('ru-RU');
+      const legacySpecialization = trainerSpecializationOptions.find(item => item.toLocaleLowerCase('ru-RU') === oldSpecialization);
       state.trainer = {
         ...trainerDefaultProfile,
         ...savedTrainer,
@@ -323,6 +327,9 @@ function createTrainerStore() {
             oldSpecialization.includes('онлайн') ? 'Онлайн' :
               oldSpecialization.includes('офлайн') ? 'Офлайн' : ''
         ),
+        specializations: Array.isArray(savedTrainer.specializations)
+          ? [...new Set(savedTrainer.specializations.filter(item => trainerSpecializationOptions.includes(item)))]
+          : legacySpecialization ? [legacySpecialization] : [],
         experience: savedTrainer.experience || '',
         education: savedTrainer.education || '',
         regalia: savedTrainer.regalia || ''
@@ -426,10 +433,14 @@ function createTrainerStore() {
       const experience = String(values.experience ?? state.trainer.experience ?? '').trim();
       const education = String(values.education ?? state.trainer.education ?? '').trim();
       const regalia = String(values.regalia ?? state.trainer.regalia ?? '').trim();
+      const specializations = Array.isArray(values.specializations)
+        ? [...new Set(values.specializations)]
+        : state.trainer.specializations || [];
       if (!name || name.length > 50 || surname.length > 50) throw new Error('Проверь имя и фамилию тренера.');
       if (!['', 'Онлайн', 'Офлайн', 'Онлайн и офлайн'].includes(trainingFormat)) throw new Error('Выбери формат работы.');
+      if (specializations.some(item => !trainerSpecializationOptions.includes(item))) throw new Error('Выбери специализацию из списка.');
       if (experience.length > 120 || education.length > 2000 || regalia.length > 2000) throw new Error('Проверь длину полей профиля.');
-      state.trainer = { ...state.trainer, name, surname, trainingFormat, experience, education, regalia }; persist();
+      state.trainer = { ...state.trainer, name, surname, trainingFormat, experience, specializations, education, regalia }; persist();
     },
     reset(mode = 'demo') {
       state = trainerCreateDemoData();
