@@ -386,13 +386,19 @@ function trainerProfileEntries(value, emptyText) {
     ? `<ul class="trainer-profile-items">${entries.map(item => `<li>${trainerEscape(item)}</li>`).join('')}</ul>`
     : `<p class="trainer-profile-empty">${trainerEscape(emptyText)}</p>`;
 }
+function trainerSpecializationMarkup(values = []) {
+  return values.length
+    ? `<div class="trainer-profile-specialization-tags">${values.map(value => `<span>${trainerEscape(value)}</span>`).join('')}</div>`
+    : '<p class="trainer-profile-empty">Не указана.</p>';
+}
 function trainerProfile() {
   const profile = trainerStore.state.trainer;
   const fullName = [profile.name, profile.surname].filter(Boolean).join(' ');
   return `<div class="trainer-page-heading"><h1>Профиль тренера</h1></div>
     <section class="trainer-card trainer-profile-summary">
-      <div class="trainer-profile-identity">${trainerAvatar({ name: profile.name, surname: profile.surname }, true)}<div><span class="trainer-profile-overline">Ответы из анкеты</span><h2>${trainerEscape(fullName)}</h2></div></div>
+      <div class="trainer-profile-identity">${trainerAvatar({ name: profile.name, surname: profile.surname }, true)}<div><h2>${trainerEscape(fullName)}</h2></div></div>
       <dl class="trainer-profile-facts"><div><dt>Формат работы</dt><dd>${trainerEscape(profile.trainingFormat || 'Не указан')}</dd></div><div><dt>Опыт</dt><dd>${trainerEscape(profile.experience || 'Не указан')}</dd></div></dl>
+      <div class="trainer-profile-specializations"><span>Специализация</span>${trainerSpecializationMarkup(profile.specializations || [])}</div>
       ${trainerAction('edit-profile', 'Редактировать профиль', {}, 'trainer-secondary-button')}
     </section>
     <section class="trainer-card trainer-profile-section"><h2>Образование</h2>${trainerProfileEntries(profile.education, 'Пока не добавлено.')}</section>
@@ -437,11 +443,12 @@ function trainerModalMarkup() {
   } else if (modal.type === 'edit-profile') {
     title = 'Профиль тренера'; const p = trainerStore.state.trainer;
     content = `<form class="trainer-form" data-form="profile">
-      <fieldset class="trainer-profile-edit-group"><legend>Ответы из анкеты</legend>
+      <fieldset class="trainer-profile-edit-group"><legend>Личные данные</legend>
         <div class="trainer-form-grid">${trainerField('Имя', 'name', p.name, { required: true, maxlength: 50 })}${trainerField('Фамилия', 'surname', p.surname, { maxlength: 50 })}</div>
         <label class="trainer-field">Формат работы<select name="trainingFormat"><option value="" ${!p.trainingFormat ? 'selected' : ''}>Не указан</option><option value="Онлайн" ${p.trainingFormat === 'Онлайн' ? 'selected' : ''}>Онлайн</option><option value="Офлайн" ${p.trainingFormat === 'Офлайн' ? 'selected' : ''}>Офлайн</option><option value="Онлайн и офлайн" ${p.trainingFormat === 'Онлайн и офлайн' ? 'selected' : ''}>Онлайн и офлайн</option></select></label>
         ${trainerField('Опыт', 'experience', p.experience, { maxlength: 120, extra: 'placeholder="Например, 5 лет"' })}
       </fieldset>
+      <fieldset class="trainer-profile-edit-group trainer-specialization-group"><legend>Специализация</legend><p>Можно выбрать несколько направлений.</p><div class="trainer-specialization-options">${trainerSpecializationOptions.map((item, index) => `<label class="trainer-specialization-option"><input type="checkbox" name="specializations" value="${trainerEscape(item)}" ${p.specializations?.includes(item) ? 'checked' : ''}><span>${trainerEscape(item)}</span></label>`).join('')}</div></fieldset>
       <fieldset class="trainer-profile-edit-group"><legend>Образование</legend>${trainerField('Учебные заведения, курсы, квалификация', 'education', p.education, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
       <fieldset class="trainer-profile-edit-group"><legend>Регалии</legend>${trainerField('Достижения, звания, награды', 'regalia', p.regalia, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
       <p class="trainer-form-error" role="alert"></p><button class="trainer-button" type="submit">Сохранить профиль</button></form>`;
@@ -634,7 +641,9 @@ function trainerHandleSubmit(event) {
     if (invalid?.closest('details')) invalid.closest('details').open = true;
   }
   if (!form.reportValidity()) return;
-  const values = Object.fromEntries(new FormData(form));
+  const formData = new FormData(form);
+  const values = Object.fromEntries(formData);
+  if (form.dataset.form === 'profile') values.specializations = formData.getAll('specializations');
   try {
     if (form.dataset.form === 'add-client') { const client = trainerStore.addClient(values); trainerGo('client', { id: client.id }); trainerToast('Карточка подопечного добавлена в демо-кабинет.'); }
     else if (form.dataset.form === 'create-task') {
