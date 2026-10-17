@@ -11,9 +11,6 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
 const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
-const trainerSpecializationOptions = [
-  'Реабилитация', 'Похудение', 'Набор мышечной массы', 'Подготовка к выступлению'
-];
 const trainerDefaultProfile = {
   name: 'Роман', surname: '', trainingFormat: 'Онлайн', experience: '',
   specializations: [], education: '', regalia: '', notifications: true
@@ -318,7 +315,9 @@ function createTrainerStore() {
       state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
       const savedTrainer = state.trainer;
       const oldSpecialization = String(savedTrainer.specialization || '').toLocaleLowerCase('ru-RU');
-      const legacySpecialization = trainerSpecializationOptions.find(item => item.toLocaleLowerCase('ru-RU') === oldSpecialization);
+      const legacySpecializations = oldSpecialization && !oldSpecialization.includes('онлайн') && !oldSpecialization.includes('офлайн')
+        ? String(savedTrainer.specialization).split(/\r?\n/).map(item => item.trim()).filter(Boolean)
+        : [];
       state.trainer = {
         ...trainerDefaultProfile,
         ...savedTrainer,
@@ -328,8 +327,8 @@ function createTrainerStore() {
               oldSpecialization.includes('офлайн') ? 'Офлайн' : ''
         ),
         specializations: Array.isArray(savedTrainer.specializations)
-          ? [...new Set(savedTrainer.specializations.filter(item => trainerSpecializationOptions.includes(item)))]
-          : legacySpecialization ? [legacySpecialization] : [],
+          ? [...new Set(savedTrainer.specializations.map(item => String(item).trim()).filter(Boolean))]
+          : legacySpecializations,
         experience: savedTrainer.experience || '',
         education: savedTrainer.education || '',
         regalia: savedTrainer.regalia || ''
@@ -433,12 +432,15 @@ function createTrainerStore() {
       const experience = String(values.experience ?? state.trainer.experience ?? '').trim();
       const education = String(values.education ?? state.trainer.education ?? '').trim();
       const regalia = String(values.regalia ?? state.trainer.regalia ?? '').trim();
-      const specializations = Array.isArray(values.specializations)
-        ? [...new Set(values.specializations)]
-        : state.trainer.specializations || [];
+      const specializationLines = Array.isArray(values.specializations)
+        ? values.specializations
+        : typeof values.specializations === 'string'
+          ? values.specializations.split(/\r?\n/)
+          : state.trainer.specializations || [];
+      const specializations = [...new Set(specializationLines.map(item => String(item).trim()).filter(Boolean))];
       if (!name || name.length > 50 || surname.length > 50) throw new Error('Проверь имя и фамилию тренера.');
       if (!['', 'Онлайн', 'Офлайн', 'Онлайн и офлайн'].includes(trainingFormat)) throw new Error('Выбери формат работы.');
-      if (specializations.some(item => !trainerSpecializationOptions.includes(item))) throw new Error('Выбери специализацию из списка.');
+      if (specializations.join('\n').length > 1000 || specializations.some(item => item.length > 120)) throw new Error('Проверь длину специализаций.');
       if (experience.length > 120 || education.length > 2000 || regalia.length > 2000) throw new Error('Проверь длину полей профиля.');
       state.trainer = { ...state.trainer, name, surname, trainingFormat, experience, specializations, education, regalia }; persist();
     },
