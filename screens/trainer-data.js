@@ -11,7 +11,45 @@ function trainerDemoDate(daysAgo = 0, now = Date.now()) {
 function trainerCopy(value) { return JSON.parse(JSON.stringify(value)); }
 
 const trainerDefaultReviewSchedule = { day: 0, time: '18:00', timeZone: 'Europe/Moscow' };
-const trainerDemoTenureDays = { alexander: 7, maria: 60, maxim: 14, anna: 425, ilya: 365, ekaterina: 90, andrey: 730 };
+const trainerClientTagMaxLength = 24;
+const trainerClientStateOptions = [
+  ['progress', 'Прогресс'], ['stable', 'Стабильно'], ['plateau', 'Застой'], ['slump', 'Просадка'],
+  ['off_plan', 'Сбился с плана'], ['overload', 'Перегруз'], ['paused', 'Пауза'], ['low_data', 'Мало данных']
+];
+function trainerCalculateClientState(client, now = Date.now()) {
+  if (!client) return 'low_data';
+  if (client.paused === true) return 'paused';
+  const metrics = client.metrics || {};
+  const hasTrainingData = Number(metrics.workoutTarget) > 0;
+  const hasNutritionData = Number.isFinite(metrics.nutritionPercent);
+  const hasWeightData = Number.isFinite(metrics.weightDelta);
+  if (!hasTrainingData && !hasNutritionData && !hasWeightData && !(client.workouts || []).length) return 'low_data';
+
+  const today = trainerScheduleClock(trainerDefaultReviewSchedule, now).date;
+  const daysSinceActivity = client.activityDate ? trainerDayDistance(client.activityDate, today) : null;
+  if (daysSinceActivity !== null && daysSinceActivity >= 21) return 'paused';
+  if (Number(metrics.rpe) >= 8.5) return 'overload';
+  if (daysSinceActivity !== null && daysSinceActivity >= 7) return 'off_plan';
+
+  if (!hasTrainingData) return 'low_data';
+  const target = Number(metrics.workoutTarget);
+  const completed = Math.max(0, Number(metrics.workoutCompleted) || 0);
+  if (completed === 0 && target > 0) return 'off_plan';
+  const adherence = completed / target;
+  if (adherence < 0.5) return 'off_plan';
+
+  const goal = String(client.goal || '').toLocaleLowerCase('ru-RU');
+  const weightGoal = /снижен|похуд|массы|мышечн/.test(goal);
+  const direction = /снижен|похуд/.test(goal) ? -1 : 1;
+  const weightChange = Number(metrics.weightDelta);
+  if (weightGoal && hasWeightData && adherence >= 0.8 && Number(metrics.nutritionPercent) >= 80) {
+    if (Math.abs(weightChange) <= 0.1) return 'plateau';
+    if (weightChange * direction > 0) return 'progress';
+    if (weightChange * direction < -0.1) return 'slump';
+  }
+  if (adherence < 0.8 || (hasNutritionData && Number(metrics.nutritionPercent) < 80)) return 'slump';
+  return 'stable';
+}
 const trainerDefaultProfile = {
   name: 'Роман', surname: '', trainingFormat: 'Онлайн', experience: '',
   specializations: [], education: '', regalia: '', notifications: true
@@ -109,7 +147,6 @@ function trainerCreateDemoData(now = Date.now()) {
   ];
   const clients = specs.map(([id, name, surname, goal, weight, target, delta, completed, planned, nutrition, rpe, programId], index) => ({
     id, name, surname, goal, targetWeight: target, currentWeek: 5, totalWeeks: programId.startsWith('fullbody') ? 6 : 8,
-    joinedOn: trainerDemoDate(trainerDemoTenureDays[id], now),
     activityDate: trainerDemoDate(id === 'maxim' ? 8 : 0, now),
     metrics: { workoutCompleted: completed, workoutTarget: planned, weightDelta: delta, nutritionPercent: nutrition, rpe },
     programId, programCompleted: completed, programOverrides: {}, equipment: 'Тренажёрный зал',
@@ -186,6 +223,7 @@ function trainerCreateDemoData(now = Date.now()) {
   };
   clients.forEach(client => {
     const program = data.programs.find(item => item.id === client.programId);
+    client.joinedOn = trainerShiftDate(period.start, -35);
     client.planHistory = [{ effectiveOn: trainerShiftDate(period.start, -28), startWeek: 1, program: trainerCopy(program), nutritionTarget: trainerCopy(client.nutritionTarget) }];
     client.measurementHistory = [{ measured_on: period.end, ...client.measurements }];
     client.mediaReports = [];
@@ -336,11 +374,8 @@ function createTrainerStore() {
       };
       state.weeklyReviews ||= [];
       state.firstReviewStart ||= trainerWeeklyPeriod(state.trainer.reviewSchedule).start;
-      const legacyDemoJoinDate = trainerShiftDate(state.firstReviewStart, -35);
       state.clients.forEach(item => {
         delete item.metrics.sleep;
-        const demoTenure = trainerDemoTenureDays[item.id];
-        if (demoTenure != null && (!item.joinedOn || item.joinedOn === legacyDemoJoinDate)) item.joinedOn = trainerDemoDate(demoTenure);
         item.measurementHistory ||= []; item.mediaReports ||= [];
         // Старый прототип не сохранял историю назначений: не выдаём текущий план за прошлый.
         if (!item.planHistory) { item.planHistory = []; captureAssignment(item); }
@@ -387,6 +422,7 @@ function createTrainerStore() {
       })));
       return result;
     },
+    clientState(id, now = Date.now()) { return trainerCalculateClientState(client(id), now); },
     saveProgram(draft) {
       if (!draft.title?.trim() || draft.title.length > 100 || !Array.isArray(draft.weeks) || !draft.weeks.length || draft.weeks.length > 12) throw new Error('Укажи название и от 1 до 12 недель программы.');
       draft.weeks.forEach(week => {
@@ -421,13 +457,23 @@ function createTrainerStore() {
     addClient(values) {
       if (!values.name?.trim() || !values.goal?.trim()) throw new Error('Укажи имя и цель подопечного.');
       const [name, ...surname] = values.name.trim().split(/\s+/);
+      const tag = String(values.tag || '').trim();
+      if (tag.length > trainerClientTagMaxLength) throw new Error(`Тег должен быть не длиннее ${trainerClientTagMaxLength} символов.`);
       const id = `client-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const item = { id, name, surname: surname.join(' '), goal: values.goal.trim(), targetWeight: null, currentWeek: 0, totalWeeks: 0, activityDate: null,
-        joinedOn: trainerDemoDate(),
+      const item = { id, name, surname: surname.join(' '), goal: values.goal.trim(), tag, targetWeight: null, currentWeek: 0, totalWeeks: 0, activityDate: null,
+        joinedOn: trainerScheduleClock(state.trainer.reviewSchedule).date,
         metrics: { workoutCompleted: 0, workoutTarget: 0, weightDelta: null, nutritionPercent: null, rpe: null },
         programId: null, programCompleted: 0, programOverrides: {}, equipment: 'Не указано', restrictions: 'Не указаны', preferences: 'Не указаны',
         weights: [], nutrition: [], nutritionTarget: null, workouts: [], measurements: {}, measurementHistory: [], mediaReports: [], planHistory: [], records: [], decisions: [] };
       state.clients.push(item); persist(); return item;
+    },
+    saveClientTag(clientId, value) {
+      const item = client(clientId);
+      if (!item) throw new Error('Подопечный не найден.');
+      const tag = String(value || '').trim();
+      if (tag.length > trainerClientTagMaxLength) throw new Error(`Тег должен быть не длиннее ${trainerClientTagMaxLength} символов.`);
+      item.tag = tag;
+      persist();
     },
     saveProfile(values) {
       const name = typeof values.name === 'string' ? values.name.trim() : '';
