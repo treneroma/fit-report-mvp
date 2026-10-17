@@ -448,7 +448,7 @@ function trainerModalMarkup() {
         <label class="trainer-field">Формат работы<select name="trainingFormat"><option value="" ${!p.trainingFormat ? 'selected' : ''}>Не указан</option><option value="Онлайн" ${p.trainingFormat === 'Онлайн' ? 'selected' : ''}>Онлайн</option><option value="Офлайн" ${p.trainingFormat === 'Офлайн' ? 'selected' : ''}>Офлайн</option><option value="Онлайн и офлайн" ${p.trainingFormat === 'Онлайн и офлайн' ? 'selected' : ''}>Онлайн и офлайн</option></select></label>
         ${trainerField('Опыт', 'experience', p.experience, { maxlength: 120, extra: 'placeholder="Например, 5 лет"' })}
       </fieldset>
-      <fieldset class="trainer-profile-edit-group trainer-specialization-group"><legend>Специализация</legend><p>Можно выбрать несколько направлений.</p><div class="trainer-specialization-options">${trainerSpecializationOptions.map((item, index) => `<label class="trainer-specialization-option"><input type="checkbox" name="specializations" value="${trainerEscape(item)}" ${p.specializations?.includes(item) ? 'checked' : ''}><span>${trainerEscape(item)}</span></label>`).join('')}</div></fieldset>
+      <fieldset class="trainer-profile-edit-group trainer-specialization-group"><legend>Специализация</legend>${trainerField('На чём специализируется тренер', 'specializations', (p.specializations || []).join('\n'), { multiline: true, maxlength: 1000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
       <fieldset class="trainer-profile-edit-group"><legend>Образование</legend>${trainerField('Учебные заведения, курсы, квалификация', 'education', p.education, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
       <fieldset class="trainer-profile-edit-group"><legend>Регалии</legend>${trainerField('Достижения, звания, награды', 'regalia', p.regalia, { multiline: true, maxlength: 2000, extra: 'placeholder="Каждый пункт — с новой строки"' })}</fieldset>
       <p class="trainer-form-error" role="alert"></p><button class="trainer-button" type="submit">Сохранить профиль</button></form>`;
@@ -643,7 +643,6 @@ function trainerHandleSubmit(event) {
   if (!form.reportValidity()) return;
   const formData = new FormData(form);
   const values = Object.fromEntries(formData);
-  if (form.dataset.form === 'profile') values.specializations = formData.getAll('specializations');
   try {
     if (form.dataset.form === 'add-client') { const client = trainerStore.addClient(values); trainerGo('client', { id: client.id }); trainerToast('Карточка подопечного добавлена в демо-кабинет.'); }
     else if (form.dataset.form === 'create-task') {
