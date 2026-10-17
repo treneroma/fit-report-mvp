@@ -174,8 +174,8 @@ test('шапка клиента показывает тег, вес и срок 
   evaluate("trainerUI.route = { page: 'client', id: 'alexander' }");
   const card = evaluate('trainerClient()');
   assert.match(card, /Александр Иванов/);
-  assert.match(card, /trainer-client-detail-status is-overload/);
-  assert.match(card, /Перегруз/);
+  const profileHeader = card.slice(0, card.indexOf('</section>'));
+  assert.doesNotMatch(profileHeader, /trainer-client-status|Перегруз/);
   assert.match(card, /# Тег:/);
   assert.match(card, /Снижение веса/);
   assert.match(card, /Изменить тег/);
@@ -209,7 +209,13 @@ test('обзор клиента сводит тренировки, питани�
   const summary = evaluate("trainerClientOverview(trainerStore.client('alexander'), Date.parse('2026-10-16T09:00:00Z'))");
   assert.match(summary, /Текущая неделя/);
   assert.match(summary, /11\.10\.2026 — 17\.10\.2026/);
+  assert.match(summary, /Текущая неделя[\s\S]*?trainer-current-week-range/);
+  const metricOrder = ['Тренировки', 'Статус', 'Соблюдение питания', 'Система тренировок', 'Изменение веса', 'Следующий отчёт'];
+  const metricPositions = metricOrder.map(label => summary.indexOf(`>${label}<`));
+  assert.ok(metricPositions.every(position => position >= 0));
+  assert.deepEqual(metricPositions, [...metricPositions].sort((a, b) => a - b));
   assert.match(summary, /Тренировки[\s\S]*?3 из 3/);
+  assert.match(summary, /Статус[\s\S]*?Перегруз/);
   assert.match(summary, /Соблюдение питания[\s\S]*?91%/);
   assert.match(summary, /Изменение веса[\s\S]*?−400 г/);
   assert.match(summary, /Система тренировок[\s\S]*?Full Body/);
