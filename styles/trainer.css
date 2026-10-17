@@ -442,6 +442,8 @@
 .trainer-client-tag-edit > button { flex-basis: 34px; width: 34px; height: 34px; background: var(--trainer-soft-accent); }
 .trainer-client-meta { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; color: var(--muted); font-size: var(--text-caption); line-height: 1.35; font-variant-numeric: tabular-nums; }
 .trainer-client-meta > span { min-width: 0; }
+.trainer-client-heading + .trainer-filter-tabs { gap: 4px; margin: -2px 0; padding: 2px 0; }
+.trainer-client-heading + .trainer-filter-tabs button { min-height: 38px; padding: 6px 8px; }
 .trainer-tab-content { display: flex; flex-direction: column; gap: 24px; }
 .trainer-metrics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; row-gap: 20px; }
 .trainer-metric { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
