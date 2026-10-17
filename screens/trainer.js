@@ -227,7 +227,7 @@ function trainerClientListMarkup() {
 function trainerClients() {
   return !trainerStore.state.clients.length ? trainerEmpty('Добавьте первого подопечного', 'Начните с имени и цели. Отчёты появятся после подключения клиента.', `${trainerAction('add-client', 'Добавить подопечного')}${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}`) : `
     <label class="trainer-search">${trainerIcon('search')}<input type="search" placeholder="Найти подопечного" aria-label="Найти подопечного" maxlength="100" value="${trainerEscape(trainerUI.search)}" data-search></label>
-    <p class="trainer-clients-state-note">Состояние рассчитывается автоматически по тренировкам, питанию, динамике веса и активности.</p>
+    <p class="trainer-clients-state-note">Статус считается автоматически по данным недели.</p>
     ${trainerFilterTabs([['all', 'Все'], ...trainerClientStateOptions], trainerUI.clientFilter, 'client-filter')}
     <p class="trainer-sr-only" id="trainerClientResults" role="status">Найдено: ${trainerFilteredClients().length}</p>
     <ul class="trainer-list trainer-clients-list" id="trainerClientList" aria-label="Клиенты">${trainerClientListMarkup()}</ul>`;
