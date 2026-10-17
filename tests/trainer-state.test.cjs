@@ -228,6 +228,30 @@ test('обзор клиента сводит тренировки, питани�
   assert.match(noNutrition, /Соблюдение питания[\s\S]*?Нет данных/);
 });
 
+test('навигация показывает Отчёты, а обзор клиента отдельно считает входящие отчёты', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const nav = evaluate("trainerUI.route = { page: 'reviews' }; trainerNavigation()");
+  assert.match(nav, />Отчёты</);
+  assert.doesNotMatch(nav, />Разборы</);
+
+  evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'overview' }");
+  const alexander = evaluate('trainerClient()');
+  assert.match(alexander, /Неразобранные отчёты<span class="trainer-count">0<\/span>/);
+  assert.match(alexander, /Новых отчётов от клиента пока нет/);
+  assert.doesNotMatch(alexander, /trainer-link-card[\s\S]*?Память TRENZO/);
+
+  evaluate("trainerUI.route = { page: 'client', id: 'ekaterina', tab: 'overview' }");
+  const ekaterina = evaluate('trainerClient()');
+  assert.match(ekaterina, /Неразобранные отчёты<span class="trainer-count">1<\/span>/);
+  assert.match(ekaterina, /Отчёт недели/);
+
+  evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'reports' }");
+  const reports = evaluate('trainerClient()');
+  assert.match(reports, /trainer-link-card[\s\S]*?Память TRENZO/);
+});
+
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
   const { store, storage, context } = fixture();
   store.saveProfile({ name: 'Новый тренер' });
