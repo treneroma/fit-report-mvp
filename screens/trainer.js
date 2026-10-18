@@ -80,7 +80,18 @@ function trainerRelative(date) {
   if (minutes < 1440) return `${Math.floor(minutes / 60)} ч назад`;
   return trainerDateLabel(date);
 }
-function trainerAvatar(client, large = false) { return `<span class="trainer-avatar${large ? ' is-large' : ''}" aria-hidden="true">${trainerEscape(client.name[0] || '')}${trainerEscape(client.surname?.[0] || '')}</span>`; }
+function trainerAvatar(client, large = false) {
+  const answers = client.questionnaire || client.athleteAnswers || client.profileAnswers || {};
+  const sex = answers.sex ?? client.sex;
+  const placeholder = sex === 'male' ? 'assets/client-avatar-male.png' : sex === 'female' ? 'assets/client-avatar-female.png' : '';
+  let photo = '';
+  try {
+    const url = new URL(client.avatarUrl || client.avatar_url);
+    if (url.protocol === 'https:') photo = url.href;
+  } catch { /* Без загруженного аватара показываем изображение по полу или инициалы. */ }
+  const image = source => `<img src="${trainerEscape(source)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`;
+  return `<span class="trainer-avatar${large ? ' is-large' : ''}" aria-hidden="true">${trainerEscape(client.name?.[0] || '')}${trainerEscape(client.surname?.[0] || '')}${placeholder ? image(placeholder) : ''}${photo ? image(photo) : ''}</span>`;
+}
 function trainerBadge(status, review = false) { return `<span class="trainer-badge is-${status}">${trainerEscape((review ? trainerReviewLabels : trainerStatusLabels)[status])}</span>`; }
 function trainerTags(tags) { return `<div class="trainer-tags">${tags.map(tag => `<span>${trainerEscape(tag)}</span>`).join('')}</div>`; }
 function trainerSection(title, count, link = '') { return `<div class="trainer-section-heading"><h2>${trainerEscape(title)}${count != null ? `<span class="trainer-count">${count}</span>` : ''}</h2>${link}</div>`; }
@@ -525,7 +536,7 @@ function trainerClient() {
     : `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><span class="trainer-client-tag-value">${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
   const weightSummary = weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`;
   const targetSummary = client.targetWeight != null ? ` → цель ${trainerNumber(client.targetWeight)} кг` : '';
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div>${trainerAction('client-questionnaire', `${trainerIcon('reviews')}<span>Анкета</span>`, { id: client.id }, 'trainer-questionnaire-button')}</section>
+  return `<section class="trainer-client-heading"><div class="trainer-client-identity">${trainerAvatar(client, true)}${trainerAction('client-questionnaire', `${trainerIcon('reviews')}<span>Анкета</span>`, { id: client.id }, 'trainer-questionnaire-button')}</div><div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
