@@ -12,7 +12,6 @@
 .report-person-row strong, .report-person-row small { display: block; overflow-wrap: anywhere; }
 .report-person-row .trainer-avatar { width: 44px; height: 44px; }
 .report-person-row small { margin-top: 3px; }
-.report-person-row .report-period-compact { display: none; }
 .report-name-row { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
 .report-name-row > strong { min-width: 0; }
 .report-name-row .trainer-client-status { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; max-width: none; padding: 4px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: var(--text-support); line-height: 1.25; text-align: center; white-space: nowrap; }
@@ -108,14 +107,6 @@
 #trainerScreen .report-reason { font-size: var(--text-support); color: var(--muted); line-height: 1.5; }
 .report-delivery { display: flex; flex-direction: column; gap: 14px; }
 .report-delivery p { white-space: pre-wrap; overflow-wrap: anywhere; }
-@media (max-width: 480px) {
-  .report-inbox-card .report-person-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; align-items: center; }
-  .report-inbox-card .report-name-row { display: contents; }
-  .report-inbox-card .report-name-row > strong { grid-column: 1 / -1; grid-row: 1; }
-  .report-inbox-card .report-name-row > .trainer-client-status { grid-column: 2; grid-row: 2; }
-  .report-inbox-card .report-person-copy .report-period-full { display: none; }
-  .report-inbox-card .report-person-copy .report-period-compact { display: block; grid-column: 1; grid-row: 2; margin: 0; }
-}
 @media (max-width: 359px) {
   .report-person-row { gap: 8px; }
   .report-person-row .trainer-avatar { width: 36px; height: 36px; }
