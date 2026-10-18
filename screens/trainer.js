@@ -113,7 +113,7 @@ function trainerHeader(title = '') {
 }
 function trainerNavigation() {
   let active = trainerUI.route.page;
-  if (['client', 'memory'].includes(active)) active = 'clients';
+  if (['client', 'client-questionnaire', 'memory'].includes(active)) active = 'clients';
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
   if (active === 'review') active = 'reviews';
   if (['program', 'program-new', 'program-edit'].includes(active)) active = trainerUI.route.clientId ? 'clients' : 'programs';
@@ -405,15 +405,115 @@ function trainerWeightChart(client) {
   return `<svg class="trainer-weight-chart" viewBox="0 0 324 160" role="img" aria-label="Вес: ${trainerNumber(values[0])} → ${trainerNumber(values[values.length - 1])} килограмма за четыре недели"><path class="trainer-chart-grid" d="M26 32H298M26 76H298M26 120H298"/><polyline points="${points.map(p => p.join(',')).join(' ')}"/>${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4"/>`).join('')}<text x="26" y="149">${trainerDateLabel(client.weights[0].measured_on)}</text><text x="298" y="149" text-anchor="end">${trainerDateLabel(client.weights[client.weights.length - 1].measured_on)}</text><text x="298" y="22" text-anchor="end">${trainerNumber(values[values.length - 1])} кг</text></svg>`;
 }
 function trainerClientProgress(client) {
+  const measurementKeys = [['waist_cm', 'Талия'], ['chest_cm', 'Грудь'], ['hips_cm', 'Бёдра']];
+  const measurementHistory = (client.measurementHistory || []).slice().sort((a, b) => b.measured_on.localeCompare(a.measured_on));
+  const latestMeasurements = measurementKeys.map(([key, label]) => {
+    const source = measurementHistory.find(entry => entry[key] != null && Number.isFinite(Number(entry[key]))) || client.measurements || {};
+    return { label, value: source[key], date: source.measured_on };
+  }).filter(item => Number.isFinite(Number(item.value)));
+  const measurementMarkup = latestMeasurements.length
+    ? `<div class="trainer-measurement-list">${latestMeasurements.map(item => `<div><span>${item.label}</span><strong>${trainerNumber(item.value)} см</strong>${item.date ? `<small>${trainerDateLabel(item.date)}</small>` : ''}</div>`).join('')}</div>`
+    : '<p class="trainer-muted">Замеры ещё не внесены.</p>';
+  const personalRecords = (client.records || []).slice(0, 5);
+  const recordMarkup = personalRecords.length
+    ? `<div class="trainer-facts trainer-record-list">${personalRecords.map(record => `<div><span>${trainerEscape(record.exercise)}</span><strong>${trainerEscape(record.value)}</strong></div>`).join('')}</div>`
+    : '<p class="trainer-muted">Рекорды появятся после тренировок.</p>';
+  const streak = trainerWorkoutStreak(client);
+  const streakWord = streak.count % 10 === 1 && streak.count % 100 !== 11 ? 'неделя' : streak.count % 10 >= 2 && streak.count % 10 <= 4 && (streak.count % 100 < 12 || streak.count % 100 > 14) ? 'недели' : 'недель';
   return `<section class="trainer-card">${trainerSection('Динамика веса')}<div class="trainer-metric-inline"><strong>${trainerLatestWeight(client) == null ? '—' : `${trainerNumber(trainerLatestWeight(client))} кг`}</strong><span>${trainerDelta(client.metrics.weightDelta)} за неделю</span></div>${trainerWeightChart(client)}</section>
-    <section class="trainer-card">${trainerSection('Последние замеры')}<div class="trainer-metrics-grid">${Object.entries(client.measurements).map(([key, value]) => trainerMetric({ waist_cm: 'Талия', chest_cm: 'Грудь', hips_cm: 'Бёдра' }[key], `${value} см`)).join('') || '<p class="trainer-muted">Замеры ещё не внесены.</p>'}</div></section>
-    <section class="trainer-card">${trainerSection('Личные рекорды')}<div class="trainer-facts">${client.records.map(record => `<div><span>${trainerEscape(record.exercise)}</span><strong>${trainerEscape(record.value)}</strong></div>`).join('') || '<p class="trainer-muted">Рекорды появятся после тренировок.</p>'}</div></section>
-    <section class="trainer-card">${trainerSection('Выполнение тренировок')}<p class="trainer-metric-inline"><strong>${client.metrics.workoutCompleted} / ${client.metrics.workoutTarget || '—'}</strong><span>за последние 7 дней</span></p></section>`;
+    <section class="trainer-card">${trainerSection('Последние замеры')}<div>${measurementMarkup}</div></section>
+    <section class="trainer-card">${trainerSection('Топ-5 личных рекордов')}<div>${recordMarkup}</div></section>
+    <section class="trainer-card">${trainerSection('Недели без пропусков')}<p class="trainer-metric-inline"><strong>${streak.hasData ? streak.count : '—'}</strong><span>${streak.hasData ? `${streakWord} подряд` : 'Нет завершённых недель'}</span></p>${streak.hasData ? '<p class="trainer-muted trainer-streak-note">Все запланированные тренировки выполнены</p>' : ''}</section>`;
 }
-function trainerClientReports(client, type = null) {
-  const reviews = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id).sort((a, b) => b.end.localeCompare(a.end));
-  const reviewHistory = reviews.length ? `<section>${trainerSection('Недельные отчёты', reviews.length)}<div class="trainer-list">${reviews.map(r => trainerReviewCard(r)).join('')}</div></section>` : trainerEmpty('Недельных отчётов пока нет', 'Первый отчёт по неделе появится по расписанию тренера.');
-  return `${trainerAction('memory', `${trainerIcon('memory')}<span><strong>Память TRENZO</strong><small>Факты и последние решения</small></span>${trainerIcon('arrow')}`, { id: client.id }, 'trainer-card trainer-link-card')}${reviewHistory}`;
+function trainerWorkoutStreak(client, now = Date.now()) {
+  const schedule = trainerStore.state.trainer.reviewSchedule;
+  const activeStart = trainerWeeklyPeriod(schedule, now).reviewDate;
+  let count = 0, checkedWeeks = 0;
+  for (let offset = 1; offset <= 520; offset += 1) {
+    const start = trainerShiftDate(activeStart, -offset * 7), end = trainerShiftDate(start, 6);
+    // Первая неделя учитывается только если клиент был в команде с её начала;
+    // частичная неделя после подключения не должна давать ложную серию.
+    if (client.joinedOn && client.joinedOn > start) break;
+    const savedPlan = (client.weekPlans || []).find(item => item.start === start)?.plan;
+    const plan = savedPlan || trainerPlanAt(client, start);
+    const sessions = plan?.sessions || [];
+    if (!sessions.length) break;
+    checkedWeeks += 1;
+    const workouts = client.workouts.filter(workout => workout.workout_date >= start && workout.workout_date <= end);
+    if (!sessions.every(session => trainerSessionWorkout(session, sessions, workouts))) break;
+    count += 1;
+  }
+  return { count, hasData: checkedWeeks > 0 };
+}
+function trainerClientReportHistory(client) {
+  const reports = trainerStore.state.weeklyReviews.filter(review => review.clientId === client.id).sort((a, b) => a.start.localeCompare(b.start));
+  const periods = [...new Map(reports.map(review => [review.start, { start: review.start, end: review.end, reports: [] }])).values()];
+  periods.forEach((period, index) => {
+    period.number = index + 1;
+    period.reports = reports.filter(report => report.start === period.start);
+  });
+  return periods.reverse();
+}
+function trainerClientReportCard(review) {
+  const label = trainerStore.pending(review) ? 'Не разобран' : 'Проверен';
+  return trainerAction('review', `<span class="trainer-client-report-copy"><strong>Отчёт за ${trainerPeriodLabel(review)}</strong><small>${label}</small></span>${trainerIcon('arrow')}`, { id: review.id }, 'trainer-card trainer-client-report-item');
+}
+function trainerClientReports(client) {
+  const reviews = trainerStore.state.weeklyReviews.filter(review => review.clientId === client.id).sort((a, b) => b.end.localeCompare(a.end));
+  const pending = reviews.filter(trainerStore.pending);
+  const schedule = trainerStore.state.trainer.reviewSchedule;
+  const latestSchedule = trainerWeeklyPeriod(schedule);
+  const today = trainerScheduleClock(schedule).date;
+  const nextReport = latestSchedule.reviewDate > today ? latestSchedule.reviewDate : trainerShiftDate(latestSchedule.reviewDate, 7);
+  const currentReportBlock = pending.length
+    ? `<section class="trainer-card trainer-client-current-report">${trainerSection('Неразобранные отчёты', pending.length)}${trainerClientReportCard(pending[0])}</section>`
+    : `<section class="trainer-card trainer-client-current-report"><span class="trainer-client-report-label">Следующий отчёт</span><strong>${nextReport.split('-').reverse().join('.')}</strong><small>${schedule.time} · ${schedule.timeZone}</small></section>`;
+  const periods = trainerClientReportHistory(client);
+  const selected = periods.find(period => period.start === trainerUI.reportHistoryWeeks[client.id]) || periods[0];
+  const options = periods.map(period => `<option value="${period.start}" ${period.start === selected?.start ? 'selected' : ''}>Неделя ${period.number} · ${trainerPeriodLabel(period)}</option>`).join('');
+  const history = periods.length
+    ? `<label class="trainer-field trainer-client-report-filter">Неделя<select data-report-history-week aria-label="Неделя истории отчётов">${options}</select></label><div class="trainer-list">${selected.reports.map(trainerClientReportCard).join('')}</div>`
+    : '<p class="trainer-muted">История появится после первого отчёта.</p>';
+  return `${currentReportBlock}<section>${trainerSection('История отчётов', reviews.length || 0)}${history}</section>`;
+}
+function trainerQuestionnaireValue(field, value) {
+  const labels = {
+    sex: { male: 'Мужской', female: 'Женский', unspecified: 'Предпочитаю не указывать' },
+    goal: { lose: 'Снизить вес', muscle: 'Набрать мышечную массу', recomp: 'Изменить состав тела', strength: 'Увеличить силовые показатели', fitness: 'Улучшить физическую форму', other: 'Другая цель' },
+    experience: { new: 'Только начинаю', under1: 'До 1 года', '1to3': 'От 1 до 3 лет', '3to5': 'От 3 до 5 лет', '5plus': 'Более 5 лет' },
+    recentTraining: { none: 'Почти не тренировался', irregular: 'Нерегулярно', '1to2': '1–2 раза в неделю', '3plus': '3 и более раз в неделю', program: 'Регулярно по программе' },
+    duration: { under45: 'До 45 минут', '45to60': '45–60 минут', '60to90': '60–90 минут', over90: 'Более 90 минут' },
+    nutritionTracking: { regular: 'Да, регулярно', sometimes: 'Иногда', no: 'Нет, не слежу' },
+    nutritionWilling: { yes: 'Да', maybe: 'Скорее да', no: 'Пока нет' },
+    meals: { '1to2': '1–2 раза', '3': '3 раза', '4': '4 раза', '5plus': '5 раз и более', varies: 'Каждый день по-разному' },
+    trainingMode: { coach: 'С тренером', alone: 'Самостоятельно', none: 'Пока не тренируюсь' },
+    programStatus: { has: 'Есть программа', no: 'Программы нет', create: 'Хочу составить программу' }
+  };
+  if (labels[field]?.[value]) return labels[field][value];
+  if (field === 'frequency' && /^\d+$/.test(String(value))) return `${value} ${Number(value) === 1 ? 'раз' : 'раза'} в неделю`;
+  if (field === 'age') return `${value} лет`;
+  if (field === 'height') return `${value} см`;
+  if (['weight', 'targetWeight'].includes(field)) return `${trainerNumber(value)} кг`;
+  if (field === 'months') return `${value} мес.`;
+  return String(value);
+}
+function trainerClientQuestionnaire(client) {
+  const answers = client.questionnaire || client.athleteAnswers || client.profileAnswers || {};
+  const groups = [
+    ['О клиенте', [['name', 'Имя'], ['age', 'Возраст'], ['sex', 'Пол'], ['height', 'Рост'], ['weight', 'Вес']]],
+    ['Цель и результат', [['goal', 'Основная цель'], ['targetWeight', 'Желаемый вес'], ['result', 'Желаемый результат'], ['months', 'Срок достижения']]],
+    ['Тренировки', [['experience', 'Опыт тренировок'], ['recentTraining', 'Тренировки за последние 3 месяца'], ['frequency', 'Тренировок в неделю'], ['duration', 'Длительность тренировки'], ['trainingMode', 'Формат занятий'], ['programStatus', 'Тренировочная программа']]],
+    ['Питание', [['nutritionTracking', 'Трекинг питания'], ['nutritionWilling', 'Готовность вести дневник'], ['meals', 'Приёмов пищи в день'], ['nutritionNotes', 'Особенности питания']]],
+    ['Ограничения', [['restrictions', 'Здоровье и ограничения']]]
+  ];
+  const knownAnswers = groups.flatMap(([, fields]) => fields).filter(([field]) => answers[field] != null && String(answers[field]).trim());
+  const sections = groups.map(([title, fields]) => {
+    const rows = fields.filter(([field]) => answers[field] != null && String(answers[field]).trim()).map(([field, label]) => `<div><dt>${label}</dt><dd>${trainerEscape(trainerQuestionnaireValue(field, answers[field]))}</dd></div>`).join('');
+    return rows ? `<section class="trainer-card trainer-questionnaire-section">${trainerSection(title)}<dl class="trainer-facts">${rows}</dl></section>` : '';
+  }).join('');
+  const available = [['Цель в карточке', client.goal], ['Место тренировок', client.equipment], ['Предпочтения', client.preferences], ['Ограничения в карточке', client.restrictions]].filter(([, value]) => value && !['Не указано', 'Не указаны', 'Без специальных предпочтений'].includes(value));
+  const clientContext = available.length ? `<section class="trainer-card trainer-questionnaire-section">${trainerSection('Дополнительно в карточке')}<dl class="trainer-facts">${available.map(([label, value]) => `<div><dt>${label}</dt><dd>${trainerEscape(value)}</dd></div>`).join('')}</dl></section>` : '';
+  return `<div class="trainer-page-heading"><p class="trainer-kicker">${trainerEscape(trainerFullName(client))}</p><h1>Анкета клиента</h1><p>Ответы, сохранённые в профиле клиента.</p></div>${knownAnswers.length ? sections : trainerEmpty('Ответы анкеты не подключены', 'В этой демо-карточке пока нет сохранённых ответов клиента.')}${clientContext}`;
 }
 function trainerClient() {
   const client = trainerStore.client(trainerUI.route.id);
@@ -426,7 +526,7 @@ function trainerClient() {
     : `<div class="trainer-client-tag-row"><span class="trainer-client-tag-label"># Тег:</span><span class="trainer-client-tag-value">${trainerEscape(tag)}</span><button type="button" data-action="edit-client-tag" data-id="${trainerEscape(client.id)}" aria-label="Изменить тег">${trainerIcon('edit')}</button></div>`;
   const weightSummary = weight == null ? 'Вес не внесён' : `${trainerNumber(weight)} кг`;
   const targetSummary = client.targetWeight != null ? ` → цель ${trainerNumber(client.targetWeight)} кг` : '';
-  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div></section>
+  return `<section class="trainer-client-heading">${trainerAvatar(client, true)}<div class="trainer-client-heading-copy"><h1>${trainerEscape(trainerFullName(client))}</h1>${tagMarkup}<div class="trainer-client-meta"><span>${weightSummary}${targetSummary}</span><span>Занимается: ${trainerClientTenure(client)}</span></div></div>${trainerAction('client-questionnaire', `${trainerIcon('reviews')}<span>Анкета</span>`, { id: client.id }, 'trainer-questionnaire-button')}</section>
     ${trainerFilterTabs([['overview', 'Обзор'], ['training', 'Тренировки'], ['nutrition', 'Питание'], ['progress', 'Прогресс'], ['reports', 'Отчёты']], tab, 'client-tab')}
     <div class="trainer-tab-content">${({ overview: trainerClientOverview, training: trainerClientTraining, nutrition: trainerClientNutrition, progress: trainerClientProgress, reports: trainerClientReports })[tab](client)}</div>`;
 }
