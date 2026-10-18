@@ -508,6 +508,20 @@
 .trainer-nutrition-days > div:last-child { border: 0; padding-bottom: 0; }
 .trainer-nutrition-days span { text-align: right; }
 .trainer-nutrition-days small { display: block; margin-top: 3px; font-size: var(--text-caption) !important; }
+.trainer-nutrition-plan { padding: 14px; }
+.trainer-nutrition-plan .trainer-section-heading { margin-bottom: 10px; }
+.trainer-nutrition-plan .trainer-metrics-grid { column-gap: 12px; row-gap: 12px; }
+.trainer-nutrition-plan .trainer-metric { gap: 2px; }
+.trainer-nutrition-plan .trainer-metric > strong { font-size: clamp(18px, 4.8vw, 22px); line-height: 1.15; }
+.trainer-nutrition-plan .trainer-metric > small { color: var(--muted); }
+.trainer-nutrition-period { margin: -4px 0 8px; font-size: var(--text-caption); font-variant-numeric: tabular-nums; }
+.trainer-nutrition-days { padding: 12px 14px; }
+.trainer-nutrition-days > .trainer-nutrition-day { min-height: 42px; padding: 8px 0; }
+.trainer-nutrition-day > strong { font-size: var(--text-support); font-weight: 600; }
+.trainer-nutrition-day > span { font-size: var(--text-support); line-height: 1.2; }
+.trainer-nutrition-day > span > small { margin-top: 2px; }
+.trainer-nutrition-day.is-empty > span { color: var(--muted); }
+.trainer-nutrition-days > p { margin: 0 !important; }
 .trainer-metric-inline { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .trainer-metric-inline strong { font-size: var(--text-metric); }
 .trainer-metric-inline span { color: var(--muted); font-size: var(--text-support); }
