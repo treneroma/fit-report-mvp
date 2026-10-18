@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const dataSource = ['trainer-data', 'report-cycle'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
-const uiSource = ['trainer', 'report-ui'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
+const dataSource = ['trainer-data', 'report-cycle', 'analytics-data'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
+const uiSource = ['trainer', 'report-ui', 'analytics-ui'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
 
 function fixture() {
   const context = vm.createContext({ console, URL });
@@ -757,7 +757,7 @@ test('все экраны рендерятся на обычных и пусты
   assert.doesNotMatch(evaluate('trainerNavigation()'), /data-page="profile"/);
   evaluate("trainerUI.route = {page: 'analytics'}");
   assert.match(evaluate('trainerNavigation()'), /data-page="analytics" aria-current="page"/);
-  assert.match(evaluate('trainerAnalytics()'), /Здесь будет аналитика/);
+  assert.match(evaluate('trainerAnalytics()'), /analytics-dashboard/);
   const factsCount = evaluate("trainerStore.review('plateau').facts.length");
   evaluate("trainerAIAnswer('Что изменилось у Марии за месяц?')");
   assert.equal(evaluate("trainerStore.review('plateau').facts.length"), factsCount);
