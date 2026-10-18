@@ -167,7 +167,7 @@ function trainerCreateDemoData(now = Date.now()) {
       id: `workout-${id}-${day}`, workout_date: trainerDemoDate(day * 2, now), title: programId === 'upperlower' ? (day % 2 ? 'Lower · Низ тела' : 'Upper · Верх тела') : `Full Body · ${['A', 'B', 'C', 'D'][day]}`, rpe,
       exercises: [{ name: 'Жим лёжа', sets: [{ weight_kg: id === 'alexander' ? 80 : 60, reps: 9 }, { weight_kg: id === 'alexander' ? 80 : 60, reps: 8 }, { weight_kg: id === 'alexander' ? 75 : 60, reps: 8 }] }]
     })),
-    measurements: { waist_cm: id === 'alexander' ? 86 : 78 + index, chest_cm: 100 + index, hips_cm: 96 + index },
+    measurements: { shoulders_cm: 112 + index, chest_cm: 100 + index, biceps_cm: 34 + index, waist_cm: id === 'alexander' ? 86 : 78 + index, hips_cm: 96 + index },
     records: [{ exercise: 'Присед со штангой', value: '80 кг × 10' }, { exercise: 'Жим лёжа', value: id === 'alexander' ? '80 кг × 9' : '60 кг × 10' }],
     decisions: [
       { id: `seed-${id}-1`, date: trainerDemoDate(15, now), action: 'Зафиксирована программа и согласована частота тренировок.' },
