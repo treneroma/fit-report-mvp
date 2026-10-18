@@ -477,17 +477,32 @@
 .trainer-session-status { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--trainer-radius-icon); border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
 .trainer-session-status.is-done { color: var(--accent); border-color: var(--trainer-line-accent); }
 .trainer-workout,
+.trainer-training-day,
 .trainer-program-day,
 .trainer-editor-day { padding: 0; overflow: hidden; }
 .trainer-workout > summary,
+.trainer-training-day > summary,
 .trainer-program-day > summary,
 .trainer-editor-day > summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px; min-height: 62px; cursor: pointer; list-style: none; }
 #trainerScreen summary::-webkit-details-marker { display: none; }
 #trainerScreen summary > span { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 #trainerScreen details[open] > summary > svg { transform: rotate(90deg); }
 .trainer-workout > div,
+.trainer-training-day > div,
 .trainer-program-day > div,
 .trainer-editor-day > div { padding: 0 16px 16px; }
+.trainer-training-period { margin: -8px 0 10px; font-variant-numeric: tabular-nums; }
+.trainer-training-week-heading { align-items: baseline; flex-wrap: wrap; }
+.trainer-training-week-heading .trainer-training-period { margin: 0; white-space: nowrap; }
+.trainer-training-content { display: flex; flex-direction: column; gap: 12px; }
+.trainer-training-exercise { display: flex; flex-direction: column; gap: 3px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.trainer-training-exercise:last-child { padding-bottom: 0; border-bottom: 0; }
+.trainer-training-exercise > small,
+.trainer-training-fact { color: var(--muted); font-size: var(--text-caption); }
+.trainer-training-fact.is-recorded { color: var(--text); }
+.trainer-training-extra { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.trainer-training-extra > small { color: var(--accent); font-size: var(--text-caption); font-weight: 600; }
+.trainer-training-history-filter { margin-bottom: 12px; }
 .trainer-nutrition-days > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .trainer-nutrition-days > div:first-child { padding-top: 0; }
 .trainer-nutrition-days > div:last-child { border: 0; padding-bottom: 0; }
@@ -621,7 +636,7 @@
   #trainerScreen .trainer-app { padding-top: 24px; padding-left: 24px; padding-right: 24px; }
   .trainer-header { margin-bottom: 24px; }
   .trainer-card { padding: 20px; }
-  .trainer-workout, .trainer-program-day, .trainer-editor-day { padding: 0; }
+  .trainer-workout, .trainer-training-day, .trainer-program-day, .trainer-editor-day { padding: 0; }
   .trainer-review-card { grid-template-columns: 40px minmax(0, 1fr) auto; }
   .trainer-review-card > .trainer-badge { grid-column: 3; }
   .trainer-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -630,7 +645,7 @@
   #trainerScreen .trainer-app { padding-left: 14px; padding-right: 14px; }
   #trainerScreen .logo { width: 126px; height: 20px; }
   .trainer-card { padding: 14px; }
-  .trainer-workout, .trainer-program-day, .trainer-editor-day { padding: 0; }
+  .trainer-workout, .trainer-training-day, .trainer-program-day, .trainer-editor-day { padding: 0; }
   .trainer-section-heading h2 { font-size: var(--text-subsection-title) !important; }
   .trainer-client-footer { flex-wrap: wrap; }
   .trainer-attention-footer { align-items: flex-end; }
