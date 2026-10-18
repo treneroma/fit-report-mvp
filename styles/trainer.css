@@ -427,6 +427,8 @@
 .trainer-client-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .trainer-client-footer > small { font-size: var(--text-caption) !important; }
 .trainer-client-heading { display: grid; grid-template-columns: 60px minmax(0, 1fr); align-items: start; gap: 12px; margin-bottom: 2px; }
+.trainer-questionnaire-button { grid-column: 2; justify-self: start; display: inline-flex; align-items: center; gap: 7px; min-height: 36px; margin-top: 3px; padding: 6px 11px; border: 1px solid var(--border); border-radius: 11px; color: var(--text); background: var(--surface); font-size: var(--text-caption); font-weight: 600; }
+.trainer-questionnaire-button svg { width: 17px !important; height: 17px; color: var(--accent); }
 .trainer-client-heading-copy { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
 .trainer-client-heading h1 { margin: 0 !important; font-size: clamp(22px, 6vw, 30px) !important; line-height: 1.12; letter-spacing: -.45px; overflow-wrap: anywhere; }
 .trainer-client-tag-row { display: flex; align-items: center; min-width: 0; gap: 4px; color: #c8c8c8; font-size: var(--text-body); line-height: 1.25; }
@@ -441,6 +443,21 @@
 .trainer-client-tag-edit > button { flex-basis: 34px; width: 34px; height: 34px; background: var(--trainer-soft-accent); }
 .trainer-client-meta { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; color: var(--muted); font-size: var(--text-caption); line-height: 1.35; font-variant-numeric: tabular-nums; }
 .trainer-client-meta > span { min-width: 0; }
+.trainer-client-current-report { padding: 14px; border: 1px solid var(--trainer-line-accent); border-radius: var(--trainer-radius-card); background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface) 75%); }
+.trainer-client-report-label { display: block; color: var(--muted); font-size: var(--text-caption); }
+.trainer-client-current-report > strong { display: block; margin-top: 4px; font-size: var(--text-card-title); font-variant-numeric: tabular-nums; }
+.trainer-client-current-report > small { display: block; margin-top: 3px; color: var(--muted); font-size: var(--text-caption); }
+.trainer-client-report-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; }
+.trainer-client-report-copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.trainer-client-report-copy strong { font-size: var(--text-support); }
+.trainer-client-report-copy small { color: var(--muted); font-size: var(--text-caption); }
+.trainer-client-report-item > svg:last-child { width: 18px !important; flex: 0 0 auto; color: var(--muted); }
+.trainer-client-report-filter { margin-bottom: 12px; }
+.trainer-questionnaire-section .trainer-section-heading { margin-bottom: 10px; }
+.trainer-questionnaire-section .trainer-facts { gap: 8px; }
+.trainer-questionnaire-section .trainer-facts > div { padding-bottom: 8px; }
+.trainer-questionnaire-section .trainer-facts > div:last-child { padding-bottom: 0; }
+.trainer-questionnaire-section .trainer-facts dd { line-height: 1.4; overflow-wrap: anywhere; }
 .trainer-client-heading + .trainer-filter-tabs { gap: 4px; margin: -2px 0; padding: 2px 0; }
 .trainer-client-heading + .trainer-filter-tabs button { min-height: 38px; padding: 6px 8px; }
 .trainer-tab-content { display: flex; flex-direction: column; gap: 24px; }
