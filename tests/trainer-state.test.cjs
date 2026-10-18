@@ -288,6 +288,54 @@ test('демо тренировок показывает две выполнен
   assert.doesNotMatch(demo.markup, /Изменить программу/);
 });
 
+test('прогресс показывает последние три замера, до пяти рекордов и серию полных недель', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const measurements = evaluate(`(() => {
+    const client = trainerStore.client('anna');
+    client.measurements.neck_cm = 32;
+    client.measurementHistory.push({ measured_on: '2026-10-16', chest_cm: 102 });
+    return trainerClientProgress(client);
+  })()`);
+  assert.match(measurements, /Последние замеры/);
+  assert.match(measurements, /Талия/);
+  assert.match(measurements, /Грудь[\s\S]*?102,0 см/);
+  assert.match(measurements, /Бёдра/);
+  assert.doesNotMatch(measurements, /Шея|neck_cm|trainer-metrics-grid/);
+
+  const records = evaluate(`(() => {
+    const client = trainerStore.client('anna');
+    client.records = Array.from({ length: 7 }, (_, index) => ({ exercise: 'Упражнение ' + index, value: (50 + index) + ' кг × 8' }));
+    return trainerClientProgress(client);
+  })()`);
+  assert.match(records, /Топ-5 личных рекордов/);
+  assert.equal((records.match(/Упражнение \d/g) || []).length, 5);
+  assert.match(records, /Недели без пропусков/);
+  assert.match(records, /Все запланированные тренировки выполнены|Нет завершённых недель/);
+
+  const streak = evaluate(`(() => {
+    const client = trainerStore.client('alexander');
+    client.joinedOn = '2026-09-01';
+    client.workouts = [];
+    const activeStart = trainerTrainingWeek(client).start;
+    for (const start of ['2026-10-04', '2026-09-27']) {
+      const plan = trainerPlanAt(client, start);
+      client.weekPlans.push({ start, plan });
+      plan.sessions.forEach((session, index) => client.workouts.push({ id: start + '-' + index, sessionId: session.id, workout_date: trainerShiftDate(start, index + 1), title: session.title, exercises: [] }));
+    }
+    const count = trainerWorkoutStreak(client).count;
+    client.workouts = client.workouts.filter(workout => !workout.workout_date.startsWith('2026-10'));
+    return { count, afterMissedWeek: trainerWorkoutStreak(client).count, activeStart };
+  })()`);
+  assert.equal(streak.count, 2);
+  assert.equal(streak.afterMissedWeek, 0);
+  assert.equal(streak.activeStart, '2026-10-11');
+
+  const partialTenure = evaluate("(() => { const client = trainerStore.client('alexander'); client.joinedOn = '2026-10-10'; return trainerWorkoutStreak(client).count; })()");
+  assert.equal(partialTenure, 0);
+});
+
 test('питание разделяет недельный план, дневник текущей недели и историю', () => {
   const { context } = fixture();
   vm.runInContext(uiSource, context);
