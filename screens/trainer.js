@@ -2,7 +2,7 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
+  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, reportHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
 let trainerTouchStart = null;
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
@@ -746,8 +746,8 @@ function trainerStart() {
 function trainerRender() {
   trainerStore.ensureWeeklyReviews();
   const page = trainerUI.route.page;
-  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
-  const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
+  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, 'client-questionnaire': () => trainerClientQuestionnaire(trainerStore.client(trainerUI.route.id)), memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
+  const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', 'client-questionnaire': 'Анкета клиента', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
   const hasNav = true;
   const root = document.getElementById('trainerScreen');
   root.innerHTML = `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`;
@@ -809,6 +809,7 @@ function trainerHandleClick(event) {
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
+    else if (action === 'client-questionnaire') trainerGo('client-questionnaire', { id });
     else if (action === 'edit-client-tag') { trainerUI.editingClientTag = id; trainerRender(); document.querySelector('[data-client-tag-input]')?.focus(); }
     else if (action === 'cancel-client-tag') { trainerUI.editingClientTag = null; trainerRender(); }
     else if (action === 'open-chat') trainerGo('chat', { id });
@@ -889,6 +890,7 @@ function trainerHandleChange(event) {
   if (input.hasAttribute('data-review-period')) { trainerUI.reviewPeriod = input.value; trainerUI.reviewFilter = 'all'; trainerRender(); }
   if (input.hasAttribute('data-training-history-week')) { trainerUI.trainingHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
   if (input.hasAttribute('data-nutrition-history-week')) { trainerUI.nutritionHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
+  if (input.hasAttribute('data-report-history-week')) { trainerUI.reportHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
   if (input.hasAttribute('data-creation-client')) {
     const client = trainerStore.client(input.value), form = input.closest('form');
     if (client) {
