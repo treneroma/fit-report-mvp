@@ -115,6 +115,8 @@ function trainerNavigation() {
   let active = trainerUI.route.page;
   if (['client', 'memory'].includes(active)) active = 'clients';
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
+  if (active === 'review') active = 'reviews';
+  if (['program', 'program-new', 'program-edit'].includes(active)) active = trainerUI.route.clientId ? 'clients' : 'programs';
   return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Отчёты', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
@@ -354,7 +356,7 @@ function trainerClientTraining(client) {
   }).join('');
   const completedCount = currentSessions.filter(session => trainerSessionWorkout(session, currentSessions, current.workouts)).length;
   const currentProgram = current.program
-    ? `<section class="trainer-card"><p class="trainer-kicker">ТЕКУЩАЯ ПРОГРАММА</p><h2>${trainerEscape(current.program.title)}</h2><p>Неделя ${client.currentWeek} из ${current.program.weeks.length}</p><div class="trainer-button-row">${trainerAction('client-program', 'Открыть программу', { id: client.id }, 'trainer-secondary-button')}${trainerAction('client-edit-program', 'Изменить программу', { id: client.id }, 'trainer-secondary-button')}</div></section>`
+    ? `<section class="trainer-card"><p class="trainer-kicker">ТЕКУЩАЯ ПРОГРАММА</p><h2>${trainerEscape(current.program.title)}</h2><p>Неделя ${client.currentWeek} из ${current.program.weeks.length}</p><div class="trainer-button-row">${trainerAction('client-program', 'Открыть программу', { id: client.id }, 'trainer-secondary-button')}</div></section>`
     : trainerEmpty('Программа ещё не назначена', 'Выберите программу из своих или создайте новую.', trainerAction('client-programs', 'Выбрать программу', { id: client.id }));
   const currentWeekCount = currentSessions.length ? `${completedCount} из ${currentSessions.length}` : null;
   const currentWeekMarkup = `<section><div class="trainer-section-heading trainer-training-week-heading"><h2>Текущая неделя${currentWeekCount ? `<span class="trainer-count">${trainerEscape(currentWeekCount)}</span>` : ''}</h2><span class="trainer-muted trainer-training-period">${trainerPeriodLabel({ start: current.start, end: current.end })}</span></div><div class="trainer-list">${sessionRows || '<p class="trainer-muted">На эту неделю тренировки не запланированы.</p>'}</div></section>`;
@@ -443,13 +445,15 @@ function trainerPrograms() {
     ${trainerFilterTabs([['mine', 'Мои'], ['templates', 'Шаблоны'], ['assigned', 'Назначенные']], trainerUI.programFilter, 'program-filter')}<div class="trainer-list">${programs.map(trainerProgramCard).join('') || trainerEmpty('Здесь пока нет программ', 'Создайте программу или возьмите за основу шаблон.', trainerAction('new-program', 'Создать программу'))}</div>`;
 }
 function trainerProgram() {
-  const program = trainerUI.route.clientId ? trainerStore.clientProgram(trainerUI.route.clientId) : trainerStore.program(trainerUI.route.id);
+  const isClientProgram = Boolean(trainerUI.route.clientId);
+  const program = isClientProgram ? trainerStore.clientProgram(trainerUI.route.clientId) : trainerStore.program(trainerUI.route.id);
   if (!program) return trainerEmpty('Программа не найдена', 'Вернитесь к списку программ.');
   const currentWeek = trainerUI.route.clientId ? trainerStore.client(trainerUI.route.clientId).currentWeek - 1 : 0;
   const weekIndex = Math.max(0, Math.min(trainerUI.route.week ?? currentWeek, program.weeks.length - 1)), week = program.weeks[weekIndex];
-  const assigned = trainerStore.state.clients.filter(client => client.programId === program.id);
-  return `<div class="trainer-page-heading"><p class="trainer-kicker">${program.source === 'template' ? 'ШАБЛОН TRENZO' : 'ПРОГРАММА'}${trainerUI.route.clientId ? ` · ${trainerEscape(trainerStore.client(trainerUI.route.clientId).name)}` : ''}</p><h1>${trainerEscape(program.title)}</h1><p>${trainerEscape(program.goal)}<br>${program.weeks.length} недель · ${program.duration} мин · ${trainerEscape(program.equipment)}</p></div>
-    <div class="trainer-button-row">${trainerAction('edit-program', program.source === 'template' ? 'Создать копию' : 'Редактировать', { id: program.id }, 'trainer-secondary-button')}${trainerAction('assign-program', 'Назначить подопечному', { id: program.id })}</div>
+  const assigned = isClientProgram ? [] : trainerStore.state.clients.filter(client => client.programId === program.id);
+  const programMeta = `${program.weeks.length} недель · ${program.duration} мин на тренировку · ${trainerEscape(program.equipment)}`;
+  return `<div class="trainer-page-heading"><p class="trainer-kicker">${program.source === 'template' ? 'ШАБЛОН TRENZO' : 'ПРОГРАММА'}${isClientProgram ? ` · ${trainerEscape(trainerStore.client(trainerUI.route.clientId).name)}` : ''}</p><h1>${trainerEscape(program.title)}</h1><p>${programMeta}</p></div>
+    <div class="trainer-button-row">${trainerAction('edit-program', program.source === 'template' && !isClientProgram ? 'Создать копию' : 'Редактировать', { id: program.id }, 'trainer-secondary-button')}${isClientProgram ? '' : trainerAction('assign-program', 'Назначить подопечному', { id: program.id })}</div>
     <label class="trainer-field trainer-week-select">Неделя<select data-program-week>${program.weeks.map((w, i) => `<option value="${i}" ${i === weekIndex ? 'selected' : ''}>Неделя ${i + 1}</option>`).join('')}</select></label>
     <div class="trainer-list">${week.sessions.map((session, index) => `<details class="trainer-card trainer-program-day" ${index === 0 ? 'open' : ''}><summary><span><small>ДЕНЬ ${index + 1}</small><strong>${trainerEscape(session.title)}</strong></span>${trainerIcon('arrow')}</summary><div>${session.exercises.map(exercise => `<div class="trainer-exercise"><strong>${trainerEscape(exercise.name)}</strong><p>${exercise.sets} × ${trainerEscape(exercise.reps)} <span>· ${trainerNumber(exercise.weightKg)} кг</span></p><small>${trainerEscape(exercise.effortType)} ${exercise.effort} · Отдых ${exercise.restSeconds} сек${exercise.notes ? `<br>${trainerEscape(exercise.notes)}` : ''}</small></div>`).join('')}</div></details>`).join('')}</div>
     ${program.notes ? `<section class="trainer-card"><h2>Комментарий тренера</h2><p>${trainerEscape(program.notes)}</p></section>` : ''}
@@ -618,7 +622,7 @@ function trainerRender() {
   const page = trainerUI.route.page;
   const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
   const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
-  const hasNav = ['today', 'tasks', 'chats', 'income', 'clients', 'client', 'memory', 'reviews', 'programs', 'profile', 'analytics'].includes(page);
+  const hasNav = true;
   const root = document.getElementById('trainerScreen');
   root.innerHTML = `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`;
   root.querySelectorAll('.trainer-filter-tabs').forEach(tabs => {
@@ -818,9 +822,11 @@ function trainerHandleSubmit(event) {
       trainerOpenEditor(draft, values.clientId || null);
     }
     else if (form.dataset.form === 'save-program') {
-      const clientId = trainerUI.route.clientId, saved = trainerStore.saveProgram(trainerUI.draft);
-      trainerUI.draft = null; trainerGo('program', { id: saved.id }, true); trainerToast('Программа сохранена.');
-      if (clientId) trainerOpenModal('assign', { id: saved.id, clientId });
+      const clientId = trainerUI.route.clientId;
+      const saved = clientId ? trainerStore.saveProgramForClient(trainerUI.draft, clientId) : trainerStore.saveProgram(trainerUI.draft);
+      trainerUI.draft = null;
+      trainerGo('program', { id: saved.id, ...(clientId ? { clientId } : {}) }, true);
+      trainerToast(clientId ? 'Программа обновлена для клиента.' : 'Программа сохранена.');
     }
   } catch (error) { const slot = form.querySelector('.trainer-form-error'); if (slot) { slot.textContent = error.message; slot.scrollIntoView({ block: 'nearest' }); } else trainerToast(error.message); }
 }
