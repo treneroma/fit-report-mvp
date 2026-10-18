@@ -93,6 +93,140 @@ test('назначение меняет только выбранного кли
   assert.match(store.client('anna').decisions[0].action, /Upper \/ Lower/);
 });
 
+test('раздел схем разделяет созданные тренировки, схемы и два типа шаблонов', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  evaluate("trainerUI.route = {page:'programs'}");
+  const workouts = evaluate('trainerPrograms()');
+  assert.match(workouts, /<h1>Схемы тренировок<\/h1>/);
+  assert.match(workouts, /Созданные тренировки/);
+  assert.match(workouts, /data-action="create-training-menu"/);
+  assert.equal((workouts.match(/data-action="library-workout"/g) || []).length, 3);
+  assert.doesNotMatch(workouts, /От первого плана|>Мои<|>Назначенные<|data-action="program"/);
+  evaluate("trainerUI.programFilter='schemes'");
+  const schemes = evaluate('trainerPrograms()');
+  assert.match(schemes, /Созданные схемы/);
+  assert.equal((schemes.match(/data-action="program"/g) || []).length, 3);
+  assert.doesNotMatch(schemes, /data-action="library-workout"/);
+  evaluate("trainerUI.programFilter='templates'; trainerUI.templateFilter='workouts'");
+  const workoutTemplates = evaluate('trainerPrograms()');
+  assert.match(workoutTemplates, /aria-label="Тип шаблонов"/);
+  assert.match(workoutTemplates, /Шаблоны схем тренировок/);
+  assert.equal((workoutTemplates.match(/data-action="library-workout"/g) || []).length, 3);
+  evaluate("trainerUI.templateFilter='schemes'");
+  const schemeTemplates = evaluate('trainerPrograms()');
+  assert.equal((schemeTemplates.match(/data-action="program"/g) || []).length, 2);
+  assert.doesNotMatch(schemeTemplates, /data-action="library-workout"/);
+});
+
+test('отдельная тренировка сохраняется независимо, а шаблон копируется без изменения оригинала', () => {
+  const { context, store, storage } = fixture();
+  const source = store.libraryWorkout('template-workout-fullbody');
+  const before = JSON.stringify(source), programs = store.state.programs.length;
+  const draft = JSON.parse(before);
+  draft.title = 'Моя адаптация'; draft.exercises[0].weightKg = 25;
+  const saved = store.saveLibraryWorkout(draft);
+  assert.notEqual(saved.id, source.id);
+  assert.equal(saved.source, 'mine');
+  assert.equal(saved.exercises[0].weightKg, 25);
+  assert.equal(JSON.stringify(source), before);
+  assert.equal(store.state.programs.length, programs);
+  draft.exercises[0].weightKg = 30;
+  assert.equal(saved.exercises[0].weightKg, 25);
+  assert.equal(store.saveLibraryWorkout({ ...saved, title: 'Обновлённая тренировка' }).id, saved.id);
+  const restored = vm.runInContext('createTrainerStore()', context);
+  restored.load(storage, 'test');
+  assert.equal(restored.libraryWorkout(saved.id).title, 'Обновлённая тренировка');
+  assert.throws(() => store.saveLibraryWorkout({ ...saved, title: '' }), /название тренировки/);
+  assert.throws(() => store.saveLibraryWorkout({ ...saved, exercises: [] }), /хотя бы одно упражнение/);
+  assert.throws(() => store.saveLibraryWorkout({ ...saved, duration: NaN }), /длительность/);
+});
+
+test('схема собирается из независимых копий тренировок и недель без изменения назначений', () => {
+  const { store } = fixture();
+  const ids = ['workout-upper', 'workout-lower'];
+  const assignments = store.state.clients.map(client => client.programId);
+  const draft = store.draftProgramFromWorkouts({ title: 'Верх / низ · Моя схема', weeks: 4, workoutIds: ids, duration: 45 });
+  assert.equal(draft.weeks.length, 4);
+  assert.equal(draft.weeks[0].sessions.length, 2);
+  assert.equal(draft.weeks[0].sessions[0].title, store.libraryWorkout(ids[0]).title);
+  const original = store.libraryWorkout(ids[0]).exercises[0].weightKg;
+  draft.weeks[0].sessions[0].exercises[0].weightKg = original + 5;
+  assert.equal(store.libraryWorkout(ids[0]).exercises[0].weightKg, original);
+  assert.equal(draft.weeks[1].sessions[0].exercises[0].weightKg, original);
+  const saved = store.saveProgram(draft);
+  assert.equal(saved.source, 'mine');
+  assert.deepEqual(store.state.clients.map(client => client.programId), assignments);
+  store.saveLibraryWorkout({ ...store.libraryWorkout(ids[0]), title: 'Другое название' });
+  assert.notEqual(saved.weeks[0].sessions[0].title, 'Другое название');
+  assert.throws(() => store.draftProgramFromWorkouts({ title:'Схема', weeks:2, workoutIds:[] }), /от 1 до 6 тренировок/);
+  assert.throws(() => store.draftProgramFromWorkouts({ title:'Схема', weeks:0, workoutIds:ids }), /от 1 до 12 недель/);
+  assert.throws(() => store.draftProgramFromWorkouts({ title:'Схема', weeks:2, workoutIds:['missing'] }), /не найдена/);
+});
+
+test('старый кабинет получает библиотеку тренировок без сброса программ и назначений', () => {
+  const { context, store, storage, records } = fixture();
+  const legacy = JSON.parse(JSON.stringify(store.state));
+  delete legacy.workoutLibrary;
+  legacy.programs[0].title = 'Сохранённая программа';
+  records.set('trenzo-trainer-demo-v1:test', JSON.stringify(legacy));
+  const restored = vm.runInContext('createTrainerStore()', context);
+  restored.load(storage, 'test');
+  assert.equal(restored.state.workoutLibrary.length, 6);
+  assert.equal(restored.state.programs[0].title, 'Сохранённая программа');
+  assert.deepEqual(Array.from(restored.state.clients, client => client.programId), Array.from(legacy.clients, client => client.programId));
+  assert.equal(JSON.parse(storage.getItem('trenzo-trainer-demo-v1:test')).workoutLibrary.length, 6);
+});
+
+test('меню создания открывает рабочий редактор тренировки и сборку схемы', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const dialog = { showModal() {}, close() {} }, toast = {};
+  const root = { innerHTML: '', querySelectorAll: () => [], querySelector: () => dialog };
+  context.document = { getElementById: id => id === 'trainerToast' ? toast : root };
+  context.window = { scrollY: 0, scrollTo() {} };
+  context.setTimeout = () => 0; context.clearTimeout = () => {};
+  context.FormData = class {
+    constructor(form) { this.entries = form.entries || []; }
+    [Symbol.iterator]() { return this.entries[Symbol.iterator](); }
+    getAll(name) { return this.entries.filter(([key]) => key === name).map(([, value]) => value); }
+  };
+  const click = (action, values = {}) => {
+    context.clickEvent = { target: { closest: () => ({ dataset: { action, ...values } }) } };
+    evaluate('trainerHandleClick(clickEvent)');
+  };
+  const submit = (form, entries = []) => {
+    context.submitEvent = { preventDefault() {}, target: { dataset: { form }, entries, reportValidity: () => true, querySelector: () => null } };
+    evaluate('trainerHandleSubmit(submitEvent)');
+  };
+  evaluate("trainerUI.route = {page:'programs'}");
+  click('create-training-menu');
+  assert.match(root.innerHTML, /Создать:<\/h2>/);
+  assert.match(root.innerHTML, /Создать с TRENZO/);
+  assert.match(root.innerHTML, /Создать тренировку/);
+  assert.match(root.innerHTML, /Создать схему тренировок/);
+  click('new-library-workout');
+  assert.match(root.innerHTML, /data-form="save-library-workout"/);
+  assert.doesNotMatch(root.innerHTML, /data-editor-week|data-action="add-day"/);
+  evaluate("trainerUI.draft.title='Новая силовая'; trainerUI.draft.weeks[0].sessions[0].exercises=trainerCopy(trainerStore.libraryWorkout('workout-upper').exercises)");
+  submit('save-library-workout');
+  const workoutId = evaluate('trainerUI.route.id');
+  assert.equal(evaluate('trainerUI.route.page'), 'library-workout');
+  assert.match(root.innerHTML, /Новая силовая/);
+  click('compose-scheme', { id: workoutId });
+  assert.match(root.innerHTML, /data-form="compose-scheme"/);
+  assert.match(root.innerHTML, new RegExp(`value="${workoutId}" checked`));
+  submit('compose-scheme', [['title','Моя схема'],['weeks','3'],['duration','45'],['equipment','Зал'],['workoutIds',workoutId],['workoutIds','workout-lower']]);
+  assert.equal(evaluate('trainerUI.route.page'), 'program-edit');
+  assert.equal(evaluate('trainerUI.draft.weeks[0].sessions.length'), 2);
+  submit('save-program');
+  assert.equal(evaluate('trainerUI.route.page'), 'program');
+  assert.match(root.innerHTML, /Моя схема/);
+  assert.equal(evaluate('trainerUI.programFilter'), 'schemes');
+});
+
 test('редактирование из карточки клиента сохраняет персональную копию без сброса недели', () => {
   const { store } = fixture();
   const alexander = store.client('alexander'), currentWeek = alexander.currentWeek;
