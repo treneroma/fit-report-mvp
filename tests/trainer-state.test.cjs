@@ -91,6 +91,19 @@ test('назначение меняет только выбранного кли
   assert.match(store.client('anna').decisions[0].action, /Upper \/ Lower/);
 });
 
+test('редактирование из карточки клиента сохраняет персональную копию без сброса недели', () => {
+  const { store } = fixture();
+  const alexander = store.client('alexander'), currentWeek = alexander.currentWeek;
+  const originalProgramId = alexander.programId;
+  const draft = JSON.parse(JSON.stringify(store.clientProgram('alexander')));
+  draft.id = null; draft.title = 'Full Body · Персональный';
+  const saved = store.saveProgramForClient(draft, 'alexander');
+  assert.equal(alexander.programId, saved.id);
+  assert.notEqual(saved.id, originalProgramId);
+  assert.equal(alexander.currentWeek, currentWeek);
+  assert.equal(store.client('anna').programId, originalProgramId);
+});
+
 test('пустое состояние, добавление клиента и спокойный день доступны', () => {
   const { store } = fixture();
   store.reset('empty');
@@ -272,6 +285,7 @@ test('демо тренировок показывает две выполнен
   assert.match(demo.markup, /11\.10\.2026 — 17\.10\.2026/);
   assert.ok(demo.history.selected.workouts.length > 0);
   assert.match(demo.markup, /Факт клиента: 80,0 кг ×/);
+  assert.doesNotMatch(demo.markup, /Изменить программу/);
 });
 
 test('старое сохранённое демо без тренировок получает демонстрационные записи', () => {
@@ -357,7 +371,20 @@ test('все экраны рендерятся на обычных и пусты
   evaluate("trainerUI.route = {page: 'memory', id: 'alexander'}"); assert.match(evaluate('trainerMemory()'), /Последние решения/);
   evaluate("trainerUI.route = {page: 'program', id: 'fullbody'}"); assert.match(evaluate('trainerProgram()'), /Жим лёжа/);
   evaluate("trainerUI.route = {page: 'program', id: 'fullbody', clientId: 'alexander'}");
-  assert.match(evaluate('trainerProgram()'), /value="4" selected>Неделя 5/);
+  const clientProgram = evaluate('trainerProgram()');
+  assert.match(clientProgram, /value="4" selected>Неделя 5/);
+  assert.match(clientProgram, /6 недель · 45 мин на тренировку · Тренажёрный зал/);
+  assert.match(clientProgram, /Редактировать/);
+  assert.doesNotMatch(clientProgram, /Назначить подопечному|Назначена подопечным|Базовая сила и состав тела/);
+  assert.match(evaluate('trainerNavigation()'), /data-page="clients" aria-current="page"/);
+  const root = { innerHTML: '', querySelectorAll: () => [] };
+  context.document = { getElementById: () => root };
+  context.window = { scrollY: 0, scrollTo() {} };
+  evaluate('trainerRender()');
+  assert.match(root.innerHTML, /class="trainer-navigation"/);
+  evaluate("trainerUI.route = {page: 'program', id: 'fullbody'}");
+  assert.match(evaluate('trainerProgram()'), /Назначить подопечному/);
+  assert.match(evaluate('trainerNavigation()'), /data-page="programs" aria-current="page"/);
   evaluate("trainerStore.assignProgram('upperlower', 'anna'); trainerUI.route = {page: 'memory', id: 'anna'}");
   assert.match(evaluate('trainerMemory()'), /4 раза в неделю/);
   evaluate("trainerUI.route = {page: 'program-new', mode: 'ai'}"); assert.match(evaluate('trainerProgramNew()'), /Собрать программу/);
