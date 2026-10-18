@@ -14,7 +14,7 @@
   max-width: 640px;
   min-height: 100dvh;
   margin: 0 auto;
-  padding: max(16px, env(safe-area-inset-top, 0px)) 18px max(24px, env(safe-area-inset-bottom, 0px));
+  padding: max(16px, env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), var(--tg-content-safe-area-inset-top, 0px)) 18px max(24px, env(safe-area-inset-bottom, 0px));
   font-family: var(--font-ui);
   font-size: var(--text-body-emphasis);
   line-height: 1.45;
