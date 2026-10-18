@@ -15,7 +15,7 @@ const trainerDemoTenureDays = { alexander: 7, maria: 60, maxim: 14, anna: 425, i
 const trainerClientTagMaxLength = 24;
 const trainerClientStateOptions = [
   ['progress', 'Прогресс'], ['stable', 'Стабильно'], ['plateau', 'Застой'], ['slump', 'Просадка'],
-  ['off_plan', 'Сбился с плана'], ['overload', 'Перегруз'], ['paused', 'Пауза'], ['low_data', 'Мало данных']
+  ['off_plan', 'Сбился'], ['overload', 'Перегруз'], ['paused', 'Пауза'], ['low_data', 'Мало данных']
 ];
 function trainerCalculateClientState(client, now = Date.now()) {
   if (!client) return 'low_data';
