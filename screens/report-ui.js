@@ -65,19 +65,12 @@ function trenzoCurrentReport(clientId) {
   return trenzoReports.list().filter(item => item.clientId === clientId).sort((a, b) => b.end.localeCompare(a.end))[0];
 }
 function trenzoReportPendingCount() { return trenzoReports.pending(); }
-function trenzoReportCompactPeriod(cycle) {
-  const start = cycle.start, end = cycle.end;
-  const date = value => value.slice(5).split('-').reverse().join('.');
-  if (start.slice(0, 7) === end.slice(0, 7)) return `${start.slice(8)}–${date(end)}.${end.slice(0, 4)}`;
-  if (start.slice(0, 4) === end.slice(0, 4)) return `${date(start)}–${date(end)}.${end.slice(0, 4)}`;
-  return trainerPeriodLabel(cycle);
-}
 function trenzoReportCard(cycle) {
   const client = trainerStore.client(cycle.clientId), status = trenzoReports.status(cycle);
   const analysis = status === 'expected' ? null : trenzoReports.analyze(cycle.id);
   const badge = analysis ? '<span class="trainer-client-status is-' + analysis.state + '">' + (status === 'reviewed' ? 'Разобран' : trainerEscape(analysis.label)) + '</span>' : '';
   const period = trainerPeriodLabel(cycle);
-  const person = '<span class="report-person-row">' + trainerAvatar(client) + '<span class="report-person-copy"><span class="report-name-row"><strong>' + trainerEscape(trainerFullName(client)) + '</strong>' + badge + '</span><small class="report-period-full">' + period + '</small><small class="report-period-compact" aria-label="' + trainerEscape(period) + '" title="' + trainerEscape(period) + '">' + trenzoReportCompactPeriod(cycle) + '</small></span></span>';
+  const person = '<span class="report-person-row">' + trainerAvatar(client) + '<span class="report-person-copy"><span class="report-name-row"><strong>' + trainerEscape(trainerFullName(client)) + '</strong>' + badge + '</span><small>' + period + '</small></span></span>';
   const end = '<span class="report-card-end">' + trainerIcon('arrow') + '</span>';
   if (status === 'expected') return trainerAction('client', '<span class="report-card-main">' + person + '<span class="' + (trenzoReports.overdue(cycle) ? 'report-overdue' : 'trainer-muted') + '">Отчёт не поступил · срок ' + trainerDateLabel(cycle.dueOn) + ' до ' + trainerEscape(cycle.dueTime) + '</span></span>' + end, { id: client.id }, 'trainer-card report-inbox-card');
   const facts = trenzoReports.facts(cycle.id), data = facts.current;
