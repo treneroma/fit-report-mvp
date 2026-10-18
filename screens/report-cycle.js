@@ -119,7 +119,9 @@ function createTrenzoReportService(adapter) {
   }
   function analyze(id) {
     const cycle = get(id);
-    return copy(cycle.submission?.analysis || analyzeSnapshot(cycle, facts(id)));
+    const analysis = copy(cycle.submission?.analysis || analyzeSnapshot(cycle, facts(id)));
+    analysis.label = labels[analysis.state] || analysis.label;
+    return analysis;
   }
   function analyzeSnapshot(cycle, data) {
     const answers = cycle.submission?.answers || {};
