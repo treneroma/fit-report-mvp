@@ -181,6 +181,48 @@ test('карточка клиента показывает один тег, до
   assert.throws(() => vm.runInContext("trainerStore.addClient({ name: 'Слишком ДлинныйТег', goal: 'Цель', tag: 'x'.repeat(25) })", context), /не длиннее 24 символов/);
 });
 
+test('аватар клиента выбирается по полу анкеты и сохраняет загруженное фото поверх заглушки', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const male = evaluate("trainerAvatar(trainerStore.client('alexander'))");
+  const female = evaluate("trainerAvatar(trainerStore.client('maria'))");
+  assert.match(male, /src="assets\/client-avatar-male\.png"/);
+  assert.match(female, /src="assets\/client-avatar-female\.png"/);
+  assert.ok(fs.existsSync(path.join(__dirname, '../assets/client-avatar-male.png')));
+  assert.ok(fs.existsSync(path.join(__dirname, '../assets/client-avatar-female.png')));
+
+  // Пол берётся из данных, а не из имени; неизвестный пол не подменяется догадкой.
+  assert.match(evaluate("trainerAvatar({name:'Александр', questionnaire:{sex:'female'}})"), /client-avatar-female\.png/);
+  assert.match(evaluate("trainerAvatar({name:'Мария', athleteAnswers:{sex:'male'}})"), /client-avatar-male\.png/);
+  assert.match(evaluate("trainerAvatar({name:'Мария', profileAnswers:{sex:'female'}})"), /client-avatar-female\.png/);
+  for (const sex of ['unspecified', 'unknown', 'constructor']) {
+    const neutral = evaluate(`trainerAvatar({name:'Клиент', surname:'Тестовый', questionnaire:{sex:${JSON.stringify(sex)}}})`);
+    assert.doesNotMatch(neutral, /<img/);
+    assert.match(neutral, />КТ<\/span>/);
+  }
+
+  const photo = evaluate("trainerAvatar({name:'Клиент', questionnaire:{sex:'male'}, avatar_url:'https://example.com/avatar.jpg?a=1&b=2'})");
+  assert.match(photo, /src="https:\/\/example\.com\/avatar\.jpg\?a=1&amp;b=2"/);
+  assert.ok(photo.indexOf('client-avatar-male.png') < photo.indexOf('https://example.com/avatar.jpg'));
+  assert.match(photo, /onerror="this.remove\(\)"/);
+  assert.doesNotMatch(evaluate("trainerAvatar({name:'Клиент', avatarUrl:'javascript:alert(1)'})"), /<img|javascript:/);
+});
+
+test('сохранённое демо получает пол для аватаров без перезаписи ответов и фотографий', () => {
+  const { context, store, storage, records } = fixture();
+  delete store.client('alexander').questionnaire;
+  store.client('maria').questionnaire = { sex: 'unspecified', age: '29' };
+  store.client('maria').avatarUrl = 'https://example.com/maria.jpg';
+  records.set('trenzo-trainer-demo-v1:test', JSON.stringify(store.state));
+  const restored = vm.runInContext('createTrainerStore()', context);
+  restored.load(storage, 'test');
+  assert.equal(restored.client('alexander').questionnaire.sex, 'male');
+  assert.equal(restored.client('maria').questionnaire.sex, 'unspecified');
+  assert.equal(restored.client('maria').questionnaire.age, '29');
+  assert.equal(restored.client('maria').avatarUrl, 'https://example.com/maria.jpg');
+});
+
 test('шапка клиента показывает тег, вес и срок занятий; срок форматируется календарно', () => {
   const { context } = fixture();
   vm.runInContext(uiSource, context);
