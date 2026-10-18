@@ -2,7 +2,7 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  reviewPeriod: '', reviewNoteDrafts: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
+  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
 let trainerTouchStart = null;
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
@@ -294,13 +294,74 @@ function trainerClientOverview(client, now = Date.now()) {
       ${outstanding.length ? trainerAction('review', 'Проверить отчёт', { id: outstanding[0].id }) : trainerAction('ai-client', 'Проверить отчёт', { id: client.id }, 'trainer-secondary-button')}</section>
     <section>${trainerSection('Неразобранные отчёты', incomingReports.length)}${incomingReports.length ? `<div class="trainer-list">${incomingReports.map(r => trainerReviewCard(r, true)).join('')}</div>` : '<p class="trainer-muted">Новых отчётов от клиента пока нет.</p>'}</section>`;
 }
-function trainerClientTraining(client) {
+function trainerTrainingWeek(client, now = Date.now()) {
+  const schedule = trainerStore.state.trainer.reviewSchedule;
+  const start = trainerWeeklyPeriod(schedule, now).reviewDate;
+  const end = trainerShiftDate(start, 6);
+  const snapshot = (client.weekPlans || []).find(item => item.start === start)?.plan;
   const program = trainerStore.clientProgram(client.id);
-  if (!program) return trainerEmpty('Программа ещё не назначена', 'Выберите программу из своих или создайте новую.', trainerAction('client-programs', 'Выбрать программу', { id: client.id }));
-  const week = program.weeks[Math.max(0, Math.min(client.currentWeek - 1, program.weeks.length - 1))];
-  return `<section class="trainer-card"><p class="trainer-kicker">ТЕКУЩАЯ ПРОГРАММА</p><h2>${trainerEscape(program.title)}</h2><p>Неделя ${client.currentWeek} из ${program.weeks.length}</p><div class="trainer-button-row">${trainerAction('client-program', 'Открыть программу', { id: client.id }, 'trainer-secondary-button')}${trainerAction('client-edit-program', 'Изменить программу', { id: client.id }, 'trainer-secondary-button')}</div></section>
-    <section>${trainerSection('Тренировки недели')}<div class="trainer-list">${week.sessions.map((session, index) => `<div class="trainer-card trainer-session-row"><span class="trainer-session-status${index < (client.programCompleted ?? client.metrics.workoutCompleted) ? ' is-done' : ''}">${trainerIcon(index < (client.programCompleted ?? client.metrics.workoutCompleted) ? 'check' : 'programs')}</span><div><strong>${trainerEscape(session.title)}</strong><small>${session.exercises.length} упражнений · ${index < (client.programCompleted ?? client.metrics.workoutCompleted) ? 'Выполнена' : 'Предстоит'}</small></div></div>`).join('')}</div></section>
-    <section>${trainerSection('История выполнения')}<div class="trainer-list">${client.workouts.map(workout => `<details class="trainer-card trainer-workout"><summary><span><strong>${trainerEscape(workout.title)}</strong><small>${trainerDateLabel(workout.workout_date)}${workout.rpe != null ? ` · RPE ${trainerNumber(workout.rpe)}` : ''}</small></span>${trainerIcon('arrow')}</summary><div>${workout.exercises.map(exercise => `<h3>${trainerEscape(exercise.name)}</h3><p>${exercise.sets.map(set => `${trainerNumber(set.weight_kg)} кг × ${set.reps}`).join(' · ')}</p>`).join('')}</div></details>`).join('') || '<p class="trainer-muted">Тренировки ещё не отмечены.</p>'}</div></section>`;
+  const weekIndex = program ? Math.max(0, Math.min(client.currentWeek - 1, program.weeks.length - 1)) : -1;
+  const fallbackWeek = weekIndex >= 0 ? program.weeks[weekIndex] : null;
+  const plan = snapshot?.sessions?.length ? snapshot : fallbackWeek ? { title: program.title, weekNumber: client.currentWeek, sessions: fallbackWeek.sessions } : null;
+  const workouts = client.workouts.filter(workout => workout.workout_date >= start && workout.workout_date <= end).sort((a, b) => a.workout_date.localeCompare(b.workout_date));
+  return { start, end, plan, workouts, program };
+}
+function trainerSessionWorkout(session, sessions, workouts) {
+  const uniqueTitle = sessions.filter(item => item.title === session.title).length === 1;
+  return workouts.find(workout => session.id && workout.sessionId && session.id === workout.sessionId)
+    || (uniqueTitle ? workouts.find(workout => !workout.sessionId && session.title === workout.title) : null)
+    || null;
+}
+function trainerPlannedExerciseValue(exercise) {
+  return `${exercise.sets} × ${exercise.reps}${exercise.weightKg != null ? ` · ${trainerNumber(exercise.weightKg)} кг` : ''}`;
+}
+function trainerTrainingFactMarkup(exercise) {
+  const sets = exercise?.sets || [];
+  return sets.length ? sets.map(set => trainerEscape(trainerSetLabel(set))).join(' · ') : '—';
+}
+function trainerPlannedSessionMarkup(session, workout) {
+  const actualExercises = workout?.exercises || [], matched = new Set();
+  const planned = session.exercises.map(exercise => {
+    const actualIndex = actualExercises.findIndex((item, index) => !matched.has(index) && (exercise.exerciseId && item.exerciseId ? exercise.exerciseId === item.exerciseId : exercise.name === item.name));
+    const actual = actualIndex >= 0 ? actualExercises[actualIndex] : null;
+    if (actualIndex >= 0) matched.add(actualIndex);
+    return `<div class="trainer-training-exercise"><strong>${trainerEscape(exercise.name)}</strong>${workout ? '' : `<small>План: ${trainerEscape(trainerPlannedExerciseValue(exercise))}</small>`}<span class="trainer-training-fact${actual?.sets?.length ? ' is-recorded' : ''}">Факт клиента: ${trainerTrainingFactMarkup(actual)}</span></div>`;
+  }).join('');
+  const extra = actualExercises.filter((_, index) => !matched.has(index)).map(exercise => `<div class="trainer-training-exercise is-extra"><strong>${trainerEscape(exercise.name)}</strong><span class="trainer-training-fact is-recorded">Факт клиента: ${trainerTrainingFactMarkup(exercise)}</span></div>`).join('');
+  return `${planned}${extra ? `<div class="trainer-training-extra"><small>Дополнительно записано</small>${extra}</div>` : ''}`;
+}
+function trainerTrainingHistory(client) {
+  const today = trainerDemoDate(), firstDate = client.joinedOn || client.workouts.map(item => item.workout_date).sort()[0];
+  if (!firstDate || firstDate > today) return { weeks: [], selected: null };
+  const totalWeeks = Math.max(1, Math.ceil((trainerDayDistance(firstDate, today) + 1) / 7));
+  const weeks = Array.from({ length: totalWeeks }, (_, index) => {
+    const start = trainerShiftDate(firstDate, index * 7), end = [trainerShiftDate(start, 6), today].sort()[0];
+    return { number: index + 1, start, end, workouts: client.workouts.filter(item => item.workout_date >= start && item.workout_date <= end).sort((a, b) => b.workout_date.localeCompare(a.workout_date)) };
+  });
+  const preferred = weeks.slice().reverse().find(week => week.workouts.length) || weeks[weeks.length - 1];
+  const selected = weeks.find(week => week.start === trainerUI.trainingHistoryWeeks[client.id]) || preferred;
+  return { weeks: weeks.slice().reverse(), selected };
+}
+function trainerWorkoutHistoryCard(workout) {
+  return `<details class="trainer-card trainer-workout"><summary><span><strong>${trainerEscape(workout.title)}</strong><small>${trainerDateLabel(workout.workout_date)}${workout.rpe != null ? ` · RPE ${trainerNumber(workout.rpe)}` : ''}</small></span>${trainerIcon('arrow')}</summary><div>${workout.exercises.map(exercise => `<div class="trainer-training-exercise"><strong>${trainerEscape(exercise.name)}</strong><span class="trainer-training-fact is-recorded">${trainerTrainingFactMarkup(exercise)}</span></div>`).join('') || '<p class="trainer-muted">В тренировке нет записей упражнений.</p>'}</div></details>`;
+}
+function trainerClientTraining(client) {
+  const current = trainerTrainingWeek(client), history = trainerTrainingHistory(client);
+  const currentSessions = current.plan?.sessions || [];
+  const sessionRows = currentSessions.map(session => {
+    const workout = trainerSessionWorkout(session, currentSessions, current.workouts);
+    return `<details class="trainer-card trainer-training-day"><summary><span><strong>${trainerEscape(session.title)}</strong><small>${session.exercises.length} упражнений · ${workout ? `Выполнена · ${trainerDateLabel(workout.workout_date)}` : 'Нет записи'}</small></span><span class="trainer-session-status${workout ? ' is-done' : ''}">${trainerIcon(workout ? 'check' : 'programs')}</span></summary><div class="trainer-training-content">${trainerPlannedSessionMarkup(session, workout)}</div></details>`;
+  }).join('');
+  const completedCount = currentSessions.filter(session => trainerSessionWorkout(session, currentSessions, current.workouts)).length;
+  const currentProgram = current.program
+    ? `<section class="trainer-card"><p class="trainer-kicker">ТЕКУЩАЯ ПРОГРАММА</p><h2>${trainerEscape(current.program.title)}</h2><p>Неделя ${client.currentWeek} из ${current.program.weeks.length}</p><div class="trainer-button-row">${trainerAction('client-program', 'Открыть программу', { id: client.id }, 'trainer-secondary-button')}${trainerAction('client-edit-program', 'Изменить программу', { id: client.id }, 'trainer-secondary-button')}</div></section>`
+    : trainerEmpty('Программа ещё не назначена', 'Выберите программу из своих или создайте новую.', trainerAction('client-programs', 'Выбрать программу', { id: client.id }));
+  const currentWeekCount = currentSessions.length ? `${completedCount} из ${currentSessions.length}` : null;
+  const currentWeekMarkup = `<section><div class="trainer-section-heading trainer-training-week-heading"><h2>Текущая неделя${currentWeekCount ? `<span class="trainer-count">${trainerEscape(currentWeekCount)}</span>` : ''}</h2><span class="trainer-muted trainer-training-period">${trainerPeriodLabel({ start: current.start, end: current.end })}</span></div><div class="trainer-list">${sessionRows || '<p class="trainer-muted">На эту неделю тренировки не запланированы.</p>'}</div></section>`;
+  const selectedHistory = history.selected;
+  const weekOptions = history.weeks.map(week => `<option value="${week.start}" ${week.start === selectedHistory?.start ? 'selected' : ''}>Неделя ${week.number} · ${trainerPeriodLabel(week)}</option>`).join('');
+  const historyMarkup = `<section>${trainerSection('История тренировок')}${history.weeks.length ? `<label class="trainer-field trainer-training-history-filter">Неделя<select data-training-history-week aria-label="Неделя истории тренировок">${weekOptions}</select></label><div class="trainer-list">${selectedHistory?.workouts.length ? selectedHistory.workouts.map(trainerWorkoutHistoryCard).join('') : '<p class="trainer-muted">За эту неделю записей тренировок нет.</p>'}</div>` : '<p class="trainer-muted">История появится после первой записи тренировки.</p>'}</section>`;
+  return `${currentProgram}${currentWeekMarkup}${historyMarkup}`;
 }
 function trainerClientNutrition(client) {
   if (!client.nutrition.length) return trainerEmpty('Пока нет данных о питании', 'После внесения дневника здесь появятся суточные КБЖУ и история отчётов.');
@@ -696,6 +757,7 @@ function trainerHandleChange(event) {
   if (input.hasAttribute('data-editor-week')) { trainerUI.editorWeek = Number(input.value); trainerRender(); }
   if (input.hasAttribute('data-program-week')) { trainerUI.route.week = Number(input.value); trainerRender(); }
   if (input.hasAttribute('data-review-period')) { trainerUI.reviewPeriod = input.value; trainerUI.reviewFilter = 'all'; trainerRender(); }
+  if (input.hasAttribute('data-training-history-week')) { trainerUI.trainingHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
   if (input.hasAttribute('data-creation-client')) {
     const client = trainerStore.client(input.value), form = input.closest('form');
     if (client) {
