@@ -855,7 +855,10 @@ function trainerHandleClick(event) {
   if (!button || button.disabled) return;
   const { action, id, page, value, mode, client, day, exercise, index } = button.dataset;
   try {
-    if (action.startsWith('report-')) { trenzoReportClick(button.dataset); return; }
+    if (action.startsWith('report-')) {
+      if (action === 'report-edit-block') { event.preventDefault?.(); event.stopPropagation?.(); }
+      trenzoReportClick(button.dataset, button.closest?.('form')); return;
+    }
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
