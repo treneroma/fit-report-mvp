@@ -257,6 +257,78 @@ test('навигация показывает Отчёты, а обзор кли
   assert.match(reports, /trainer-link-card[\s\S]*?Память TRENZO/);
 });
 
+test('демо тренировок показывает две выполненные сессии и заполненную историю', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const demo = evaluate(`(() => {
+    const client = trainerStore.client('alexander');
+    const week = trainerTrainingWeek(client);
+    const history = trainerTrainingHistory(client);
+    return { markup: trainerClientTraining(client), week, history };
+  })()`);
+  assert.equal(demo.week.workouts.length, 2);
+  assert.match(demo.markup, /Текущая неделя[\s\S]*?2 из 3/);
+  assert.match(demo.markup, /11\.10\.2026 — 17\.10\.2026/);
+  assert.ok(demo.history.selected.workouts.length > 0);
+  assert.match(demo.markup, /Факт клиента: 80,0 кг ×/);
+});
+
+test('старое сохранённое демо без тренировок получает демонстрационные записи', () => {
+  const { context, store, storage, records } = fixture();
+  vm.runInContext(uiSource, context);
+  const client = store.client('alexander');
+  const weekStart = vm.runInContext('trainerWeeklyPeriod(trainerDefaultReviewSchedule).reviewDate', context);
+  const weekEnd = vm.runInContext('trainerShiftDate(trainerWeeklyPeriod(trainerDefaultReviewSchedule).reviewDate, 6)', context);
+  client.workouts = client.workouts.filter(item => item.workout_date < weekStart || item.workout_date > weekEnd);
+  records.set('trenzo-trainer-demo-v1:test', JSON.stringify(store.state));
+  const restored = vm.runInContext('createTrainerStore()', context);
+  restored.load(storage, 'test');
+  context.restoredStore = restored;
+  assert.equal(vm.runInContext('trainerTrainingWeek(restoredStore.client("alexander")).workouts.length', context), 2);
+});
+
+test('тренировки показывают текущий план с фактом клиента и историю с фильтром по неделям', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+  const weekBoundary = evaluate(`(() => {
+    const client = trainerStore.client('alexander');
+    return JSON.stringify([
+      trainerTrainingWeek(client, Date.parse('2026-10-18T11:50:00Z')).start,
+      trainerTrainingWeek(client, Date.parse('2026-10-18T15:30:00Z')).start
+    ]);
+  })()`);
+  assert.deepEqual(JSON.parse(weekBoundary), ['2026-10-11', '2026-10-18']);
+  const current = evaluate(`(() => {
+    const client = trainerStore.client('alexander');
+    client.joinedOn = '2026-10-04';
+    const week = trainerTrainingWeek(client);
+    client.workouts = client.workouts.filter(item => item.workout_date < week.start || item.workout_date > week.end);
+    week.plan.sessions.slice(0, 2).forEach((session, index) => {
+      const exercise = session.exercises[0];
+      client.workouts.push({ id: 'current-' + index, sessionId: session.id, title: session.title, workout_date: index ? '2026-10-14' : '2026-10-12', rpe: 7,
+        exercises: [{ name: exercise.name, sets: [{ weight_kg: exercise.weightKg, reps: 8 }] }] });
+    });
+    return trainerClientTraining(client);
+  })()`);
+  assert.match(current, /Текущая неделя[\s\S]*?2 из 3/);
+  assert.equal((current.match(/class="trainer-card trainer-training-day"/g) || []).length, 3);
+  assert.match(current, /Выполнена · 12 окт\./);
+  assert.match(current, /Факт клиента: 80,0 кг × 8/);
+  assert.match(current, /План: [^<]+/);
+  assert.equal((current.match(/<small>План:/g) || []).length, 5);
+  assert.match(current, /Факт клиента: —/);
+  assert.match(current, /История тренировок/);
+  assert.match(current, /data-training-history-week/);
+  assert.match(current, /Неделя 1 · 04\.10\.2026 — 10\.10\.2026/);
+
+  evaluate("trainerUI.trainingHistoryWeeks.alexander = '2026-10-04'");
+  const firstWeek = evaluate("trainerTrainingHistory(trainerStore.client('alexander'))");
+  assert.equal(firstWeek.selected.start, '2026-10-04');
+  assert.equal(firstWeek.selected.workouts.length, 3);
+});
+
 test('хранилище раздельно по пользователям и корректно переживает ошибки', () => {
   const { store, storage, context } = fixture();
   store.saveProfile({ name: 'Новый тренер' });
