@@ -3056,7 +3056,7 @@ h3 {
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  padding-bottom: var(--athlete-bottom-nav-offset);
+  padding-bottom: calc(var(--athlete-bottom-nav-offset) + 15px);
 }
 
 #athleteScreen.has-athlete-bottom-nav .page {
