@@ -288,6 +288,37 @@ test('демо тренировок показывает две выполнен
   assert.doesNotMatch(demo.markup, /Изменить программу/);
 });
 
+test('питание разделяет недельный план, дневник текущей недели и историю', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const result = vm.runInContext(`(() => {
+    const client = trainerStore.client('alexander');
+    const markup = trainerClientNutrition(client);
+    const history = trainerNutritionHistory(client);
+    return { markup, history, targets: client.nutritionTarget };
+  })()`, context);
+  assert.match(result.markup, /Ежедневный план на неделю/);
+  assert.match(result.markup, /Калории[\s\S]*?2500 ккал/);
+  assert.match(result.markup, /Белки[\s\S]*?160 г/);
+  assert.match(result.markup, /Жиры[\s\S]*?75 г/);
+  assert.match(result.markup, /Углеводы[\s\S]*?295 г/);
+  assert.match(result.markup, /Выполнение цели[\s\S]*?Нет данных за текущую неделю/);
+  assert.equal((result.markup.match(/class="trainer-nutrition-day/g) || []).length, 14);
+  assert.equal((result.markup.match(/Нет записи/g) || []).length, 7);
+  assert.match(result.markup, /11\.10\.2026 — 17\.10\.2026/);
+  assert.match(result.markup, /История питания/);
+  assert.match(result.markup, /data-nutrition-history-week/);
+  assert.match(result.markup, /Неделя 1 · 04\.10\.2026 — 10\.10\.2026/);
+  assert.match(result.markup, /Б 142 · Ж 70 · У 275 г/);
+  assert.doesNotMatch(result.markup, /Память TRENZO|Недельные отчёты|Первый отчёт по неделе/);
+
+  vm.runInContext("trainerUI.nutritionHistoryWeeks.alexander = '2026-10-04'", context);
+  assert.equal(vm.runInContext("trainerNutritionHistory(trainerStore.client('alexander')).selected.entries.length", context), 7);
+  const emptyClient = vm.runInContext("trainerClientNutrition(trainerStore.client('maxim'))", context);
+  assert.match(emptyClient, /История появится после первой записи питания/);
+  assert.match(emptyClient, /7/);
+});
+
 test('старое сохранённое демо без тренировок получает демонстрационные записи', () => {
   const { context, store, storage, records } = fixture();
   vm.runInContext(uiSource, context);
