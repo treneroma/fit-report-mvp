@@ -267,7 +267,46 @@ test('навигация показывает Отчёты, а обзор кли
 
   evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'reports' }");
   const reports = evaluate('trainerClient()');
-  assert.match(reports, /trainer-link-card[\s\S]*?Память TRENZO/);
+  assert.match(reports, /Следующий отчёт[\s\S]*?18\.10\.2026/);
+  assert.match(reports, /История отчётов/);
+  assert.doesNotMatch(reports, /Память TRENZO/);
+});
+
+test('анкета открывается из шапки клиента, а отчёты переключаются на ожидающий и архивный режимы', () => {
+  const { context, store } = fixture();
+  vm.runInContext(uiSource, context);
+  const evaluate = expression => vm.runInContext(expression, context);
+
+  evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'overview' }");
+  const clientHeader = evaluate('trainerClient()');
+  assert.match(clientHeader, /data-action="client-questionnaire"[^>]*>[^<]*<svg/);
+  evaluate("trainerUI.route = { page: 'client-questionnaire', id: 'alexander' }");
+  const answers = evaluate(`(() => {
+    const client = trainerStore.client('alexander');
+    client.questionnaire = { age: '29', sex: 'male', height: '178', weight: '82.4', goal: 'lose', targetWeight: '79', experience: '1to3', frequency: '3', nutritionTracking: 'regular', meals: '4', nutritionNotes: 'Не ем рыбу' };
+    return trainerClientQuestionnaire(client);
+  })()`);
+  assert.match(answers, /Анкета клиента/);
+  assert.match(answers, /29 лет/);
+  assert.match(answers, /Мужской/);
+  assert.match(answers, /Снизить вес/);
+  assert.match(answers, /3 раза в неделю/);
+  assert.match(answers, /Не ем рыбу/);
+  assert.doesNotMatch(answers, /data-action="memory"/);
+
+  evaluate(`trainerStore.state.weeklyReviews.push(
+    { id: 'client-report-old', clientId: 'alexander', start: '2026-09-27', end: '2026-10-03', status: 'approved' },
+    { id: 'client-report-new', clientId: 'alexander', start: '2026-10-04', end: '2026-10-10', status: 'new' }
+  )`);
+  evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'reports' }");
+  const reportMarkup = evaluate('trainerClient()');
+  assert.match(reportMarkup, /Неразобранные отчёты<span class="trainer-count">1<\/span>/);
+  assert.match(reportMarkup, /data-action="review" data-id="client-report-new"/);
+  assert.match(reportMarkup, /data-report-history-week/);
+  assert.match(reportMarkup, /Неделя 2 · 04\.10\.2026 — 10\.10\.2026/);
+  assert.doesNotMatch(reportMarkup, /Память TRENZO/);
+  vm.runInContext("trainerUI.reportHistoryWeeks.alexander = '2026-09-27'", context);
+  assert.match(evaluate('trainerClient()'), /Неделя 1 · 27\.09\.2026 — 03\.10\.2026/);
 });
 
 test('демо тренировок показывает две выполненные сессии и заполненную историю', () => {
@@ -288,7 +327,7 @@ test('демо тренировок показывает две выполнен
   assert.doesNotMatch(demo.markup, /Изменить программу/);
 });
 
-test('прогресс показывает последние три замера, до пяти рекордов и серию полных недель', () => {
+test('прогресс показывает пять нужных замеров, до пяти рекордов и серию полных недель', () => {
   const { context } = fixture();
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
@@ -299,10 +338,12 @@ test('прогресс показывает последние три замер
     return trainerClientProgress(client);
   })()`);
   assert.match(measurements, /Последние замеры/);
+  assert.match(measurements, /Плечи/);
+  assert.match(measurements, /Бицепс/);
   assert.match(measurements, /Талия/);
   assert.match(measurements, /Грудь[\s\S]*?102,0 см/);
   assert.match(measurements, /Бёдра/);
-  assert.doesNotMatch(measurements, /Шея|neck_cm|trainer-metrics-grid/);
+  assert.doesNotMatch(measurements, /Бедро|thigh_cm|Шея|neck_cm|trainer-metrics-grid/);
 
   const records = evaluate(`(() => {
     const client = trainerStore.client('anna');
