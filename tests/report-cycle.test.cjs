@@ -441,7 +441,7 @@ test('статус в карточке стоит рядом с именем, п
   const { run, cycle } = fixture({ demo: true });
   const id = cycle('alexander').id;
   const card = run(`trenzoReportCard(trenzoReports.get('${id}'))`);
-  assert.match(card, /report-name-row"><strong>Александр Иванов<\/strong><span class="trainer-client-status is-overload">Перегруз<\/span><\/span><small>/);
+  assert.match(card, /report-name-row"><strong>Александр Иванов<\/strong><span class="trainer-client-status is-overload">Перегруз<\/span><\/span><small class="report-period-full">/);
   assert.match(card, /report-card-end"><svg/);
   assert.equal((card.match(/trainer-client-status/g) || []).length, 1);
   assert.ok(card.indexOf('Перегруз') < card.indexOf('report-card-facts'));
@@ -573,4 +573,22 @@ test('таблица и карточки используют фиксирова
   assert.match(css, /\.report-nutrition-table\s*\{[^}]*table-layout: fixed;/);
   assert.match(css, /\.report-prescription-fields\.is-nutrition\s*\{[^}]*repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /\.report-trainer-form \.report-proposal-training\s*\{\s*gap: 0;/);
+});
+
+test('компактный период сохраняет месяц и год, включая переход через их границы', () => {
+  const { run } = fixture();
+  assert.equal(run("trenzoReportCompactPeriod({ start: '2026-10-11', end: '2026-10-17' })"), '11–17.10.2026');
+  assert.equal(run("trenzoReportCompactPeriod({ start: '2026-09-28', end: '2026-10-04' })"), '28.09–04.10.2026');
+  assert.equal(run("trenzoReportCompactPeriod({ start: '2026-12-28', end: '2027-01-03' })"), run("trainerPeriodLabel({ start: '2026-12-28', end: '2027-01-03' })"));
+});
+
+test('мобильная карточка выделяет имени полную строку, а статусу строку с датой', () => {
+  const { run } = fixture({ demo: true });
+  const card = run("trenzoReportCard(trenzoReports.list().find(item => item.clientId === 'ekaterina' && item.start === '2026-10-11'))");
+  assert.match(card, /<strong>Екатерина Волкова<\/strong>/);
+  assert.match(card, /class="report-period-compact" aria-label="11\.10\.2026 — 17\.10\.2026"[^>]*>11–17\.10\.2026<\/small>/);
+  const css = fs.readFileSync(path.join(__dirname, '../styles/reports.css'), 'utf8').split('@media (max-width: 480px)')[1];
+  assert.match(css, /\.report-name-row > strong\s*\{[^}]*grid-column: 1 \/ -1;[^}]*grid-row: 1;/);
+  assert.match(css, /\.report-name-row > \.trainer-client-status\s*\{[^}]*grid-column: 2;[^}]*grid-row: 2;/);
+  assert.match(css, /\.report-period-compact\s*\{[^}]*display: block;[^}]*grid-column: 1;[^}]*grid-row: 2;/);
 });
