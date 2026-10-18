@@ -82,6 +82,7 @@ function createTrenzoReportService(adapter) {
     ];
     if (data.current.nutrition.tracked) result.push({ key: 'appetite', label: 'Голод / аппетит', options: [['comfortable', 'Комфортно'], ['hungry', 'Сильный голод'], ['low', 'Аппетит снижен']], required: true });
     result.push({ key: 'pain', label: 'Были боли или дискомфорт?', options: [['no', 'Нет'], ['yes', 'Да']], required: true });
+    result.push({ key: 'soreness', label: 'Была крепатура после тренировок?', options: [['no', 'Нет'], ['yes', 'Да']] });
     if (answers.pain === 'yes') result.push({ key: 'painDetails', label: 'Где и когда возникал дискомфорт?', type: 'text', required: true });
     if (answers.energy === 'low' || answers.recovery === 'poor') result.push({ key: 'recoveryDetails', label: 'Что мешало восстановиться?', type: 'text' });
     if (data.current.training.planned && data.current.training.completed < data.current.training.planned) result.push({ key: 'trainingDifficulty', label: 'В плане остались тренировки без результата. Что помешало?', type: 'text' });
@@ -99,6 +100,7 @@ function createTrenzoReportService(adapter) {
     questions(id, input).forEach(question => {
       const value = input[question.key];
       if (question.options) {
+        if (!question.required && (value == null || value === '')) return;
         const normalized = question.type === 'scale' ? Number(value) : value;
         if (!question.options.some(([option]) => option === normalized)) throw new Error(`Ответьте на вопрос «${question.label}».`);
         answers[question.key] = normalized;
@@ -171,13 +173,59 @@ function createTrenzoReportService(adapter) {
     if (!cycle || cycle.resolution) throw new Error('Отчёт уже закрыт или не найден.');
     cycle.trainerDraft = copy(draft); adapter.save(cycle);
   }
+  function nextEffectiveOn(cycle, now = Date.now()) {
+    const today = trainerScheduleClock({ timeZone: cycle.timeZone }, now).date;
+    const nextStart = trainerShiftDate(cycle.end, 1);
+    const currentStart = trainerWeeklyPeriod({ ...adapter.schedule(), time: '00:00' }, now).reviewDate;
+    return nextStart < today ? trainerShiftDate(currentStart, 7) : nextStart;
+  }
+  function proposal(id, keep = false) {
+    const cycle = get(id), data = facts(id), answers = cycle.submission?.answers || {};
+    const base = adapter.plan(cycle.clientId, nextEffectiveOn(cycle)) || data.plan;
+    if (!base) return null;
+    const plan = copy(base);
+    const difficult = answers.pain === 'yes' || answers.recovery === 'poor' || answers.energy === 'low' || answers.soreness === 'yes' || (data.current.rpe != null && data.current.rpe >= 8);
+    const logExercise = (raw, session, name) => raw.workouts.filter(item => item.sessionId ? item.sessionId === session.id : base.sessions.filter(day => day.title === session.title).length === 1 && item.title === session.title).flatMap(item => item.exercises.filter(exercise => exercise.name === name)).pop();
+    plan.sessions.forEach(session => session.exercises.forEach(exercise => {
+      const current = logExercise(data.current.raw, session, exercise.name), before = logExercise(data.previous.raw, session, exercise.name);
+      const direction = current && before ? trainerWorkoutComparison(current, before) : 'unknown';
+      const comparableWeight = current?.sets?.length && current.sets.every(set => set.weight_kg === exercise.weightKg && Number.isFinite(set.reps));
+      exercise.reason = keep ? 'Тренер сохраняет параметры текущего плана.'
+        : answers.pain === 'yes' ? 'Клиент сообщил о дискомфорте. Нагрузку не повышаем до уточнения состояния.'
+        : difficult ? 'Тренировки ощущались тяжело или восстановление было неполным. Сохраняем нагрузку без прогрессии.'
+        : !current ? 'Результат упражнения за период не внесён. Недостаточно данных для повышения нагрузки.'
+        : direction === 'up' && comparableWeight && exercise.weightKg > 0 && data.current.rpe != null && data.current.rpe <= 8
+          ? 'В сопоставимых подходах выросли вес или повторения, средняя тяжесть не выше 8 из 10. Предлагаем небольшой шаг веса после проверки техники.'
+        : direction === 'down' || direction === 'mixed' ? 'Результат снизился или изменился неоднозначно. Повторяем параметры и проверяем динамику.'
+        : direction === 'stable' ? 'В сопоставимых подходах результат не изменился. Повторяем нагрузку для закрепления.'
+        : 'Нет сопоставимой записи за прошлый период. Оставляем параметры до следующего сравнения.';
+      if (!keep && !difficult && current && before && ['up', 'down', 'mixed', 'stable'].includes(direction)) {
+        const sets = entry => entry.sets.map(set => set.duration_seconds ? `${set.duration_seconds} сек` : `${set.weight_kg} кг × ${set.reps}`).join(' / ');
+        const conclusion = direction === 'up' && comparableWeight && exercise.weightKg > 0 && data.current.rpe != null && data.current.rpe <= 8 ? 'Предлагаем +2,5 кг после проверки техники: нагрузка выросла без высокой субъективной тяжести.' : direction === 'stable' ? 'Результат стабилен, сохраняем параметры для закрепления.' : 'Повторяем параметры: для повышения нагрузки пока нет устойчивой положительной динамики.';
+        exercise.reason = `Последняя запись: ${sets(current)}; ранее: ${sets(before)}. ${conclusion}`;
+      }
+      if (!keep && !difficult && direction === 'up' && comparableWeight && exercise.weightKg > 0 && data.current.rpe != null && data.current.rpe <= 8) exercise.weightKg += 2.5;
+    }));
+    const target = plan.nutritionTarget, current = data.current, previous = data.previous;
+    const slower = current.weight.delta < 0 && previous.weight.delta < 0 && current.weight.delta - previous.weight.delta >= 0.2;
+    const canAdjust = !keep && !difficult && /снижен|похуд/i.test(data.client.goal || '') && slower && current.nutrition.days >= 6 && current.nutrition.adherence >= 90 && Number.isFinite(target?.carbs_g) && target.carbs_g >= 40 && Number.isFinite(target.calories) && target.calories > 80;
+    plan.nutritionReason = canAdjust ? `Темп снижения веса замедлился: ${previous.weight.delta} → ${current.weight.delta} кг при заполненном дневнике и соблюдении не ниже 90%. Предложение для проверки тренером: −20 г углеводов, −80 ккал в день.`
+      : keep ? 'Тренер оставляет текущие плановые значения питания.'
+      : !target ? 'План питания не назначен. Новые значения без решения тренера не придумываем.'
+      : difficult ? 'Есть сложности с восстановлением. Не предлагаем дополнительно снижать питание по одному отчёту.'
+      : current.nutrition.days < 6 ? 'Дневник заполнен не полностью. Для корректировки не хватает данных, текущие значения сохраняем.'
+      : 'По имеющейся динамике нет достаточного основания менять КБЖУ. Сохраняем текущие значения и наблюдаем следующий период.';
+    if (canAdjust) { target.carbs_g -= 20; target.calories -= 80; }
+    return plan;
+  }
   function close(id, input, now = Date.now()) {
     const cycle = get(id);
     if (!cycle?.submission) throw new Error('Отчёт клиента ещё не отправлен.');
     if (cycle.resolution) return copy(cycle);
     if (!input || !['accept', 'edit', 'keep'].includes(input.mode)) throw new Error('Примите решение по рекомендациям.');
     if (!Array.isArray(input.choices)) throw new Error('Проверьте рекомендации тренера.');
-    if (typeof input.feedback !== 'string' || !input.feedback.trim() || input.feedback.length > 4000) throw new Error('Заполните ответ клиенту: до 4000 символов.');
+    const optionalComment = Object.prototype.hasOwnProperty.call(input, 'weeklyPlan') && input.responseGenerated === true;
+    if (typeof input.feedback !== 'string' || (!optionalComment && !input.feedback.trim()) || input.feedback.length > 4000) throw new Error('Проверьте ответ клиенту: до 4000 символов.');
     const analysis = analyze(id), changes = [], choices = [];
     for (const proposed of analysis.recommendations) {
       const choice = input.choices.find(item => item.id === proposed.id);
@@ -185,7 +233,7 @@ function createTrenzoReportService(adapter) {
       const text = String(choice?.text || proposed.text).trim();
       if (!text || text.length > 2000) throw new Error('Проверьте текст рекомендаций.');
       choices.push({ id: proposed.id, accepted, text });
-      if (accepted && proposed.action.type === 'weight') {
+      if (!Object.prototype.hasOwnProperty.call(input, 'weeklyPlan') && accepted && proposed.action.type === 'weight') {
         if (choice.action?.to == null || choice.action.to === '') throw new Error('Проверьте рабочий вес в рекомендации.');
         const to = Number(choice.action.to);
         if (!Number.isFinite(to) || to < 0 || to > 1000) throw new Error('Проверьте рабочий вес в рекомендации.');
@@ -198,23 +246,59 @@ function createTrenzoReportService(adapter) {
       if (!text || text.length > 2000) throw new Error('Заполните план следующего периода.');
       nextPlan[field] = text;
     }
-    const today = trainerScheduleClock({ timeZone: cycle.timeZone }, now).date;
-    const nextStart = trainerShiftDate(cycle.end, 1);
-    const currentStart = trainerWeeklyPeriod({ ...adapter.schedule(), time: '00:00' }, now).reviewDate;
-    nextPlan.effectiveOn = nextStart < today ? trainerShiftDate(currentStart, 7) : nextStart;
+    nextPlan.effectiveOn = nextEffectiveOn(cycle, now);
     nextPlan.plan = copy(adapter.plan(cycle.clientId, nextPlan.effectiveOn) || facts(id).plan);
-    if (nextPlan.plan) changes.forEach(change => {
+    if (Object.prototype.hasOwnProperty.call(input, 'weeklyPlan')) {
+      const base = nextPlan.plan, edited = input.weeklyPlan;
+      if (!!base !== !!edited || (base && (!Array.isArray(edited.sessions) || edited.sessions.length !== base.sessions.length))) throw new Error('Состав программы изменился. Откройте отчёт заново.');
+      if (base) {
+        base.sessions.forEach((session, day) => {
+          const draftSession = edited.sessions[day];
+          if (draftSession?.id !== session.id || draftSession.exercises?.length !== session.exercises.length) throw new Error('Состав тренировки изменился. Проверьте программу.');
+          session.exercises.forEach((exercise, index) => {
+            const draft = draftSession.exercises[index];
+            if (draft.name !== exercise.name || !Number.isInteger(draft.sets) || draft.sets < 1 || draft.sets > 20 || typeof draft.reps !== 'string' || !draft.reps.trim() || draft.reps.length > 40 || !Number.isFinite(draft.weightKg) || draft.weightKg < 0 || draft.weightKg > 1000) throw new Error('Проверьте подходы, повторения и вес каждого упражнения.');
+            const changed = ['sets', 'reps', 'weightKg'].some(key => draft[key] !== exercise[key]);
+            if (input.mode === 'keep' && changed) throw new Error('Для изменения нагрузки выберите «Изменить».');
+            if (draft.weightKg !== exercise.weightKg) changes.push({ type: 'weight', sessionId: session.id, exercise: exercise.name, from: exercise.weightKg, to: draft.weightKg });
+            if (draft.sets !== exercise.sets || draft.reps !== exercise.reps) changes.push({ type: 'prescription', sessionId: session.id, exercise: exercise.name, from: `${exercise.sets} × ${exercise.reps}`, to: `${draft.sets} × ${draft.reps}` });
+            Object.assign(exercise, { sets: draft.sets, reps: draft.reps.trim(), weightKg: draft.weightKg, reason: String(draft.reason || '').slice(0, 1000) });
+          });
+        });
+        if (!!base.nutritionTarget !== !!edited.nutritionTarget) throw new Error('План питания изменился. Проверьте назначения.');
+        if (base.nutritionTarget) {
+          for (const key of ['calories', 'protein_g', 'fat_g', 'carbs_g']) {
+            const value = edited.nutritionTarget[key], limit = key === 'calories' ? 10000 : 1500;
+            if (!Number.isFinite(value) || value < 0 || value > limit || (key === 'calories' && value === 0)) throw new Error('Проверьте КБЖУ следующей недели.');
+            if (input.mode === 'keep' && value !== base.nutritionTarget[key]) throw new Error('Для изменения питания выберите «Изменить».');
+          }
+          if (JSON.stringify(base.nutritionTarget) !== JSON.stringify(edited.nutritionTarget)) changes.push({ type: 'nutrition', from: copy(base.nutritionTarget), to: copy(edited.nutritionTarget) });
+          base.nutritionTarget = copy(edited.nutritionTarget);
+        }
+        base.nutritionReason = String(edited.nutritionReason || '').slice(0, 1000);
+      }
+    }
+    if (nextPlan.plan && !Object.prototype.hasOwnProperty.call(input, 'weeklyPlan')) changes.forEach(change => {
       const session = nextPlan.plan.sessions.find(item => item.id === change.sessionId);
       const exercise = session?.exercises.find(item => item.name === change.exercise && item.weightKg === change.from);
       if (!exercise) throw new Error('Упражнение изменилось. Проверьте план до отправки.');
       exercise.weightKg = change.to;
     });
     cycle.resolution = { decidedAt: new Date(now).toISOString(), mode: input.mode, choices, changes, decision: input.mode === 'keep' ? 'Сохранить текущий план без изменений.' : choices.filter(item => item.accepted).map(item => item.text).join(' ') || 'Сохранить текущий план без изменений.', nextPlan, feedback: input.feedback.trim() };
+    if (Object.prototype.hasOwnProperty.call(input, 'weeklyPlan')) {
+      const summary = changes.map(change => change.type === 'nutrition' ? `Питание: ${change.from.calories} → ${change.to.calories} ккал, углеводы ${change.from.carbs_g} → ${change.to.carbs_g} г.` : `${change.exercise}: ${change.from} → ${change.to}${change.type === 'weight' ? ' кг' : ''}.`).join(' ');
+      cycle.resolution.decision = input.mode === 'keep' ? 'Сохранить текущие тренировки и питание.' : `Согласован тренировочный цикл: ${nextPlan.plan?.sessions.length || 0} тренировок и план питания. ${summary || 'Параметры без изменений.'}`;
+      cycle.resolution.choices = [
+        { id: 'weekly-training', accepted: true, text: `${nextPlan.plan?.sessions.length || 0} тренировок на неделю`, sessions: copy(nextPlan.plan?.sessions || []) },
+        { id: 'weekly-nutrition', accepted: true, text: nextPlan.nutrition, target: copy(nextPlan.plan?.nutritionTarget || null), reason: nextPlan.plan?.nutritionReason || '' }
+      ];
+      cycle.resolution.delivery = { sessions: copy(nextPlan.plan?.sessions || []), nutrition: copy(nextPlan.plan?.nutritionTarget || null), clientComment: cycle.submission.answers.comment || cycle.submission.answers.difficulty || '', trainerComment: input.feedback.trim() };
+    }
     delete cycle.trainerDraft;
     adapter.complete(cycle);
     return copy(cycle);
   }
-  return { ensure, period, status, overdue, get, facts, questions, submit, analyze, createTrainerDraft, saveDraft, close, feedback,
+  return { ensure, period, status, overdue, get, facts, questions, submit, analyze, createTrainerDraft, saveDraft, close, feedback, proposal,
     list: () => copy(cycles()), pending: () => cycles().filter(item => status(item) === 'submitted').length,
     saveClientDraft(id, answers) { const cycle = get(id); if (!cycle || cycle.submission) return; cycle.clientDraft = copy(answers); adapter.save(cycle); } };
 }
