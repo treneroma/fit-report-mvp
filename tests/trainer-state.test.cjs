@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
-const dataSource = fs.readFileSync(path.join(__dirname, '../screens/trainer-data.js'), 'utf8');
-const uiSource = fs.readFileSync(path.join(__dirname, '../screens/trainer.js'), 'utf8');
+const dataSource = ['trainer-data', 'report-cycle'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
+const uiSource = ['trainer', 'report-ui'].map(name => fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8')).join('\n');
 
 function fixture() {
   const context = vm.createContext({ console, URL });
@@ -445,9 +445,10 @@ test('обзор клиента сводит тренировки, питани�
   const { context } = fixture();
   vm.runInContext(uiSource, context);
   const evaluate = expression => vm.runInContext(expression, context);
+  evaluate("Date.now = () => Date.parse('2026-10-18T09:00:00Z'); trenzoEnsureReports()");
   const summary = evaluate("trainerClientOverview(trainerStore.client('alexander'), Date.parse('2026-10-16T09:00:00Z'))");
   assert.match(summary, /<strong>AI TRENZO<\/strong>/);
-  assert.match(summary, /недельный отчёт/);
+  assert.match(summary, /[Нн]едельный отчёт/);
   assert.match(summary, /Проверить отчёт/);
   assert.doesNotMatch(summary, /Разобрать неделю|недельный разбор/);
   assert.match(summary, /Текущая неделя/);
@@ -486,13 +487,14 @@ test('навигация показывает Отчёты, а обзор кли
   assert.doesNotMatch(alexander, /trainer-link-card[\s\S]*?Память TRENZO/);
 
   evaluate("trainerUI.route = { page: 'client', id: 'ekaterina', tab: 'overview' }");
+  evaluate("Date.now = () => Date.parse('2026-10-18T09:00:00Z'); trenzoEnsureReports()");
   const ekaterina = evaluate('trainerClient()');
   assert.match(ekaterina, /Неразобранные отчёты<span class="trainer-count">1<\/span>/);
-  assert.match(ekaterina, /Отчёт недели/);
+  assert.match(ekaterina, /Разобрать/);
 
-  evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'reports' }");
+  evaluate("trainerUI.route = { page: 'client', id: 'maria', tab: 'reports' }");
   const reports = evaluate('trainerClient()');
-  assert.match(reports, /Следующий отчёт[\s\S]*?18\.10\.2026/);
+  assert.match(reports, /Следующий отчёт[\s\S]*?19\.10\.2026/);
   assert.match(reports, /История отчётов/);
   assert.doesNotMatch(reports, /Память TRENZO/);
 });
@@ -519,19 +521,23 @@ test('анкета открывается из шапки клиента, а о�
   assert.match(answers, /Не ем рыбу/);
   assert.doesNotMatch(answers, /data-action="memory"/);
 
-  evaluate(`trainerStore.state.weeklyReviews.push(
-    { id: 'client-report-old', clientId: 'alexander', start: '2026-09-27', end: '2026-10-03', status: 'approved' },
-    { id: 'client-report-new', clientId: 'alexander', start: '2026-10-04', end: '2026-10-10', status: 'new' }
-  )`);
+  evaluate(`Date.now = () => Date.parse('2026-10-18T09:00:00Z'); trainerStore.client('alexander').joinedOn = '2026-09-27';
+    for (const start of ['2026-09-27', '2026-10-04']) {
+      const end = trainerShiftDate(start, 6), id = 'period-report:alexander:' + start + ':' + end;
+      trainerStore.saveReportCycle({ id, kind: 'period-report', version: 1, clientId: 'alexander', start, end, dueOn: trainerShiftDate(end, 1), dueTime: '18:00', timeZone: 'Europe/Moscow' });
+      trenzoReports.submit(id, { wellbeing: 4, energy: 'normal', recovery: 'good', appetite: 'comfortable', pain: 'no' });
+      if (start === '2026-09-27') trenzoReports.close(id, trenzoReports.createTrainerDraft(id, 'keep'));
+    }
+  `);
   evaluate("trainerUI.route = { page: 'client', id: 'alexander', tab: 'reports' }");
   const reportMarkup = evaluate('trainerClient()');
   assert.match(reportMarkup, /Неразобранные отчёты<span class="trainer-count">1<\/span>/);
-  assert.match(reportMarkup, /data-action="review" data-id="client-report-new"/);
+  assert.match(reportMarkup, /data-action="report-review" data-id="period-report:alexander:2026-10-04:2026-10-10"/);
   assert.match(reportMarkup, /data-report-history-week/);
-  assert.match(reportMarkup, /Неделя 2 · 04\.10\.2026 — 10\.10\.2026/);
+  assert.match(reportMarkup, /27\.09\.2026 — 03\.10\.2026/);
   assert.doesNotMatch(reportMarkup, /Память TRENZO/);
   vm.runInContext("trainerUI.reportHistoryWeeks.alexander = '2026-09-27'", context);
-  assert.match(evaluate('trainerClient()'), /Неделя 1 · 27\.09\.2026 — 03\.10\.2026/);
+  assert.match(evaluate('trainerClient()'), /27\.09\.2026 — 03\.10\.2026/);
 });
 
 test('демо тренировок показывает две выполненные сессии и заполненную историю', () => {
