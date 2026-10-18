@@ -233,7 +233,7 @@ function trainerCreateDemoData(now = Date.now()) {
   const data = {
     version: 1,
     trainer: { ...trainerDefaultProfile, reviewSchedule: trainerCopy(trainerDefaultReviewSchedule) },
-    clients, reviews, weeklyReviews: [], firstReviewStart: period.start,
+    clients, reviews, weeklyReviews: [], reportCycles: [], firstReviewStart: period.start,
     workoutLibrary: trainerCreateWorkoutLibrary(),
     programs: [
       { id: 'fullbody', title: 'Full Body · Начальный', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 3) },
@@ -289,9 +289,9 @@ function createTrainerStore() {
   let storageKey = '';
   let loadedKey = null;
   let storageWarning = '';
-  const pending = review => ['new', 'requires_action'].includes(review.status);
+  const pending = review => review.kind === 'period-report' ? !!review.submission && !review.resolution : ['new', 'requires_action'].includes(review.status);
   const client = id => state.clients.find(item => item.id === id);
-  const review = id => state.weeklyReviews.find(item => item.id === id) || state.reviews.find(item => item.id === id);
+  const review = id => (state.reportCycles || []).find(item => item.id === id) || state.weeklyReviews.find(item => item.id === id) || state.reviews.find(item => item.id === id);
   const program = id => state.programs.find(item => item.id === id);
   const libraryWorkout = id => state.workoutLibrary.find(item => item.id === id);
   function persist() {
@@ -433,6 +433,7 @@ function createTrainerStore() {
         regalia: savedTrainer.regalia || ''
       };
       state.weeklyReviews ||= [];
+      state.reportCycles ||= [];
       state.firstReviewStart ||= trainerWeeklyPeriod(state.trainer.reviewSchedule).start;
       const legacyDemoJoinDate = trainerShiftDate(state.firstReviewStart, -35);
       state.clients.forEach(item => {
@@ -493,6 +494,37 @@ function createTrainerStore() {
       return result;
     },
     clientState(id, now = Date.now()) { return trainerCalculateClientState(client(id), now); },
+    listReportCycles() { return trainerCopy(state.reportCycles || []); },
+    markReportDemoReady() { state.reportDemoVersion = 1; persist(); },
+    saveReportCycle(cycle) {
+      if (!client(cycle.clientId) || cycle.kind !== 'period-report' || cycle.id !== `period-report:${cycle.clientId}:${cycle.start}:${cycle.end}` || trainerDayDistance(cycle.start, cycle.end) !== 6) throw new Error('Проверьте клиента и период отчёта.');
+      state.reportCycles ||= [];
+      const index = state.reportCycles.findIndex(item => item.id === cycle.id), previous = state.reportCycles[index];
+      if (previous?.resolution) throw new Error('Закрытый отчёт нельзя переписать.');
+      if (previous?.submission && JSON.stringify(previous.submission) !== JSON.stringify(cycle.submission)) throw new Error('Отправленный снимок недели нельзя переписать.');
+      if (cycle.resolution) throw new Error('Используйте завершение отчёта для фиксации решения.');
+      const saved = trainerCopy(cycle);
+      if (index < 0) state.reportCycles.push(saved); else state.reportCycles[index] = saved;
+      persist(); return trainerCopy(saved);
+    },
+    completeReportCycle(cycle) {
+      const previous = (state.reportCycles || []).find(item => item.id === cycle.id);
+      if (previous?.resolution) return trainerCopy(previous);
+      if (!previous?.submission || JSON.stringify(previous.submission) !== JSON.stringify(cycle.submission) || !cycle.resolution?.feedback?.trim()) throw new Error('Нужен отправленный отчёт и ответ тренера.');
+      const item = client(previous.clientId), resolution = cycle.resolution;
+      if ((item.nextPeriodPlans || []).some(plan => plan.effectiveOn === resolution.nextPlan.effectiveOn && plan.reportEnd > previous.end)) throw new Error('Для этого периода уже согласован более новый план.');
+      const saved = trainerCopy(cycle);
+      state.reportCycles[state.reportCycles.findIndex(entry => entry.id === cycle.id)] = saved;
+      item.nextPeriodPlans ||= [];
+      item.nextPeriodPlans.push({ reportId: cycle.id, reportEnd: cycle.end, ...trainerCopy(resolution.nextPlan), changes: trainerCopy(resolution.changes) });
+      if (resolution.nextPlan.plan) {
+        item.weekPlans ||= [];
+        item.weekPlans = item.weekPlans.filter(plan => plan.start !== resolution.nextPlan.effectiveOn);
+        item.weekPlans.push({ start: resolution.nextPlan.effectiveOn, plan: trainerCopy(resolution.nextPlan.plan), reportId: cycle.id });
+      }
+      if (!item.decisions.some(entry => entry.reviewId === cycle.id)) item.decisions.unshift({ id: `report-decision:${cycle.id}`, date: resolution.decidedAt.slice(0, 10), action: resolution.decision, reviewId: cycle.id, feedback: resolution.feedback, changes: trainerCopy(resolution.changes) });
+      persist(); return trainerCopy(saved);
+    },
     saveLibraryWorkout(draft) {
       if (typeof draft.title !== 'string' || !draft.title.trim() || draft.title.length > 100) throw new Error('Укажи название тренировки до 100 символов.');
       const duration = Number(draft.duration);
