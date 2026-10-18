@@ -236,6 +236,28 @@ function trainerCreateDemoData(now = Date.now()) {
     });
     const previous = client.workouts.map(workout => ({ ...trainerCopy(workout), id: `${workout.id}-previous`, workout_date: trainerShiftDate(workout.workout_date, -7), exercises: workout.exercises.map(exercise => ({ ...trainerCopy(exercise), sets: exercise.sets.map(set => ({ ...set, ...(set.reps ? { reps: client.id === 'ilya' ? 9 : set.reps } : {}) })) })) }));
     client.workouts.unshift(...previous);
+    if (client.id === 'alexander') {
+      // Демонстрационные записи факта: две из трёх тренировок текущей недели.
+      const currentPeriod = trainerWeeklyPeriod(trainerDefaultReviewSchedule, now);
+      const currentWeekStart = currentPeriod.reviewDate;
+      const currentWeekEnd = trainerShiftDate(currentWeekStart, 6);
+      client.workouts = client.workouts.filter(workout => workout.workout_date < currentWeekStart || workout.workout_date > currentWeekEnd);
+      const demoSessions = program.weeks[4].sessions;
+      const addDemoWorkout = (sessionIndex, workoutDate, id) => {
+        const session = demoSessions[sessionIndex % demoSessions.length];
+        client.workouts.push({
+          id: `workout-alexander-demo-${id}`, sessionId: session.id, workout_date: workoutDate, title: session.title, rpe: 7,
+          exercises: session.exercises.map((exercise, exerciseIndex) => ({
+            name: exercise.name,
+            sets: Array.from({ length: exercise.sets }, (_, setIndex) => exercise.reps.includes('сек')
+              ? { weight_kg: 0, duration_seconds: 35 + setIndex }
+              : { weight_kg: exercise.weightKg, reps: 8 + ((exerciseIndex + setIndex) % 3) })
+          }))
+        });
+      };
+      addDemoWorkout(0, trainerShiftDate(currentWeekStart, 1), 'current-a');
+      addDemoWorkout(1, trainerShiftDate(currentWeekStart, 3), 'current-b');
+    }
   });
   return data;
 }
@@ -342,7 +364,9 @@ function createTrainerStore() {
       const nextKey = `trenzo-trainer-demo-v1:${identity}`;
       if (loadedKey === nextKey) { ensureWeeklyReviews(); return; }
       storage = browserStorage; storageKey = nextKey; loadedKey = nextKey;
-      state = trainerCreateDemoData();
+      const freshDemo = trainerCreateDemoData();
+      const previewWorkouts = freshDemo.clients.find(item => item.id === 'alexander').workouts.filter(item => item.id.startsWith('workout-alexander-demo-'));
+      state = freshDemo;
       try {
         const saved = JSON.parse(storage?.getItem(storageKey) || 'null');
         if (saved?.version === 1 && saved.trainer && Array.isArray(saved.clients) && Array.isArray(saved.reviews) && Array.isArray(saved.programs) &&
@@ -353,6 +377,17 @@ function createTrainerStore() {
         }
       } catch { storageWarning = 'Сохранённый пример недоступен. Загружены исходные демо-данные.'; }
       state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
+      const alexander = state.clients.find(item => item.id === 'alexander');
+      const currentWeekStart = trainerWeeklyPeriod(state.trainer.reviewSchedule).reviewDate;
+      const currentWeekEnd = trainerShiftDate(currentWeekStart, 6);
+      const hasCurrentWeekWorkouts = alexander?.workouts.some(item => item.workout_date >= currentWeekStart && item.workout_date <= currentWeekEnd);
+      const hasDemoPreview = alexander?.workouts.some(item => item.id === 'workout-alexander-demo-current-a' || item.id === 'workout-alexander-demo-current-b');
+      if (alexander && !hasCurrentWeekWorkouts && !hasDemoPreview) {
+        const demoStart = trainerWeeklyPeriod(trainerDefaultReviewSchedule).reviewDate;
+        const offset = trainerDayDistance(demoStart, currentWeekStart);
+        alexander.workouts.push(...previewWorkouts.map(item => ({ ...trainerCopy(item), workout_date: trainerShiftDate(item.workout_date, offset) })));
+        persist();
+      }
       const savedTrainer = state.trainer;
       const oldSpecialization = String(savedTrainer.specialization || '').toLocaleLowerCase('ru-RU');
       const legacySpecializations = oldSpecialization && !oldSpecialization.includes('онлайн') && !oldSpecialization.includes('офлайн')
