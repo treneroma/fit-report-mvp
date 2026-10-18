@@ -405,15 +405,13 @@ function trainerWeightChart(client) {
   return `<svg class="trainer-weight-chart" viewBox="0 0 324 160" role="img" aria-label="Вес: ${trainerNumber(values[0])} → ${trainerNumber(values[values.length - 1])} килограмма за четыре недели"><path class="trainer-chart-grid" d="M26 32H298M26 76H298M26 120H298"/><polyline points="${points.map(p => p.join(',')).join(' ')}"/>${points.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4"/>`).join('')}<text x="26" y="149">${trainerDateLabel(client.weights[0].measured_on)}</text><text x="298" y="149" text-anchor="end">${trainerDateLabel(client.weights[client.weights.length - 1].measured_on)}</text><text x="298" y="22" text-anchor="end">${trainerNumber(values[values.length - 1])} кг</text></svg>`;
 }
 function trainerClientProgress(client) {
-  const measurementKeys = [['waist_cm', 'Талия'], ['chest_cm', 'Грудь'], ['hips_cm', 'Бёдра']];
+  const measurementKeys = [['shoulders_cm', 'Плечи'], ['chest_cm', 'Грудь'], ['biceps_cm', 'Бицепс'], ['waist_cm', 'Талия'], ['hips_cm', 'Бёдра']];
   const measurementHistory = (client.measurementHistory || []).slice().sort((a, b) => b.measured_on.localeCompare(a.measured_on));
   const latestMeasurements = measurementKeys.map(([key, label]) => {
     const source = measurementHistory.find(entry => entry[key] != null && Number.isFinite(Number(entry[key]))) || client.measurements || {};
     return { label, value: source[key], date: source.measured_on };
-  }).filter(item => Number.isFinite(Number(item.value)));
-  const measurementMarkup = latestMeasurements.length
-    ? `<div class="trainer-measurement-list">${latestMeasurements.map(item => `<div><span>${item.label}</span><strong>${trainerNumber(item.value)} см</strong>${item.date ? `<small>${trainerDateLabel(item.date)}</small>` : ''}</div>`).join('')}</div>`
-    : '<p class="trainer-muted">Замеры ещё не внесены.</p>';
+  });
+  const measurementMarkup = `<div class="trainer-measurement-list">${latestMeasurements.map(item => `<div><span>${item.label}</span><strong>${item.value != null && item.value !== '' && Number.isFinite(Number(item.value)) ? `${trainerNumber(item.value)} см` : '—'}</strong>${item.date ? `<small>${trainerDateLabel(item.date)}</small>` : ''}</div>`).join('')}</div>`;
   const personalRecords = (client.records || []).slice(0, 5);
   const recordMarkup = personalRecords.length
     ? `<div class="trainer-facts trainer-record-list">${personalRecords.map(record => `<div><span>${trainerEscape(record.exercise)}</span><strong>${trainerEscape(record.value)}</strong></div>`).join('')}</div>`
@@ -466,7 +464,7 @@ function trainerClientReports(client) {
   const today = trainerScheduleClock(schedule).date;
   const nextReport = latestSchedule.reviewDate > today ? latestSchedule.reviewDate : trainerShiftDate(latestSchedule.reviewDate, 7);
   const currentReportBlock = pending.length
-    ? `<section class="trainer-card trainer-client-current-report">${trainerSection('Неразобранные отчёты', pending.length)}${trainerClientReportCard(pending[0])}</section>`
+    ? `<section>${trainerSection('Неразобранные отчёты', pending.length)}<div class="trainer-list">${trainerClientReportCard(pending[0])}</div></section>`
     : `<section class="trainer-card trainer-client-current-report"><span class="trainer-client-report-label">Следующий отчёт</span><strong>${nextReport.split('-').reverse().join('.')}</strong><small>${schedule.time} · ${schedule.timeZone}</small></section>`;
   const periods = trainerClientReportHistory(client);
   const selected = periods.find(period => period.start === trainerUI.reportHistoryWeeks[client.id]) || periods[0];
@@ -498,6 +496,7 @@ function trainerQuestionnaireValue(field, value) {
   return String(value);
 }
 function trainerClientQuestionnaire(client) {
+  if (!client) return trainerEmpty('Анкета недоступна', 'Клиент не найден.');
   const answers = client.questionnaire || client.athleteAnswers || client.profileAnswers || {};
   const groups = [
     ['О клиенте', [['name', 'Имя'], ['age', 'Возраст'], ['sex', 'Пол'], ['height', 'Рост'], ['weight', 'Вес']]],
