@@ -2,7 +2,7 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, reportHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
+  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, reportHistoryWeeks: {}, programFilter: 'workouts', templateFilter: 'workouts', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
 let trainerTouchStart = null;
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
@@ -151,7 +151,7 @@ function trainerNavigation() {
   if (['client', 'client-questionnaire', 'memory'].includes(active)) active = 'clients';
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
   if (active === 'review') active = 'reviews';
-  if (['program', 'program-new', 'program-edit'].includes(active)) active = trainerUI.route.clientId ? 'clients' : 'programs';
+  if (['program', 'program-new', 'program-edit', 'library-workout'].includes(active)) active = trainerUI.route.clientId ? 'clients' : 'programs';
   return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Отчёты', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
@@ -600,9 +600,45 @@ function trainerProgramCard(program) {
   return `<button type="button" class="trainer-card trainer-program-card" data-action="program" data-id="${program.id}"><span class="trainer-program-symbol">${trainerIcon('programs')}</span><span><strong>${trainerEscape(program.title)}</strong><small>${program.weeks[0].sessions.length} тренировки в неделю · ${program.weeks.length} недель</small><span>${program.source === 'template' ? 'Шаблон TRENZO' : count ? `Назначена: ${count} подопечных` : 'Пока не назначена'}</span></span>${trainerIcon('arrow')}</button>`;
 }
 function trainerPrograms() {
-  const programs = trainerStore.state.programs.filter(program => trainerUI.programFilter === 'templates' ? program.source === 'template' : trainerUI.programFilter === 'assigned' ? trainerStore.state.clients.some(c => c.programId === program.id) : program.source === 'mine');
-  return `<div class="trainer-title-row"><div><h1>Программы</h1><p>${trainerUI.route.clientId ? `Выбор для ${trainerEscape(trainerStore.client(trainerUI.route.clientId)?.name || 'подопечного')}` : 'От первого плана до следующей недели.'}</p></div>${trainerAction('new-program', `${trainerIcon('plus')}<span class="trainer-sr-only">Создать программу</span>`, {}, 'trainer-icon-button is-accent')}</div>
-    ${trainerFilterTabs([['mine', 'Мои'], ['templates', 'Шаблоны'], ['assigned', 'Назначенные']], trainerUI.programFilter, 'program-filter')}<div class="trainer-list">${programs.map(trainerProgramCard).join('') || trainerEmpty('Здесь пока нет программ', 'Создайте программу или возьмите за основу шаблон.', trainerAction('new-program', 'Создать программу'))}</div>`;
+  const tab = trainerUI.programFilter;
+  const templates = tab === 'templates';
+  const workouts = tab === 'workouts' || (templates && trainerUI.templateFilter === 'workouts');
+  const items = (workouts ? trainerStore.state.workoutLibrary : trainerStore.state.programs).filter(item => item.source === (templates ? 'template' : 'mine'));
+  const heading = templates ? (workouts ? 'Шаблоны тренировок' : 'Шаблоны схем тренировок') : workouts ? 'Созданные тренировки' : 'Созданные схемы';
+  const selectedClient = trainerStore.client(trainerUI.route.clientId);
+  const compose = !templates && workouts && items.length ? trainerAction('compose-scheme', 'В схему', {}, 'trainer-text-button') : '';
+  return `<div class="trainer-title-row trainer-library-title"><div><h1>Схемы тренировок</h1>${trainerUI.route.clientId ? `<p>Выбор для ${selectedClient ? trainerEscape(trainerFullName(selectedClient)) : 'подопечного'}</p>` : ''}</div>${trainerAction('create-training-menu', `${trainerIcon('plus')}<span class="trainer-sr-only">Создать тренировку или схему</span>`, {}, 'trainer-icon-button is-accent')}</div>
+    <div class="trainer-library-navigation">${trainerFilterTabs([['workouts', 'Тренировки'], ['schemes', 'Схемы тренировок'], ['templates', 'Шаблоны']], tab, 'program-filter')}</div>
+    ${templates ? `<div class="trainer-library-subfilters" role="group" aria-label="Тип шаблонов">${[['workouts', 'Шаблоны тренировок'], ['schemes', 'Шаблоны схем тренировок']].map(([value, label]) => `<button type="button" data-action="template-filter" data-value="${value}" aria-pressed="${trainerUI.templateFilter === value}">${label}</button>`).join('')}</div>` : ''}
+    <section class="trainer-library-section">${trainerSection(heading, items.length, compose)}<div class="trainer-list">${items.map(workouts ? trainerLibraryWorkoutCard : trainerProgramCard).join('') || trainerEmpty('Здесь пока пусто', 'Создайте тренировку или схему, либо используйте шаблон.', trainerAction('create-training-menu', 'Создать'))}</div></section>`;
+}
+function trainerLibraryWorkoutCard(workout) {
+  return trainerAction('library-workout', `<span class="trainer-program-symbol">${trainerIcon('programs')}</span><span><strong>${trainerEscape(workout.title)}</strong><small>Упражнений: ${workout.exercises.length} · ${workout.duration} мин</small><span>${workout.source === 'template' ? 'Шаблон TRENZO · ' : ''}${trainerEscape(workout.equipment)}</span></span>${trainerIcon('arrow')}`, { id: workout.id }, 'trainer-card trainer-program-card');
+}
+function trainerLibraryWorkout() {
+  const workout = trainerStore.libraryWorkout(trainerUI.route.id);
+  if (!workout) return trainerEmpty('Тренировка не найдена', 'Вернитесь в раздел «Схемы».');
+  return `<div class="trainer-page-heading"><p class="trainer-kicker">${workout.source === 'template' ? 'ШАБЛОН ТРЕНИРОВКИ' : 'ТРЕНИРОВКА'}</p><h1>${trainerEscape(workout.title)}</h1><p>${workout.duration} мин · ${trainerEscape(workout.equipment)}</p></div>
+    <div class="trainer-button-row">${trainerAction('edit-library-workout', workout.source === 'template' ? 'Создать копию' : 'Редактировать', { id: workout.id }, 'trainer-secondary-button')}${workout.source === 'template' ? '' : trainerAction('compose-scheme', 'Добавить в схему', { id: workout.id }, 'trainer-secondary-button')}</div>
+    <section class="trainer-card trainer-library-exercises"><h2>Упражнения</h2>${workout.exercises.map(exercise => `<div class="trainer-exercise"><strong>${trainerEscape(exercise.name)}</strong><p>${exercise.sets} × ${trainerEscape(exercise.reps)} <span>· ${trainerNumber(exercise.weightKg)} кг</span></p><small>${trainerEscape(exercise.effortType)} ${exercise.effort} · Отдых ${exercise.restSeconds} сек${exercise.notes ? `<br>${trainerEscape(exercise.notes)}` : ''}</small></div>`).join('')}</section>
+    ${workout.notes ? `<section class="trainer-card"><h2>Комментарий тренера</h2><p>${trainerEscape(workout.notes)}</p></section>` : ''}`;
+}
+function trainerCreationOptions() {
+  return `<div class="trainer-list trainer-creation-options">${[
+    ['creation-mode', 'Создать с TRENZO', 'Черновик схемы с помощью ассистента', 'ai', { mode: 'ai' }],
+    ['new-library-workout', 'Создать тренировку', 'Одна тренировка на один день', 'programs', {}],
+    ['new-training-scheme', 'Создать схему тренировок', 'Несколько тренировок на одну или несколько недель', 'reviews', {}]
+  ].map(([action, title, description, icon, values]) => trainerAction(action, `<span class="trainer-program-symbol">${trainerIcon(icon)}</span><span><strong>${title}</strong><small>${description}</small></span>${trainerIcon('arrow')}`, values, 'trainer-card trainer-link-card')).join('')}</div>`;
+}
+function trainerComposeScheme() {
+  const workouts = trainerStore.state.workoutLibrary.filter(item => item.source === 'mine');
+  if (!workouts.length) return trainerEmpty('Нет созданных тренировок', 'Сначала сохраните отдельную тренировку или копию шаблона.', trainerAction('new-library-workout', 'Создать тренировку'));
+  return `<div class="trainer-page-heading"><h1>Собрать схему</h1><p>Выберите от 1 до 6 тренировок для каждой недели.</p></div><form class="trainer-form" data-form="compose-scheme">
+    ${trainerField('Название схемы', 'title', '', { required: true, maxlength: 100 })}
+    <div class="trainer-form-grid">${trainerField('Количество недель', 'weeks', 6, { type: 'number', min: 1, max: 12, step: 1, required: true })}${trainerField('Длительность тренировки, мин', 'duration', 45, { type: 'number', min: 10, max: 180, step: 5, required: true })}</div>
+    ${trainerField('Место проведения', 'equipment', 'Тренажёрный зал', { required: true })}
+    <fieldset class="trainer-workout-selection"><legend>Тренировки схемы</legend>${workouts.map(workout => `<label class="trainer-card trainer-workout-option"><input type="checkbox" name="workoutIds" value="${trainerEscape(workout.id)}" ${trainerUI.route.workoutId === workout.id ? 'checked' : ''}><span><strong>${trainerEscape(workout.title)}</strong><small>Упражнений: ${workout.exercises.length} · ${workout.duration} мин</small></span></label>`).join('')}</fieldset>
+    <p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Перейти к схеме</button></form>`;
 }
 function trainerProgram() {
   const isClientProgram = Boolean(trainerUI.route.clientId);
@@ -625,10 +661,10 @@ function trainerField(label, name, value = '', options = {}) {
 }
 function trainerProgramNew() {
   const mode = trainerUI.route.mode;
-  if (!mode) return `<div class="trainer-page-heading"><h1>Создать программу</h1><p>Выберите удобный способ начать.</p></div><div class="trainer-list">${[
-    ['ai', 'Создать с TRENZO', 'Цель и контекст подопечного → черновик программы', 'ai'], ['manual', 'Создать вручную', 'Недели, тренировочные дни и упражнения', 'programs'], ['template', 'Использовать шаблон', 'Возьмите готовую структуру за основу', 'reviews']
-  ].map(([mode, title, copy, icon]) => trainerAction('creation-mode', `<span class="trainer-program-symbol">${trainerIcon(icon)}</span><span><strong>${title}</strong><small>${copy}</small></span>${trainerIcon('arrow')}`, { mode }, 'trainer-card trainer-link-card')).join('')}</div>`;
-  return `<div class="trainer-page-heading"><p class="trainer-kicker">${mode === 'ai' ? 'С TRENZO' : 'ВРУЧНУЮ'}</p><h1>Новая программа</h1><p>${mode === 'ai' ? 'Укажите контекст. TRENZO подготовит пример, который можно отредактировать.' : 'Соберите структуру и настройте каждое упражнение.'}</p></div>
+  if (!mode) return `<div class="trainer-page-heading"><h1>Создать:</h1></div>${trainerCreationOptions()}`;
+  if (mode === 'compose') return trainerComposeScheme();
+  return `<div class="trainer-page-heading"><p class="trainer-kicker">${mode === 'ai' ? 'С TRENZO' : 'ВРУЧНУЮ'}</p><h1>Новая схема тренировок</h1><p>${mode === 'ai' ? 'Укажите контекст. TRENZO подготовит пример, который можно отредактировать.' : 'Соберите структуру и настройте каждое упражнение.'}</p></div>
+    ${mode === 'manual' ? trainerAction('compose-scheme', 'Собрать из созданных тренировок', {}, 'trainer-secondary-button') : ''}
     <form class="trainer-form" data-form="create-program">
       <label class="trainer-field">Для кого программа<select name="clientId" data-creation-client><option value="">Без назначения</option>${trainerStore.state.clients.map(client => `<option value="${client.id}" ${trainerUI.route.clientId === client.id ? 'selected' : ''}>${trainerEscape(trainerFullName(client))}</option>`).join('')}</select></label>
       ${trainerField('Название программы', 'title', '', { required: true, maxlength: 100 })}${trainerField('Цель', 'goal', trainerStore.client(trainerUI.route.clientId)?.goal || '', { required: true })}
@@ -650,13 +686,16 @@ function trainerEditorExercise(exercise, dayIndex, exerciseIndex) {
 function trainerProgramEditor() {
   const draft = trainerUI.draft;
   if (!draft) return trainerEmpty('Черновик недоступен', 'Создайте новую программу.', trainerAction('new-program', 'Создать программу'));
+  const single = trainerUI.route.libraryKind === 'workout';
   const week = draft.weeks[trainerUI.editorWeek];
-  return `<div class="trainer-page-heading"><h1>Конструктор</h1><p>${trainerEscape(draft.title)} · ${draft.weeks.length} недель</p></div>
-    <form class="trainer-form" data-form="save-program" novalidate>${trainerField('Название программы', 'program-title', draft.title, { required: true, extra: 'data-draft-field="title"' })}${trainerField('Комментарий к программе', 'program-notes', draft.notes, { multiline: true, extra: 'data-draft-field="notes"' })}
-    <div class="trainer-editor-week-row"><label class="trainer-field">Неделя<select data-editor-week>${draft.weeks.map((w, i) => `<option value="${i}" ${i === trainerUI.editorWeek ? 'selected' : ''}>Неделя ${i + 1}</option>`).join('')}</select></label>${trainerAction('add-week', '+ Неделя', {}, 'trainer-secondary-button')}</div>
+  return `<div class="trainer-page-heading"><h1>${single ? (draft.id ? 'Редактировать тренировку' : 'Новая тренировка') : 'Конструктор'}</h1>${single ? '' : `<p>${trainerEscape(draft.title)} · ${draft.weeks.length} недель</p>`}</div>
+    <form class="trainer-form" data-form="${single ? 'save-library-workout' : 'save-program'}" novalidate>${trainerField(single ? 'Название тренировки' : 'Название схемы', 'program-title', draft.title, { required: true, maxlength: 100, extra: 'data-draft-field="title"' })}
+    ${single ? `<div class="trainer-form-grid">${trainerField('Длительность, мин', 'duration', draft.duration, { type: 'number', min: 10, max: 180, step: 5, required: true, extra: 'data-draft-field="duration"' })}${trainerField('Место проведения', 'equipment', draft.equipment, { required: true, extra: 'data-draft-field="equipment"' })}</div>` : ''}
+    ${trainerField('Комментарий тренера', 'program-notes', draft.notes, { multiline: true, extra: 'data-draft-field="notes"' })}
+    ${single ? '' : `<div class="trainer-editor-week-row"><label class="trainer-field">Неделя<select data-editor-week>${draft.weeks.map((w, i) => `<option value="${i}" ${i === trainerUI.editorWeek ? 'selected' : ''}>Неделя ${i + 1}</option>`).join('')}</select></label>${trainerAction('add-week', '+ Неделя', {}, 'trainer-secondary-button')}</div>`}
     ${draft.restrictions ? `<div class="trainer-card"><strong>Учесть ограничения</strong><p>${trainerEscape(draft.restrictions)}</p></div>` : ''}
-    ${week.sessions.map((session, index) => `<details class="trainer-card trainer-editor-day" ${index === 0 ? 'open' : ''}><summary><span><small>ДЕНЬ ${index + 1}</small><strong>${trainerEscape(session.title)}</strong></span>${trainerIcon('arrow')}</summary><div>${trainerField('Название тренировочного дня', `day-${index}`, session.title, { required: true, extra: `data-day-title="${index}"` })}${session.exercises.map((exercise, i) => trainerEditorExercise(exercise, index, i)).join('')}<div class="trainer-button-row">${trainerAction('add-exercise', '+ Упражнение', { day: index }, 'trainer-secondary-button')}${trainerAction('remove-day', 'Убрать день', { day: index }, 'trainer-text-button')}</div></div></details>`).join('')}
-    ${trainerAction('add-day', '+ Тренировочный день', {}, 'trainer-secondary-button')}<p class="trainer-form-error" role="alert"></p><div class="trainer-editor-save"><button type="submit" class="trainer-button">Сохранить программу</button></div></form>`;
+    ${week.sessions.map((session, index) => `<details class="trainer-card trainer-editor-day" ${index === 0 ? 'open' : ''}><summary><span>${single ? '' : `<small>ДЕНЬ ${index + 1}</small>`}<strong>${single ? 'Упражнения' : trainerEscape(session.title)}</strong></span>${trainerIcon('arrow')}</summary><div>${single ? '' : trainerField('Название тренировочного дня', `day-${index}`, session.title, { required: true, extra: `data-day-title="${index}"` })}${session.exercises.map((exercise, i) => trainerEditorExercise(exercise, index, i)).join('')}<div class="trainer-button-row">${trainerAction('add-exercise', '+ Упражнение', { day: index }, 'trainer-secondary-button')}${single ? '' : trainerAction('remove-day', 'Убрать день', { day: index }, 'trainer-text-button')}</div></div></details>`).join('')}
+    ${single ? '' : trainerAction('add-day', '+ Тренировочный день', {}, 'trainer-secondary-button')}<p class="trainer-form-error" role="alert"></p><div class="trainer-editor-save"><button type="submit" class="trainer-button">${single ? 'Сохранить тренировку' : 'Сохранить программу'}</button></div></form>`;
 }
 function trainerProfileEntries(value, emptyText) {
   const entries = String(value || '').split(/\r?\n/).map(item => item.trim()).filter(Boolean);
@@ -709,7 +748,9 @@ function trainerModalMarkup() {
   const modal = trainerUI.modal;
   if (!modal) return '';
   let title = '', content = '';
-  if (modal.type === 'add-client') {
+  if (modal.type === 'create-training') {
+    title = 'Создать:'; content = trainerCreationOptions();
+  } else if (modal.type === 'add-client') {
     title = 'Добавить подопечного'; content = `<p>Укажи имя, цель и короткий тег для карточки.</p><form class="trainer-form" data-form="add-client">${trainerField('Имя и фамилия', 'name', '', { required: true, maxlength: 100 })}${trainerField('Цель', 'goal', '', { required: true })}${trainerField('Тег карточки · необязательно', 'tag', '', { maxlength: trainerClientTagMaxLength, extra: `placeholder="Например, К свадьбе · до ${trainerClientTagMaxLength} символов"` })}<p class="trainer-form-error" role="alert"></p><button type="submit" class="trainer-button">Добавить</button>${trainerAction('invite', 'Пригласить по ссылке', {}, 'trainer-secondary-button')}</form>`;
   } else if (modal.type === 'invite') {
     title = 'Пригласить по ссылке';
@@ -781,7 +822,7 @@ function trainerStart() {
 function trainerRender() {
   trainerStore.ensureWeeklyReviews();
   const page = trainerUI.route.page;
-  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, 'client-questionnaire': () => trainerClientQuestionnaire(trainerStore.client(trainerUI.route.id)), memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
+  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, 'client-questionnaire': () => trainerClientQuestionnaire(trainerStore.client(trainerUI.route.id)), memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, 'library-workout': trainerLibraryWorkout, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
   const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', 'client-questionnaire': 'Анкета клиента', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
   const hasNav = true;
   const root = document.getElementById('trainerScreen');
@@ -832,6 +873,12 @@ function trainerOpenEditor(program, clientId = null) {
   if (program.source === 'template' || clientId) trainerUI.draft.id = null;
   trainerUI.editorWeek = 0; trainerGo('program-edit', { clientId });
 }
+function trainerOpenWorkoutEditor(workout = null) {
+  const title = workout?.title || '';
+  trainerUI.draft = { id: workout?.source === 'mine' ? workout.id : null, title, source: 'mine', duration: workout?.duration || 45, equipment: workout?.equipment || 'Тренажёрный зал', notes: workout?.notes || '',
+    weeks: [{ number: 1, sessions: [{ id: 'day-1', title: title || 'Тренировка', exercises: workout ? trainerCopy(workout.exercises) : [{ name: '', sets: 3, reps: '8–10', weightKg: 0, effortType: 'RIR', effort: 2, restSeconds: 90, notes: '' }] }] }] };
+  trainerUI.editorWeek = 0; trainerGo('program-edit', { libraryKind: 'workout' });
+}
 function trainerAskAI(question, clientId = null) {
   trainerUI.messages.push({ role: 'user', text: question }, { role: 'assistant', ...trainerAIAnswer(question, clientId) });
   trainerRender(); document.getElementById('trainerAIQuestion')?.scrollIntoView({ block: 'nearest' });
@@ -859,6 +906,13 @@ function trainerHandleClick(event) {
     else if (action === 'reset-client-filters') { trainerUI.search = ''; trainerUI.clientFilter = 'all'; trainerRender(); }
     else if (action === 'review-filter') { trainerUI.reviewFilter = value; trainerRender(); }
     else if (action === 'program-filter') { trainerUI.programFilter = value; trainerRender(); }
+    else if (action === 'template-filter') { trainerUI.templateFilter = value; trainerRender(); }
+    else if (action === 'create-training-menu') trainerOpenModal('create-training');
+    else if (action === 'new-library-workout') trainerOpenWorkoutEditor();
+    else if (action === 'new-training-scheme') trainerGo('program-new', { mode: 'manual', clientId: trainerUI.route.clientId });
+    else if (action === 'compose-scheme') trainerGo('program-new', { mode: 'compose', workoutId: id, clientId: trainerUI.route.clientId });
+    else if (action === 'library-workout') trainerGo('library-workout', { id });
+    else if (action === 'edit-library-workout') trainerOpenWorkoutEditor(trainerStore.libraryWorkout(id));
     else if (action === 'approve-review') { trainerStore.approveReview(id); trainerRender(); trainerToast('Решение подтверждено и сохранено в истории клиента.'); }
     else if (action === 'edit-review') trainerOpenModal('edit-review', { id });
     else if (action === 'add-client') trainerOpenModal('add-client');
@@ -871,7 +925,7 @@ function trainerHandleClick(event) {
       if (mode === 'template') { trainerUI.programFilter = 'templates'; trainerGo('programs', { clientId: trainerUI.route.clientId }); }
       else trainerGo('program-new', { mode, clientId: trainerUI.route.clientId });
     }
-    else if (action === 'client-programs') trainerGo('programs', { clientId: id });
+    else if (action === 'client-programs') { trainerUI.programFilter = 'schemes'; trainerUI.templateFilter = 'schemes'; trainerGo('programs', { clientId: id }); }
     else if (action === 'client-program') trainerGo('program', { id: trainerStore.client(id).programId, clientId: id });
     else if (action === 'client-edit-program') trainerOpenEditor(trainerStore.clientProgram(id), id);
     else if (action === 'edit-program') trainerOpenEditor(trainerUI.route.clientId ? trainerStore.clientProgram(trainerUI.route.clientId) : trainerStore.program(id), trainerUI.route.clientId || null);
@@ -944,7 +998,7 @@ function trainerHandleSubmit(event) {
   const form = event.target;
   if (!form.dataset.form) return;
   event.preventDefault();
-  if (form.dataset.form === 'save-program') {
+  if (['save-program', 'save-library-workout'].includes(form.dataset.form)) {
     const invalid = form.querySelector('input:invalid, select:invalid, textarea:invalid');
     if (invalid?.closest('details')) invalid.closest('details').open = true;
   }
@@ -985,10 +1039,21 @@ function trainerHandleSubmit(event) {
       if (trainerUI.route.mode === 'manual') draft.weeks.forEach(week => week.sessions.forEach(session => { session.exercises = [{ name: '', sets: 3, reps: '8–10', weightKg: 0, effortType: 'RIR', effort: 2, restSeconds: 90, notes: '' }]; }));
       trainerOpenEditor(draft, values.clientId || null);
     }
+    else if (form.dataset.form === 'compose-scheme') {
+      const draft = trainerStore.draftProgramFromWorkouts({ ...values, workoutIds: formData.getAll('workoutIds') });
+      trainerOpenEditor(draft, trainerUI.route.clientId || null);
+    }
+    else if (form.dataset.form === 'save-library-workout') {
+      const draft = trainerUI.draft;
+      const saved = trainerStore.saveLibraryWorkout({ id: draft.id, title: draft.title, duration: draft.duration, equipment: draft.equipment, notes: draft.notes, exercises: draft.weeks[0].sessions[0].exercises });
+      trainerUI.draft = null; trainerUI.programFilter = 'workouts';
+      trainerGo('library-workout', { id: saved.id }, true);
+      trainerToast('Тренировка сохранена.');
+    }
     else if (form.dataset.form === 'save-program') {
       const clientId = trainerUI.route.clientId;
       const saved = clientId ? trainerStore.saveProgramForClient(trainerUI.draft, clientId) : trainerStore.saveProgram(trainerUI.draft);
-      trainerUI.draft = null;
+      trainerUI.draft = null; trainerUI.programFilter = 'schemes';
       trainerGo('program', { id: saved.id, ...(clientId ? { clientId } : {}) }, true);
       trainerToast(clientId ? 'Программа обновлена для клиента.' : 'Программа сохранена.');
     }
