@@ -8,6 +8,8 @@ const uiSource = fs.readFileSync(path.join(__dirname, '../screens/trainer.js'), 
 
 function fixture() {
   const context = vm.createContext({ console, URL });
+  // UI-снимки используют демо 18 октября; дата сценариев хранилища — 17 октября.
+  vm.runInContext("Date.now = () => Date.parse('2026-10-18T09:00:00Z')", context);
   vm.runInContext(dataSource, context);
   vm.runInContext("Date.now = () => Date.parse('2026-10-17T09:00:00Z')", context);
   const store = vm.runInContext('createTrainerStore()', context);
@@ -189,6 +191,8 @@ test('аватар клиента выбирается по полу анкет�
   const female = evaluate("trainerAvatar(trainerStore.client('maria'))");
   assert.match(male, /src="assets\/client-avatar-male\.png"/);
   assert.match(female, /src="assets\/client-avatar-female\.png"/);
+  assert.match(male, /class="trainer-avatar-initials" hidden/);
+  assert.doesNotMatch(male, /loading="lazy"|decoding="async"/);
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/client-avatar-male.png')));
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/client-avatar-female.png')));
 
@@ -199,14 +203,59 @@ test('аватар клиента выбирается по полу анкет�
   for (const sex of ['unspecified', 'unknown', 'constructor']) {
     const neutral = evaluate(`trainerAvatar({name:'Клиент', surname:'Тестовый', questionnaire:{sex:${JSON.stringify(sex)}}})`);
     assert.doesNotMatch(neutral, /<img/);
-    assert.match(neutral, />КТ<\/span>/);
+    assert.match(neutral, /class="trainer-avatar-initials">КТ<\/span>/);
   }
 
   const photo = evaluate("trainerAvatar({name:'Клиент', questionnaire:{sex:'male'}, avatar_url:'https://example.com/avatar.jpg?a=1&b=2'})");
   assert.match(photo, /src="https:\/\/example\.com\/avatar\.jpg\?a=1&amp;b=2"/);
   assert.ok(photo.indexOf('client-avatar-male.png') < photo.indexOf('https://example.com/avatar.jpg'));
-  assert.match(photo, /onerror="this.remove\(\)"/);
+  assert.match(photo, /onerror="trainerAvatarImageFailed\(this\)"/);
   assert.doesNotMatch(evaluate("trainerAvatar({name:'Клиент', avatarUrl:'javascript:alert(1)'})"), /<img|javascript:/);
+});
+
+test('обновление экрана сохраняет загруженные элементы аватаров и меняет их размер без замены фото', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const image = { complete: true };
+  const first = { dataset: { trainerAvatar: 'same-photo' }, className: 'trainer-avatar', image };
+  const duplicate = { dataset: { trainerAvatar: 'same-photo' }, className: 'trainer-avatar' };
+  const outdated = { dataset: { trainerAvatar: 'old-photo-url' }, className: 'trainer-avatar' };
+  let avatars = [first, duplicate, outdated];
+  const replacements = ['same-photo', 'same-photo', 'new-photo-url'].map((key, index) => ({
+    dataset: { trainerAvatar: key }, className: `trainer-avatar${index === 0 ? ' is-large' : ''}`,
+    replaceWith(previous) { avatars[avatars.indexOf(this)] = previous; }
+  }));
+  const root = {
+    querySelectorAll() { return avatars.slice(); },
+    set innerHTML(value) { this.markup = value; avatars = replacements.slice(); }
+  };
+  context.avatarRoot = root;
+  vm.runInContext("trainerRenderPreservingAvatars(avatarRoot, 'new screen')", context);
+  assert.equal(root.markup, 'new screen');
+  assert.equal(avatars[0], first);
+  assert.equal(avatars[0].image, image);
+  assert.equal(avatars[0].className, 'trainer-avatar is-large');
+  assert.equal(avatars[1], duplicate);
+  assert.equal(avatars[2], replacements[2]);
+  assert.notEqual(avatars[2], outdated);
+});
+
+test('инициалы появляются только если недоступны и фото, и дефолтное изображение', () => {
+  const { context } = fixture();
+  vm.runInContext(uiSource, context);
+  const initials = { hidden: true };
+  const images = [];
+  const avatar = { querySelector: selector => selector === 'img' ? images[0] : initials };
+  for (let index = 0; index < 2; index++) images.push({
+    parentElement: avatar,
+    remove() { images.splice(images.indexOf(this), 1); }
+  });
+  context.failedAvatarImage = images[1];
+  vm.runInContext('trainerAvatarImageFailed(failedAvatarImage)', context);
+  assert.equal(initials.hidden, true);
+  context.failedAvatarImage = images[0];
+  vm.runInContext('trainerAvatarImageFailed(failedAvatarImage)', context);
+  assert.equal(initials.hidden, false);
 });
 
 test('сохранённое демо получает пол для аватаров без перезаписи ответов и фотографий', () => {
@@ -583,6 +632,7 @@ test('профиль тренера показывает личные данны
   context.profileStorage = storage;
   evaluate("trainerStore.load(profileStorage, 'test')");
   const initial = evaluate('trainerProfile()');
+  assert.match(initial, /client-avatar-male\.png/);
   assert.doesNotMatch(initial, /Ответы из анкеты/);
   assert.match(initial, /Формат работы/);
   assert.match(initial, /Специализация/);
@@ -597,11 +647,15 @@ test('профиль тренера показывает личные данны
   assert.match(editModal, /На чём специализируется тренер/);
   assert.match(editModal, /Каждый пункт — с новой строки/);
   assert.match(editModal, /textarea[^>]*name="specializations"/);
+  assert.match(editModal, /select name="sex"/);
   assert.doesNotMatch(editModal, /type="checkbox"/);
 
-  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', specializations: 'Реабилитация\\nПохудение\\n\\nПодготовка к выступлению', education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
+  evaluate("trainerStore.saveProfile({ name: 'Анна', surname: 'Тренерова', sex: 'female', trainingFormat: 'Онлайн и офлайн', experience: '7 лет', specializations: 'Реабилитация\\nПохудение\\n\\nПодготовка к выступлению', education: 'Университет\\nКурс тренеров', regalia: 'КМС\\nЧемпион региона' })");
   const updated = evaluate('trainerProfile()');
   assert.match(updated, /Анна Тренерова/);
+  assert.match(updated, /client-avatar-female\.png/);
+  evaluate("trainerUI.route = {page: 'today'}");
+  assert.match(evaluate('trainerHeader()'), /client-avatar-female\.png/);
   assert.match(updated, /Онлайн и офлайн/);
   assert.match(updated, /7 лет/);
   assert.match(updated, /Реабилитация/);
@@ -611,10 +665,12 @@ test('профиль тренера показывает личные данны
 
   const restored = vm.runInContext('createTrainerStore()', context);
   restored.load(storage, 'test');
+  assert.equal(restored.state.trainer.sex, 'female');
   assert.equal(restored.state.trainer.education, 'Университет\nКурс тренеров');
   assert.equal(restored.state.trainer.regalia, 'КМС\nЧемпион региона');
   assert.deepEqual(Array.from(restored.state.trainer.specializations), ['Реабилитация', 'Похудение', 'Подготовка к выступлению']);
   assert.throws(() => restored.saveProfile({ name: 'Анна', specializations: 'x'.repeat(1001) }), /длину специализаций/);
+  assert.throws(() => restored.saveProfile({ name: 'Анна', sex: 'unknown' }), /Выбери пол/);
 });
 
 test('недельные границы учитывают день, время, год и часовой пояс', () => {
