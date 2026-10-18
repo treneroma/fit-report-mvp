@@ -2595,38 +2595,36 @@ title = "Вес";
     <div class="info-card"
       style="margin:0 !important;padding:0;overflow:hidden;">
 
-     <div style="width:100%;overflow:hidden;">
+     <div style="width:100%;overflow-x:auto;">
   <table style="
-    width:calc(100% - 16px);
+    width:100%;
     table-layout:fixed;
     border-collapse:collapse;
     font-size:11px;
     text-align:center;
   ">
 <colgroup>
-  <col style="width:22%;">
-  <col style="width:13%;">
-  <col style="width:13%;">
-  <col style="width:13%;">
-  <col style="width:13%;">
-  <col style="width:13%;">
-  <col style="width:13%;">
+  <col style="width:18%;">
+  <col style="width:16.4%;">
+  <col style="width:16.4%;">
+  <col style="width:16.4%;">
+  <col style="width:16.4%;">
+  <col style="width:16.4%;">
 </colgroup>
           <thead>
             <tr style="color:#aaa;">
-              <th style="padding:14px 10px;text-align:left;">Дата</th>
-              <th style="padding:14px 10px;">Плечи</th>
-              <th style="padding:14px 10px;">Грудь</th>
-              <th style="padding:14px 10px;">Талия</th>
-              <th style="padding:14px 10px;">Бёдра</th>
-              <th style="padding:14px 10px;">Бицепс</th>
-              <th style="padding:14px 10px;">Бедро</th>
+              <th style="padding:12px 3px;text-align:left;white-space:nowrap;">Дата</th>
+              <th style="padding:12px 3px;white-space:nowrap;">Плечи</th>
+              <th style="padding:12px 3px;white-space:nowrap;">Грудь</th>
+              <th style="padding:12px 3px;white-space:nowrap;">Бицепс</th>
+              <th style="padding:12px 3px;white-space:nowrap;">Талия</th>
+              <th style="padding:12px 3px;white-space:nowrap;">Бёдра</th>
             </tr>
           </thead>
 
           <tbody id="athleteMeasurementsTable">
             <tr>
-              <td colspan="7"
+              <td colspan="6"
                 style="padding:28px 16px;color:#888;text-align:center;
                 border-top:1px solid #414141;">
                 Пока нет сохранённых замеров
@@ -2708,6 +2706,18 @@ title = "Вес";
       </div>
 
       <div class="field">
+        <label class="field-title" for="athleteBiceps">
+          Бицепс, см
+        </label>
+        <input class="text-input"
+          id="athleteBiceps"
+          type="number"
+          min="1"
+          step="0.1"
+          placeholder="Например, 34">
+      </div>
+
+      <div class="field">
         <label class="field-title" for="athleteWaist">
           Талия, см
         </label>
@@ -2729,30 +2739,6 @@ title = "Вес";
           min="1"
           step="0.1"
           placeholder="Например, 102">
-      </div>
-
-      <div class="field">
-        <label class="field-title" for="athleteBiceps">
-          Бицепс, см
-        </label>
-        <input class="text-input"
-          id="athleteBiceps"
-          type="number"
-          min="1"
-          step="0.1"
-          placeholder="Например, 34">
-      </div>
-
-      <div class="field">
-        <label class="field-title" for="athleteThigh">
-          Бедро, см
-        </label>
-        <input class="text-input"
-          id="athleteThigh"
-          type="number"
-          min="1"
-          step="0.1"
-          placeholder="Например, 58">
       </div>
 
       <button class="primary-btn" type="button"
@@ -4842,10 +4828,9 @@ async function athleteSaveMeasurements() {
   const data = {
     shouldersCm: readCm("athleteShoulders"),
     chestCm: readCm("athleteChest"),
-    waistCm: readCm("athleteWaist"),
-    hipsCm: readCm("athleteHips"),
     bicepsCm: readCm("athleteBiceps"),
-    thighCm: readCm("athleteThigh")
+    waistCm: readCm("athleteWaist"),
+    hipsCm: readCm("athleteHips")
   };
 
   const hasMeasurement = Object.values(data).some(function(value) {
@@ -4912,7 +4897,7 @@ async function athleteLoadMeasurementsTable() {
 if (athleteMeasurementsCache === null) {
   slot.innerHTML = `
     <tr>
-      <td colspan="7"
+      <td colspan="6"
         style="padding:28px 16px;color:#888;text-align:center;
         border-top:1px solid #414141;">
         Загружаем замеры...
@@ -4960,10 +4945,9 @@ if (dynamicsSlot) {
     const measurements = [
       ["Плечи", "shoulders_cm"],
       ["Грудь", "chest_cm"],
-      ["Талия", "waist_cm"],
-      ["Бёдра", "hips_cm"],
       ["Бицепс", "biceps_cm"],
-      ["Бедро", "thigh_cm"]
+      ["Талия", "waist_cm"],
+      ["Бёдра", "hips_cm"]
     ];
 
     dynamicsSlot.innerHTML = measurements.map(function(item) {
@@ -5035,7 +5019,7 @@ if (dynamicsSlot) {
     if (!rows.length) {
       slot.innerHTML = `
         <tr>
-          <td colspan="8"
+          <td colspan="6"
             style="padding:28px 16px;color:#888;text-align:center;
             border-top:1px solid #414141;">
             Пока нет сохранённых замеров
@@ -5053,33 +5037,29 @@ if (dynamicsSlot) {
 
       return `
         <tr>
-          <td style="padding:14px 10px;text-align:left;
+          <td style="padding:12px 3px;text-align:left;white-space:nowrap;
             border-top:1px solid #414141;">
             ${athleteEscape(date)}
           </td>
 
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
+          <td style="padding:12px 3px;border-top:1px solid #414141;">
             ${athleteFormatCm(row.shoulders_cm)}
           </td>
 
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
+          <td style="padding:12px 3px;border-top:1px solid #414141;">
             ${athleteFormatCm(row.chest_cm)}
           </td>
 
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
-            ${athleteFormatCm(row.waist_cm)}
-          </td>
-
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
-            ${athleteFormatCm(row.hips_cm)}
-          </td>
-
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
+          <td style="padding:12px 3px;border-top:1px solid #414141;">
             ${athleteFormatCm(row.biceps_cm)}
           </td>
 
-          <td style="padding:14px 10px;border-top:1px solid #414141;">
-            ${athleteFormatCm(row.thigh_cm)}
+          <td style="padding:12px 3px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.waist_cm)}
+          </td>
+
+          <td style="padding:12px 3px;border-top:1px solid #414141;">
+            ${athleteFormatCm(row.hips_cm)}
           </td>
         </tr>`;
     }).join("");
@@ -5092,7 +5072,7 @@ if (dynamicsSlot) {
     ) {
       slot.innerHTML = `
         <tr>
-          <td colspan="7"
+        <td colspan="6"
             style="padding:28px 16px;color:#888;text-align:center;
             border-top:1px solid #414141;">
             Не удалось загрузить замеры
