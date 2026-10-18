@@ -3,6 +3,18 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
   tg.ready();
   tg.expand();
+
+  if (
+    typeof tg.isVersionAtLeast === 'function' &&
+    tg.isVersionAtLeast('8.0') &&
+    typeof tg.requestFullscreen === 'function'
+  ) {
+    try {
+      tg.requestFullscreen();
+    } catch (e) {
+      console.warn('Fullscreen is unavailable:', e);
+    }
+  }
 }
 
 // Эти данные находятся в памяти открытого приложения.
