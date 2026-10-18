@@ -490,7 +490,7 @@ test('навигация показывает Отчёты, а обзор кли
   evaluate("Date.now = () => Date.parse('2026-10-18T09:00:00Z'); trenzoEnsureReports()");
   const ekaterina = evaluate('trainerClient()');
   assert.match(ekaterina, /Неразобранные отчёты<span class="trainer-count">1<\/span>/);
-  assert.match(ekaterina, /Разобрать/);
+  assert.match(ekaterina, /data-action="report-review"/);
 
   evaluate("trainerUI.route = { page: 'client', id: 'maria', tab: 'reports' }");
   const reports = evaluate('trainerClient()');
