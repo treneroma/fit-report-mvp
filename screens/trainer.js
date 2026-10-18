@@ -89,8 +89,32 @@ function trainerAvatar(client, large = false) {
     const url = new URL(client.avatarUrl || client.avatar_url);
     if (url.protocol === 'https:') photo = url.href;
   } catch { /* Без загруженного аватара показываем изображение по полу или инициалы. */ }
-  const image = source => `<img src="${trainerEscape(source)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`;
-  return `<span class="trainer-avatar${large ? ' is-large' : ''}" aria-hidden="true">${trainerEscape(client.name?.[0] || '')}${trainerEscape(client.surname?.[0] || '')}${placeholder ? image(placeholder) : ''}${photo ? image(photo) : ''}</span>`;
+  const initials = `${client.name?.[0] || ''}${client.surname?.[0] || ''}`;
+  const key = JSON.stringify([client.id || '', placeholder, photo, initials]);
+  const image = source => `<img src="${trainerEscape(source)}" alt="" loading="eager" decoding="sync" onerror="trainerAvatarImageFailed(this)">`;
+  return `<span class="trainer-avatar${large ? ' is-large' : ''}" data-trainer-avatar="${trainerEscape(key)}" aria-hidden="true"><span class="trainer-avatar-initials"${placeholder || photo ? ' hidden' : ''}>${trainerEscape(initials)}</span>${placeholder ? image(placeholder) : ''}${photo ? image(photo) : ''}</span>`;
+}
+function trainerAvatarImageFailed(image) {
+  const avatar = image.parentElement;
+  image.remove();
+  if (avatar && !avatar.querySelector('img')) avatar.querySelector('.trainer-avatar-initials').hidden = false;
+}
+function trainerRenderPreservingAvatars(root, markup) {
+  // Сохраняем декодированные изображения при обновлении вкладок и форм.
+  const avatars = new Map();
+  root.querySelectorAll('[data-trainer-avatar]').forEach(avatar => {
+    const key = avatar.dataset.trainerAvatar;
+    if (!avatars.has(key)) avatars.set(key, []);
+    avatars.get(key).push(avatar);
+  });
+  root.innerHTML = markup;
+  root.querySelectorAll('[data-trainer-avatar]').forEach(avatar => {
+    const previous = avatars.get(avatar.dataset.trainerAvatar)?.shift();
+    if (previous) {
+      previous.className = avatar.className;
+      avatar.replaceWith(previous);
+    }
+  });
 }
 function trainerBadge(status, review = false) { return `<span class="trainer-badge is-${status}">${trainerEscape((review ? trainerReviewLabels : trainerStatusLabels)[status])}</span>`; }
 function trainerTags(tags) { return `<div class="trainer-tags">${tags.map(tag => `<span>${trainerEscape(tag)}</span>`).join('')}</div>`; }
@@ -111,7 +135,7 @@ function trainerDashboardMetric(icon, value, label, center = false) {
   return `<div class="trainer-dashboard-metric trainer-dashboard-side"><div class="trainer-dashboard-side-gauge">${ring}${trainerDashboardIcon(icon)}</div><strong>${trainerEscape(value)}</strong><span>${labelMarkup}</span></div>`;
 }
 function trainerHeader(title = '') {
-  const profileShortcut = `<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg></button>`;
+  const profileShortcut = `<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль">${trainerAvatar({ ...trainerStore.state.trainer, id: 'trainer-profile' })}</button>`;
   if (trainerUI.route.page === 'today') {
     return `<header class="trainer-header"><div class="trainer-header-brand"><div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div></div><div class="trainer-header-actions">${profileShortcut}</div></header>`;
   }
@@ -650,7 +674,7 @@ function trainerProfile() {
   const fullName = [profile.name, profile.surname].filter(Boolean).join(' ');
   return `<div class="trainer-page-heading"><h1>Профиль тренера</h1></div>
     <section class="trainer-card trainer-profile-summary">
-      <div class="trainer-profile-identity">${trainerAvatar({ name: profile.name, surname: profile.surname }, true)}<div><h2>${trainerEscape(fullName)}</h2></div></div>
+      <div class="trainer-profile-identity">${trainerAvatar({ ...profile, id: 'trainer-profile' }, true)}<div><h2>${trainerEscape(fullName)}</h2></div></div>
       <dl class="trainer-profile-facts"><div><dt>Формат работы</dt><dd>${trainerEscape(profile.trainingFormat || 'Не указан')}</dd></div><div><dt>Опыт</dt><dd>${trainerEscape(profile.experience || 'Не указан')}</dd></div></dl>
       <div class="trainer-profile-specializations"><span>Специализация</span>${trainerSpecializationMarkup(profile.specializations || [])}</div>
       ${trainerAction('edit-profile', 'Редактировать профиль', {}, 'trainer-secondary-button')}
@@ -702,6 +726,7 @@ function trainerModalMarkup() {
     content = `<form class="trainer-form" data-form="profile">
       <fieldset class="trainer-profile-edit-group"><legend>Личные данные</legend>
         <div class="trainer-form-grid">${trainerField('Имя', 'name', p.name, { required: true, maxlength: 50 })}${trainerField('Фамилия', 'surname', p.surname, { maxlength: 50 })}</div>
+        <label class="trainer-field">Пол<select name="sex"><option value="male" ${p.sex === 'male' ? 'selected' : ''}>Мужской</option><option value="female" ${p.sex === 'female' ? 'selected' : ''}>Женский</option><option value="unspecified" ${!p.sex || p.sex === 'unspecified' ? 'selected' : ''}>Не указан</option></select></label>
         <label class="trainer-field">Формат работы<select name="trainingFormat"><option value="" ${!p.trainingFormat ? 'selected' : ''}>Не указан</option><option value="Онлайн" ${p.trainingFormat === 'Онлайн' ? 'selected' : ''}>Онлайн</option><option value="Офлайн" ${p.trainingFormat === 'Офлайн' ? 'selected' : ''}>Офлайн</option><option value="Онлайн и офлайн" ${p.trainingFormat === 'Онлайн и офлайн' ? 'selected' : ''}>Онлайн и офлайн</option></select></label>
         ${trainerField('Опыт', 'experience', p.experience, { maxlength: 120, extra: 'placeholder="Например, 5 лет"' })}
       </fieldset>
@@ -760,7 +785,7 @@ function trainerRender() {
   const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', 'client-questionnaire': 'Анкета клиента', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
   const hasNav = true;
   const root = document.getElementById('trainerScreen');
-  root.innerHTML = `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`;
+  trainerRenderPreservingAvatars(root, `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`);
   root.querySelectorAll('.trainer-filter-tabs').forEach(tabs => {
     const selected = tabs.querySelector('[aria-pressed="true"]');
     if (selected) tabs.scrollLeft = Math.max(0, selected.getBoundingClientRect().left - tabs.getBoundingClientRect().left - tabs.clientWidth / 2 + selected.offsetWidth / 2);
