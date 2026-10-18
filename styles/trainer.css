@@ -48,6 +48,7 @@
 .trainer-profile-shortcut { position: relative; display: grid; place-items: center; width: 46px; height: 46px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #e6e6e6; cursor: pointer; }
 .trainer-profile-shortcut::before { position: absolute; z-index: 0; width: 32.2px; height: 32.2px; box-sizing: border-box; border: 1px solid rgba(255, 120, 70, .72); border-radius: 50%; background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%); box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16); content: ''; pointer-events: none; }
 #trainerScreen .trainer-profile-shortcut svg { position: relative; z-index: 1; width: 26.6px; height: 26.6px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+#trainerScreen .trainer-profile-shortcut .trainer-avatar { z-index: 1; width: 32px; height: 32px; border: 0; border-radius: 50%; }
 #trainerScreen .trainer-icon-button.is-accent { color: #171717; border-color: var(--accent); background: var(--accent); }
 .trainer-main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 #trainerScreen .trainer-kicker { margin: 0 0 8px; color: var(--accent); font-size: var(--text-caption); font-weight: 700; letter-spacing: 1.4px; }
