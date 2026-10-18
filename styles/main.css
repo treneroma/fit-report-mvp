@@ -19,6 +19,10 @@
   --text-subsection-title: 16px;
   --text-section-title: 20px;
   --text-metric: 20px;
+  /* Telegram controls sit below the device's system safe area. */
+  --app-safe-top: calc(max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px));
+  --app-safe-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--tg-safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+  --app-content-height: calc(100dvh - var(--app-safe-top));
 }
 
 * {
@@ -59,6 +63,7 @@ button {
 .screen {
   display: none;
   min-height: 100dvh;
+  padding-top: var(--app-safe-top);
 }
 
 .screen.active {
@@ -67,11 +72,18 @@ button {
 
 /* ПЕРВЫЙ ЭКРАН */
 
+#welcomeScreen.active {
+  display: grid;
+  place-items: center;
+  padding-bottom: var(--app-safe-bottom);
+}
+
 .welcome {
   position: relative;
   width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
+  max-width: calc((var(--app-content-height) - var(--app-safe-bottom)) * 941 / 1672);
+  aspect-ratio: 941 / 1672;
+  margin: 0 auto;
   background: #111;
   overflow: hidden;
 }
@@ -79,9 +91,7 @@ button {
 .welcome img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
 }
 
 .start-button-area {
@@ -101,7 +111,7 @@ button {
   flex-direction: column;
   width: 100%;
   max-width: 480px;
-  min-height: 100dvh;
+  min-height: var(--app-content-height);
   margin: 0 auto;
   padding: 25px 20px 30px;
 }
@@ -3026,7 +3036,7 @@ h3 {
    ========================================================= */
 
 #athleteScreen .page {
-  min-height: 100dvh;
+  min-height: var(--app-content-height);
   padding: 16px 16px 22px;
 }
 
