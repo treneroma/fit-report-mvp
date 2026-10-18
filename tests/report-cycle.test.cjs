@@ -586,3 +586,24 @@ test('карточки сохраняют статус рядом с имене�
   const css = fs.readFileSync(path.join(__dirname, '../styles/reports.css'), 'utf8');
   assert.doesNotMatch(css, /report-period-compact|report-name-row\s*\{\s*display: contents/);
 });
+
+test('старые сохранённые отчёты показывают актуальную подпись без изменения снимка разбора', () => {
+  const { run, service, cycle, records } = fixture({ demo: true });
+  const storageKey = Array.from(records.keys()).find(key => key.endsWith('reports-test'));
+  const legacyState = JSON.parse(records.get(storageKey));
+  legacyState.reportCycles.filter(report => ['maxim', 'ekaterina'].includes(report.clientId) && report.submission).forEach(report => { report.submission.analysis.label = 'Сбился с плана'; });
+  records.set(storageKey, JSON.stringify(legacyState));
+  run("trainerStore.load(storage, 'legacy-switch'); trainerStore.load(storage, 'reports-test')");
+  for (const clientId of ['maxim', 'ekaterina']) {
+    const report = service.get(cycle(clientId).id);
+    assert.equal(report.submission.analysis.label, 'Сбился с плана');
+    const saved = JSON.stringify(service.get(report.id));
+    assert.equal(service.analyze(report.id).label, 'Сбился');
+    const card = run(`trenzoReportCard(trenzoReports.get('${report.id}'))`);
+    assert.match(card, /is-off_plan">Сбился<\/span>/);
+    assert.doesNotMatch(card, /Сбился с плана/);
+    assert.equal(JSON.stringify(service.get(report.id)), saved);
+  }
+  run("const restoredReportStore = createTrainerStore(); restoredReportStore.load(storage, 'reports-test'); const restoredReportService = createTrenzoReportService(createTrainerDemoReportAdapter(restoredReportStore))");
+  assert.equal(run(`restoredReportService.analyze('${cycle('maxim').id}').label`), 'Сбился');
+});
