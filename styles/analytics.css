@@ -1,0 +1,74 @@
+/* Изолированные стили аналитики; общие карточки, шрифты и навигация TRENZO не меняются. */
+#trainerScreen .analytics-dashboard { display: flex; flex-direction: column; gap: var(--trainer-space-4); min-width: 0; font-variant-numeric: tabular-nums; }
+#trainerScreen .analytics-heading { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+#trainerScreen .analytics-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#trainerScreen .analytics-period-control { position: relative; flex: 0 0 auto; }
+#trainerScreen .analytics-period-control::after { position: absolute; top: 18px; right: 12px; width: 6px; height: 6px; border-right: 1.5px solid var(--muted); border-bottom: 1.5px solid var(--muted); transform: rotate(45deg); pointer-events: none; content: ''; }
+#trainerScreen .analytics-period { min-height: 44px; max-width: 140px; padding: 8px 30px 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); font: inherit; font-size: 16px; color: var(--text); appearance: none; cursor: pointer; }
+#trainerScreen .analytics-heading p { margin: 0; color: var(--muted); font-size: var(--text-support); }
+#trainerScreen .analytics-heading small { font-size: var(--text-caption); }
+#trainerScreen .analytics-card { display: flex; flex-direction: column; gap: 16px; }
+#trainerScreen .analytics-card h2 { font-size: var(--text-card-title); line-height: 1.25; }
+#trainerScreen .analytics-key-metric { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+#trainerScreen .analytics-key-metric > strong { font-size: clamp(30px, 8.5vw, 38px); line-height: 1.1; letter-spacing: -.8px; overflow-wrap: anywhere; }
+#trainerScreen .analytics-key-metric > strong > span { font-size: .6em; font-weight: 400; color: var(--muted); letter-spacing: -.3px; }
+#trainerScreen .analytics-key-metric > span { font-size: var(--text-support); color: var(--muted); }
+#trainerScreen .analytics-workouts-main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 12px; align-items: end; }
+#trainerScreen .analytics-completion { display: flex; flex-direction: column; gap: 3px; align-items: flex-end; text-align: right; }
+#trainerScreen .analytics-completion strong { font-size: 28px; line-height: 1.2; color: var(--accent); }
+#trainerScreen .analytics-completion span { color: var(--muted); font-size: var(--text-support); }
+#trainerScreen .analytics-workout-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+#trainerScreen .analytics-workout-facts > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#trainerScreen .analytics-workout-facts dt { font-size: var(--text-caption); color: var(--muted); overflow-wrap: anywhere; }
+#trainerScreen .analytics-workout-facts dd { margin: auto 0 0; font-size: var(--text-metric); font-weight: 700; }
+#trainerScreen .analytics-chart-heading { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: var(--text-caption); }
+#trainerScreen .analytics-workout-chart, #trainerScreen .analytics-volume-chart { display: grid; grid-template-columns: repeat(var(--analytics-columns, 4), minmax(0, 1fr)); gap: 12px; }
+#trainerScreen .analytics-workout-chart.is-dense, #trainerScreen .analytics-volume-chart.is-dense { gap: 4px; }
+#trainerScreen .analytics-workout-chart.is-long, #trainerScreen .analytics-volume-chart.is-long { padding-inline: 6px; }
+#trainerScreen .analytics-workout-chart.is-dense .analytics-week > strong, #trainerScreen .analytics-volume-chart.is-dense .analytics-week > strong { display: none; }
+#trainerScreen .analytics-workout-chart.is-long .analytics-week:nth-child(even) > small, #trainerScreen .analytics-volume-chart.is-long .analytics-week:nth-child(even) > small { visibility: hidden; }
+#trainerScreen .analytics-week { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+#trainerScreen .analytics-week > strong { font-size: var(--text-body); line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
+#trainerScreen .analytics-week > strong > span { font-weight: 400; color: var(--muted); }
+#trainerScreen .analytics-week > small { font-size: var(--text-caption); white-space: nowrap; }
+#trainerScreen .analytics-bar-space { position: relative; width: min(100%, 46px); height: 64px; }
+#trainerScreen .analytics-workout-track, #trainerScreen .analytics-workout-fill, #trainerScreen .analytics-volume-fill { position: absolute; bottom: 0; width: 100%; border-radius: 5px 5px 0 0; }
+#trainerScreen .analytics-workout-track { background: var(--border); }
+#trainerScreen .analytics-workout-fill { background: var(--accent); }
+#trainerScreen .analytics-note { margin: 0; font-size: var(--text-caption); color: var(--muted); line-height: 1.45; }
+#trainerScreen .analytics-set-bar { display: flex; height: 10px; gap: 2px; overflow: hidden; border-radius: 6px; background: var(--border); }
+#trainerScreen .analytics-set-segment { flex: 0 1 auto; min-width: 0; }
+#trainerScreen .analytics-set-segment.is-target, #trainerScreen .analytics-dot.is-target { background: var(--accent); }
+#trainerScreen .analytics-set-segment.is-below, #trainerScreen .analytics-dot.is-below { background: #8b8d92; }
+#trainerScreen .analytics-set-segment.is-above, #trainerScreen .analytics-dot.is-above { background: #c7c9cc; }
+#trainerScreen .analytics-set-segment.is-uncompared, #trainerScreen .analytics-dot.is-uncompared { background: repeating-linear-gradient(135deg, #626468 0 2px, #353638 2px 5px); }
+#trainerScreen .analytics-set-list { display: flex; flex-direction: column; margin: 0; }
+#trainerScreen .analytics-set-list > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+#trainerScreen .analytics-set-list > div:first-child { padding-top: 0; }
+#trainerScreen .analytics-set-list > div:last-child { padding-bottom: 0; border-bottom: 0; }
+#trainerScreen .analytics-set-list dt { display: flex; align-items: center; gap: 8px; font-size: var(--text-body); }
+#trainerScreen .analytics-dot { display: inline-block; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; }
+#trainerScreen .analytics-set-list dd { display: grid; grid-template-columns: minmax(34px, auto) 38px; align-items: baseline; gap: 16px; margin: 0; text-align: right; }
+#trainerScreen .analytics-set-list dd strong { font-size: var(--text-body-emphasis); }
+#trainerScreen .analytics-set-list dd span { color: var(--muted); font-size: var(--text-support); }
+#trainerScreen .analytics-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#trainerScreen .analytics-small-card { gap: 12px; }
+#trainerScreen .analytics-small-card h2 { min-height: 2.5em; font-size: var(--text-subsection-title); }
+#trainerScreen .analytics-small-card .analytics-key-metric > strong { font-size: 32px; }
+#trainerScreen .analytics-change { margin: 0; font-size: var(--text-support); color: var(--muted); line-height: 1.4; }
+#trainerScreen .analytics-volume-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+#trainerScreen .analytics-volume-facts > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+#trainerScreen .analytics-volume-facts dt { font-size: var(--text-support); color: var(--muted); }
+#trainerScreen .analytics-volume-facts dd { margin: 0; font-size: var(--text-metric); font-weight: 700; overflow-wrap: anywhere; }
+#trainerScreen .analytics-volume-facts dd span { font-size: var(--text-support); color: var(--muted); font-weight: 400; white-space: nowrap; }
+#trainerScreen .analytics-peak { display: flex; flex-direction: column; gap: 4px; }
+#trainerScreen .analytics-peak > span { color: var(--muted); font-size: var(--text-support); }
+#trainerScreen .analytics-peak strong { font-size: var(--text-body-emphasis); overflow-wrap: anywhere; }
+#trainerScreen .analytics-peak strong span { font-weight: 400; color: var(--muted); }
+#trainerScreen .analytics-volume-chart .analytics-bar-space { height: 80px; }
+#trainerScreen .analytics-volume-fill { background: #66696d; }
+#trainerScreen .analytics-week.is-peak .analytics-volume-fill { background: var(--accent); }
+@media (max-width: 359px) {
+  #trainerScreen .analytics-workout-chart, #trainerScreen .analytics-volume-chart { gap: 8px; }
+  #trainerScreen .analytics-pair { gap: 8px; }
+}
