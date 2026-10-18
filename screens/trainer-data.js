@@ -135,6 +135,25 @@ function trainerProgramWeeks(count = 6, days = 3) {
   }));
 }
 
+function trainerCreateWorkoutLibrary() {
+  const fullBody = trainerProgramWeeks(1, 3)[0].sessions[0].exercises;
+  const split = trainerProgramWeeks(1, 4)[0].sessions;
+  const home = [
+    { name: 'Приседания без веса', sets: 3, reps: '12–15', weightKg: 0, effortType: 'RIR', effort: 3, restSeconds: 60, notes: '' },
+    { name: 'Отжимания', sets: 3, reps: '8–12', weightKg: 0, effortType: 'RIR', effort: 2, restSeconds: 90, notes: '' },
+    { name: 'Ягодичный мост', sets: 3, reps: '15–20', weightKg: 0, effortType: 'RIR', effort: 2, restSeconds: 60, notes: '' },
+    { name: 'Планка', sets: 3, reps: '30–45 сек', weightKg: 0, effortType: 'RPE', effort: 7, restSeconds: 60, notes: '' }
+  ];
+  return [
+    ['workout-fullbody', 'Full Body · Адаптация', 'mine', 45, 'Тренажёрный зал', fullBody],
+    ['workout-upper', 'Верх тела · Сила', 'mine', 50, 'Тренажёрный зал', split[0].exercises],
+    ['workout-lower', 'Ноги и ягодицы', 'mine', 45, 'Тренажёрный зал', split[1].exercises],
+    ['template-workout-fullbody', 'Full Body · Базовая', 'template', 45, 'Тренажёрный зал', fullBody],
+    ['template-workout-upper', 'Верх тела · Начальный', 'template', 40, 'Тренажёрный зал', split[0].exercises],
+    ['template-workout-home', 'Домашняя · Без оборудования', 'template', 30, 'Дома', home]
+  ].map(([id, title, source, duration, equipment, exercises]) => ({ id, title, source, duration, equipment, notes: '', exercises: trainerCopy(exercises) }));
+}
+
 function trainerCreateDemoData(now = Date.now()) {
   const period = trainerWeeklyPeriod(trainerDefaultReviewSchedule, now);
   const specs = [
@@ -215,6 +234,7 @@ function trainerCreateDemoData(now = Date.now()) {
     version: 1,
     trainer: { ...trainerDefaultProfile, reviewSchedule: trainerCopy(trainerDefaultReviewSchedule) },
     clients, reviews, weeklyReviews: [], firstReviewStart: period.start,
+    workoutLibrary: trainerCreateWorkoutLibrary(),
     programs: [
       { id: 'fullbody', title: 'Full Body · Начальный', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 3) },
       { id: 'fullbody-two', title: 'Full Body · Два дня', goal: 'Базовая сила и состав тела', source: 'mine', duration: 45, equipment: 'Тренажёрный зал', notes: '', weeks: trainerProgramWeeks(6, 2) },
@@ -273,6 +293,7 @@ function createTrainerStore() {
   const client = id => state.clients.find(item => item.id === id);
   const review = id => state.weeklyReviews.find(item => item.id === id) || state.reviews.find(item => item.id === id);
   const program = id => state.programs.find(item => item.id === id);
+  const libraryWorkout = id => state.workoutLibrary.find(item => item.id === id);
   function persist() {
     if (!storage) { storageWarning = 'Изменения сохраняются до закрытия приложения.'; return; }
     try { storage.setItem(storageKey, JSON.stringify(state)); storageWarning = ''; }
@@ -332,7 +353,7 @@ function createTrainerStore() {
   ensureWeeklyReviews(Date.now(), false);
   return {
     get state() { return state; }, get storageWarning() { return storageWarning; },
-    client, review, program, pending, status, ensureWeeklyReviews,
+    client, review, program, libraryWorkout, pending, status, ensureWeeklyReviews,
     weeklyData(id) { const item = review(id); if (!item || item.kind !== 'weekly') throw new Error('Недельный разбор не найден.'); return trainerWeeklyData(client(item.clientId), item); },
     saveWeeklyNote(id, note, complete = false) {
       const item = review(id);
@@ -377,6 +398,8 @@ function createTrainerStore() {
           state = saved;
         }
       } catch { storageWarning = 'Сохранённый пример недоступен. Загружены исходные демо-данные.'; }
+      const needsWorkoutLibrary = !Array.isArray(state.workoutLibrary);
+      if (needsWorkoutLibrary) state.workoutLibrary = trainerCopy(freshDemo.workoutLibrary);
       state.trainer.reviewSchedule ||= trainerCopy(trainerDefaultReviewSchedule);
       const alexander = state.clients.find(item => item.id === 'alexander');
       const currentWeekStart = trainerWeeklyPeriod(state.trainer.reviewSchedule).reviewDate;
@@ -435,6 +458,7 @@ function createTrainerStore() {
         if (excluded(item.hypothesis)) item.hypothesis = 'Причину изменений уточняет тренер.';
       });
       ensureWeeklyReviews();
+      if (needsWorkoutLibrary) persist();
       if (!storage) storageWarning = 'Изменения сохраняются до закрытия приложения.';
     },
     approveReview(id) {
@@ -469,6 +493,34 @@ function createTrainerStore() {
       return result;
     },
     clientState(id, now = Date.now()) { return trainerCalculateClientState(client(id), now); },
+    saveLibraryWorkout(draft) {
+      if (typeof draft.title !== 'string' || !draft.title.trim() || draft.title.length > 100) throw new Error('Укажи название тренировки до 100 символов.');
+      const duration = Number(draft.duration);
+      if (!Number.isFinite(duration) || duration < 10 || duration > 180 || !String(draft.equipment || '').trim()) throw new Error('Проверь длительность и место тренировки.');
+      if (!Array.isArray(draft.exercises) || !draft.exercises.length) throw new Error('Добавь хотя бы одно упражнение.');
+      draft.exercises.forEach(e => {
+        if (!e.name?.trim() || !e.reps?.trim() || !Number.isInteger(e.sets) || e.sets < 1 || e.sets > 20 ||
+            !Number.isFinite(e.weightKg) || e.weightKg < 0 || e.weightKg > 1000 ||
+            !Number.isFinite(e.effort) || e.effort < 0 || e.effort > 10 || !['RPE', 'RIR'].includes(e.effortType) ||
+            !Number.isInteger(e.restSeconds) || e.restSeconds < 0 || e.restSeconds > 900) throw new Error('Проверь упражнения, подходы, повторы, вес, RPE/RIR и отдых.');
+      });
+      const id = draft.id && libraryWorkout(draft.id)?.source === 'mine' ? draft.id : `library-workout-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const result = { id, title: draft.title.trim(), source: 'mine', duration, equipment: String(draft.equipment).trim(), notes: String(draft.notes || '').trim(), exercises: trainerCopy(draft.exercises) };
+      const index = state.workoutLibrary.findIndex(item => item.id === id);
+      if (index === -1) state.workoutLibrary.unshift(result); else state.workoutLibrary[index] = result;
+      persist(); return result;
+    },
+    draftProgramFromWorkouts(values) {
+      const ids = [...new Set(Array.isArray(values.workoutIds) ? values.workoutIds : [])];
+      const weeks = Number(values.weeks);
+      if (!ids.length || ids.length > 6) throw new Error('Выбери от 1 до 6 тренировок для схемы.');
+      if (!Number.isInteger(weeks) || weeks < 1 || weeks > 12) throw new Error('Укажи от 1 до 12 недель.');
+      if (!values.title?.trim() || values.title.length > 100) throw new Error('Укажи название схемы до 100 символов.');
+      const workouts = ids.map(libraryWorkout);
+      if (workouts.some(item => !item)) throw new Error('Одна из выбранных тренировок не найдена.');
+      return { title: values.title.trim(), goal: values.goal || '', duration: Number(values.duration || 45), equipment: values.equipment || workouts[0].equipment, notes: '', source: 'mine',
+        weeks: Array.from({ length: weeks }, (_, index) => ({ number: index + 1, sessions: workouts.map((item, day) => ({ id: `day-${day + 1}`, title: item.title, exercises: trainerCopy(item.exercises) })) })) };
+    },
     saveProgram(draft) {
       if (!draft.title?.trim() || draft.title.length > 100 || !Array.isArray(draft.weeks) || !draft.weeks.length || draft.weeks.length > 12) throw new Error('Укажи название и от 1 до 12 недель программы.');
       draft.weeks.forEach(week => {
