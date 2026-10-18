@@ -483,6 +483,18 @@ function createTrainerStore() {
       state.clients.filter(item => item.programId === result.id).forEach(item => captureAssignment(item));
       persist(); return result;
     },
+    saveProgramForClient(draft, clientId) {
+      const item = client(clientId);
+      if (!item) throw new Error('Подопечный не найден.');
+      const result = this.saveProgram(draft);
+      item.programId = result.id;
+      item.totalWeeks = result.weeks.length;
+      item.currentWeek = Math.min(Math.max(1, item.currentWeek || 1), result.weeks.length);
+      item.programOverrides = {};
+      captureAssignment(item);
+      persist();
+      return result;
+    },
     assignProgram(programId, clientId) {
       const item = client(clientId), plan = program(programId);
       if (!item || !plan) throw new Error('Выбери программу и подопечного.');
