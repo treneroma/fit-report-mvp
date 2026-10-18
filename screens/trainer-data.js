@@ -52,7 +52,7 @@ function trainerCalculateClientState(client, now = Date.now()) {
   return 'stable';
 }
 const trainerDefaultProfile = {
-  name: 'Роман', surname: '', trainingFormat: 'Онлайн', experience: '',
+  name: 'Роман', surname: '', sex: 'male', trainingFormat: 'Онлайн', experience: '',
   specializations: [], education: '', regalia: '', notifications: true
 };
 function trainerShiftDate(date, days) {
@@ -536,6 +536,7 @@ function createTrainerStore() {
     saveProfile(values) {
       const name = typeof values.name === 'string' ? values.name.trim() : '';
       const surname = typeof values.surname === 'string' ? values.surname.trim() : state.trainer.surname || '';
+      const sex = String(values.sex ?? state.trainer.sex ?? 'unspecified');
       const trainingFormat = String(values.trainingFormat ?? state.trainer.trainingFormat ?? '');
       const experience = String(values.experience ?? state.trainer.experience ?? '').trim();
       const education = String(values.education ?? state.trainer.education ?? '').trim();
@@ -547,10 +548,11 @@ function createTrainerStore() {
           : state.trainer.specializations || [];
       const specializations = [...new Set(specializationLines.map(item => String(item).trim()).filter(Boolean))];
       if (!name || name.length > 50 || surname.length > 50) throw new Error('Проверь имя и фамилию тренера.');
+      if (!['male', 'female', 'unspecified'].includes(sex)) throw new Error('Выбери пол.');
       if (!['', 'Онлайн', 'Офлайн', 'Онлайн и офлайн'].includes(trainingFormat)) throw new Error('Выбери формат работы.');
       if (specializations.join('\n').length > 1000 || specializations.some(item => item.length > 120)) throw new Error('Проверь длину специализаций.');
       if (experience.length > 120 || education.length > 2000 || regalia.length > 2000) throw new Error('Проверь длину полей профиля.');
-      state.trainer = { ...state.trainer, name, surname, trainingFormat, experience, specializations, education, regalia }; persist();
+      state.trainer = { ...state.trainer, name, surname, sex, trainingFormat, experience, specializations, education, regalia }; persist();
     },
     reset(mode = 'demo') {
       state = trainerCreateDemoData();
