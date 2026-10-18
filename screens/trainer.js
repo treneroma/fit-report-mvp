@@ -1,7 +1,7 @@
 /* TRENZO — кабинет тренера. Навигация повторяет архитектуру athlete;
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
-  route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
+  route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all', analyticsPeriod: '4w',
   reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, reportHistoryWeeks: {}, programFilter: 'workouts', templateFilter: 'workouts', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
 let trainerTouchStart = null;
@@ -687,7 +687,7 @@ function trainerProfile() {
     <section class="trainer-card trainer-profile-section"><h2>Регалии</h2>${trainerProfileEntries(profile.regalia, 'Пока не добавлены.')}</section>`;
 }
 function trainerAnalytics() {
-  return `<div class="trainer-page-heading"><h1>Аналитика</h1><p>Раздел в разработке.</p></div>${trainerEmpty('Здесь будет аналитика', 'Позже добавим графики и динамику результатов клиентов.')}`;
+  return trainerAnalyticsDashboard(trainerAnalyticsSummary(createTrainerAnalyticsDemo(Date.now(), trainerUI.analyticsPeriod)));
 }
 function trainerAIAnswer(question, clientId = null) {
   const query = question.toLocaleLowerCase('ru-RU');
@@ -945,6 +945,13 @@ function trainerHandleInput(event) {
 }
 function trainerHandleChange(event) {
   const input = event.target; trainerHandleInput(event);
+  if (input.hasAttribute('data-analytics-period')) {
+    if (trainerUI.route.page !== 'analytics' || !trainerAnalyticsPeriods.some(period => period.key === input.value)) return;
+    trainerUI.analyticsPeriod = input.value;
+    trainerRender();
+    document.getElementById('trainerScreen').querySelector?.('[data-analytics-period]')?.focus({ preventScroll: true });
+    return;
+  }
   if (input.hasAttribute('data-report-answer') || input.hasAttribute('data-report-choice') || input.hasAttribute('data-report-number')) { trainerRender(); return; }
   if (input.hasAttribute('data-report-archive-period')) { trenzoReportUI.historyPeriod = input.value; trainerRender(); return; }
   if (input.hasAttribute('data-notifications')) { trainerStore.saveProfile({ ...trainerStore.state.trainer, notifications: input.checked }); trainerToast('Настройка уведомлений сохранена.'); }
