@@ -42,8 +42,8 @@ test('демо содержит четыре входящих, ожидаемы�
   assert.equal(JSON.stringify(service.list()), before);
   const index = run('trenzoReportsIndex()');
   assert.equal((index.match(/data-action="report-filter"/g) || []).length, 3);
-  assert.match(index, /7 клиентов · 5 сдали · 1 ожидаются · 1 просрочили/);
-  assert.match(index, /Демонстрация цикла/);
+  assert.match(index, /data-value="overdue">Просрочили/);
+  assert.doesNotMatch(index, /7 клиентов|5 сдали|ожидаются|Расписание|Сводка|Демонстрация|Разобрать/);
 });
 
 test('клиентские вопросы только субъективные и условные; скрытые ответы не отправляются', () => {
@@ -229,10 +229,12 @@ test('клиентский и тренерский интерфейсы разд
   service.submit(id, { ...answers, comment: '<img src=x onerror=alert(1)>' });
   run(`trainerUI.route = { page: 'review', id: '${id}' }`);
   markup = run('trainerReview()');
-  for (const title of ['Итог недели', 'Что произошло', 'Что сказал клиент', 'Что заметил TRENZO', 'Предложение TRENZO', 'План следующего периода']) assert.ok(markup.includes(title));
+  for (const title of ['Что произошло', 'Состояние клиента', 'Питание', 'Тренировки', 'Что заметил TRENZO', 'Предложение TRENZO', 'Следующий тренировочный цикл', 'Сформировать ответ клиенту']) assert.ok(markup.includes(title));
+  assert.doesNotMatch(markup, /Итог недели|План следующего периода|Экран клиента|Прошлый период:|Средний сон|>Активность</);
   assert.match(markup, /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.doesNotMatch(markup, /<img src=x/);
-  assert.match(markup, /type="submit"[^>]*disabled/);
+  assert.match(markup, /data-action="report-generate-response"[^>]*disabled/);
+  assert.doesNotMatch(markup, /type="submit"/);
   const root = { innerHTML: '', querySelectorAll: () => [] };
   context.document = { getElementById: () => root };
   run(`trainerUI.route = { page: 'client-report', id: '${id}' }; trainerRender()`);
@@ -257,7 +259,8 @@ test('после отсутствия пропущенные периоды до
   assert.equal(reports.length, 4);
   assert.ok(reports.some(item => item.start === '2026-10-18'));
   assert.ok(reports.some(item => item.start === '2026-10-25'));
-  assert.ok(run('trenzoReportsIndex()').includes(`data-id="${oldId}"`));
+  assert.ok(run('trenzoReportsIndex()').includes('Отчёт не поступил'));
+  assert.equal(service.overdue(service.get(oldId)), true);
 });
 
 test('старый отчёт не перезаписывает более новое решение для той же будущей недели', () => {
@@ -281,7 +284,7 @@ test('делегированные обработчики проводят кл�
   context.window = { scrollY: 0, scrollTo() {} };
   context.FormData = class extends Map { constructor(form) { super(Object.entries(form.values)); } };
   const error = { textContent: '' };
-  const form = { dataset: { form: 'period-client-report', id }, values: { ...answers, pain: 'yes' }, reportValidity: () => true, querySelector: () => error };
+  const form = { dataset: { form: 'period-client-report', id }, values: { ...answers, pain: 'yes' }, reportValidity: () => true, querySelector: selector => selector.includes('trainer-form-error') ? error : null };
   context.clientForm = form;
   context.answerInput = { closest: () => form, hasAttribute: key => key === 'data-report-answer' };
   run(`trainerUI.route = { page: 'client-report', id: '${id}' }; trainerHandleChange({ target: answerInput })`);
@@ -303,7 +306,271 @@ test('делегированные обработчики проводят кл�
   context.feedbackInput = { name: 'feedback', closest: () => context.trainerForm, hasAttribute: () => false };
   run('trainerHandleInput({ target: feedbackInput })');
   assert.equal(service.get(id).trainerDraft.feedbackEdited, true);
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, trainerForm); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, trainerForm)`);
   run('trainerHandleSubmit({ target: trainerForm, preventDefault() {} })');
   assert.equal(service.status(service.get(id)), 'reviewed');
   assert.equal(service.get(id).resolution.feedback, values.feedback);
+});
+
+test('в просрочивших только неотправленные отчёты с истёкшим сроком, без ожидаемых и демо-ссылок', () => {
+  const { run } = fixture({ demo: true });
+  const markup = run("trenzoReportUI.filter = 'overdue'; trenzoReportsIndex()");
+  assert.match(markup, /Илья Морозов/);
+  assert.doesNotMatch(markup, /Мария Петрова|Александр Иванов|report-client|Расписание|Демонстрация/);
+});
+
+test('открытый отчёт: четыре показателя, семь дней питания и свёрнутые тренировки в нужном порядке', () => {
+  const { run, cycle } = fixture({ demo: true });
+  run(`trainerUI.route = { page: 'review', id: '${cycle('alexander').id}' }`);
+  const markup = run('trainerReview()');
+  const titles = ['Что произошло', 'Состояние клиента', 'Питание', 'Тренировки', 'Что заметил TRENZO', 'Предложение TRENZO'];
+  const positions = titles.map(title => markup.search(new RegExp('<(?:h2|strong)[^>]*>' + title + '<')));
+  assert.ok(positions.every(value => value >= 0));
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+  const facts = markup.slice(markup.indexOf('report-auto-facts'), markup.indexOf('report-client-words'));
+  assert.equal((facts.match(/class="trainer-metric"/g) || []).length, 4);
+  assert.match(facts, /Внесено 7 дней из 7/);
+  assert.doesNotMatch(facts, /Прошлый период|Средний сон|Активность/);
+  const diary = markup.slice(markup.indexOf('<tbody>'), markup.indexOf('</tbody>'));
+  assert.equal((diary.match(/<tr>/g) || []).length, 7);
+  const training = markup.slice(markup.indexOf('report-training'), markup.indexOf('Что заметил TRENZO'));
+  assert.equal((training.match(/<details /g) || []).length, 3);
+  assert.doesNotMatch(training, /<details[^>]*\sopen/);
+  assert.match(training, /Нет результата в дневнике/);
+});
+
+test('предложение содержит все упражнения с причинами и не увеличивает нагрузку при плохом восстановлении', () => {
+  const { service, cycle } = fixture({ demo: true });
+  const id = cycle('alexander').id, plan = service.proposal(id), base = service.proposal(id, true);
+  assert.equal(plan.sessions.length, 3);
+  plan.sessions.forEach((session, day) => session.exercises.forEach((exercise, index) => {
+    assert.ok(exercise.reason.length > 20);
+    assert.equal(exercise.weightKg, base.sessions[day].exercises[index].weightKg);
+  }));
+  assert.equal(plan.nutritionTarget.calories, base.nutritionTarget.calories);
+  assert.ok(plan.nutritionReason.includes('восстановлением'));
+});
+
+test('согласованный пакет содержит упражнения, питание, комментарии и не меняет архивный снимок', () => {
+  const { service, id, store } = progressionFixture();
+  const before = JSON.stringify(service.facts(id));
+  const draft = service.createTrainerDraft(id, 'edit');
+  draft.weeklyPlan = service.proposal(id);
+  draft.weeklyPlan.sessions[1].exercises[1].weightKg += 1;
+  draft.weeklyPlan.sessions[1].exercises[1].reps = '10–12';
+  draft.weeklyPlan.nutritionTarget.carbs_g -= 10;
+  draft.weeklyPlan.nutritionTarget.calories -= 40;
+  draft.feedback = 'Комментарии к следующей неделе';
+  const closed = service.close(id, draft);
+  assert.equal(closed.resolution.delivery.sessions.length, 3);
+  assert.equal(closed.resolution.delivery.trainerComment, draft.feedback);
+  assert.equal(closed.resolution.delivery.nutrition.carbs_g, draft.weeklyPlan.nutritionTarget.carbs_g);
+  assert.ok(closed.resolution.changes.some(item => item.type === 'nutrition'));
+  assert.ok(closed.resolution.changes.some(item => item.type === 'prescription'));
+  assert.equal(store.client('alexander').weekPlans.find(item => item.start === '2026-10-18').plan.nutritionTarget.calories, draft.weeklyPlan.nutritionTarget.calories);
+  assert.equal(JSON.stringify(service.facts(id)), before);
+});
+
+test('ошибки в плане не делают частичных изменений, режим без изменений не пропускает скрытые правки', () => {
+  const { service, store, id } = progressionFixture();
+  const draft = service.createTrainerDraft(id, 'edit');
+  draft.weeklyPlan = service.proposal(id);
+  draft.weeklyPlan.sessions[2].exercises[0].sets = 0;
+  const before = JSON.stringify(store.state);
+  assert.throws(() => service.close(id, draft), /Проверьте подходы/);
+  assert.equal(JSON.stringify(store.state), before);
+  draft.mode = 'keep'; draft.weeklyPlan = service.proposal(id, true);
+  draft.weeklyPlan.nutritionTarget.carbs_g -= 10;
+  assert.throws(() => service.close(id, draft), /Для изменения питания/);
+  assert.equal(JSON.stringify(store.state), before);
+});
+
+test('крепатура сохраняется отдельно; для старых отправленных отчётов ответ не выдумывается', () => {
+  const { service, cycle, answers, run } = fixture();
+  const id = cycle('maria').id;
+  const sent = service.submit(id, { ...answers, soreness: 'yes' });
+  assert.equal(sent.submission.answers.soreness, 'yes');
+  assert.match(run(`trenzoClientWords(trenzoReports.get('${id}'))`), /Крепатура<\/dt><dd>Да/);
+  const old = service.submit(cycle('alexander').id, answers);
+  assert.equal(old.submission.answers.soreness, undefined);
+  assert.match(run(`trenzoClientWords(trenzoReports.get('${old.id}'))`), /Крепатура<\/dt><dd>Не указано/);
+});
+
+test('изменённые поля нового редактора попадают в отправленные тренировки и питание', () => {
+  const { context, run, service, id } = progressionFixture();
+  run('trainerStore.state.reportDemoVersion = 1');
+  const root = { innerHTML: '', querySelectorAll: () => [] };
+  context.document = { getElementById: () => root };
+  context.window = { scrollY: 0, scrollTo() {} };
+  context.FormData = class extends Map { constructor(form) { super(Object.entries(form.values)); } };
+  run(`trainerUI.route = { page: 'review', id: '${id}' }; trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'edit' })`);
+  const draft = service.get(id).trainerDraft, values = { feedback: 'Проверенный комментарий тренера' };
+  draft.weeklyPlan.sessions.forEach((session, day) => session.exercises.forEach((exercise, index) => {
+    values[`report-weight-${day}-${index}`] = String(exercise.weightKg);
+    values[`report-sets-${day}-${index}`] = String(exercise.sets);
+    values[`report-reps-${day}-${index}`] = exercise.reps;
+  }));
+  for (const key of ['calories', 'protein_g', 'fat_g', 'carbs_g']) values['report-' + key] = String(draft.weeklyPlan.nutritionTarget[key]);
+  values['report-weight-1-0'] = '81'; values['report-reps-1-0'] = '6–8'; values['report-calories'] = '2400';
+  const error = { textContent: '' };
+  context.form = { dataset: { form: 'period-trainer-report', id }, values, reportValidity: () => true, querySelector: selector => selector.includes('trainer-form-error') ? error : null };
+  context.input = { name: 'report-weight-1-0', closest: selector => selector === 'form' ? context.form : null, hasAttribute: key => key === 'data-report-prescription' };
+  run(`trainerHandleInput({ target: input }); trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form); trainerHandleSubmit({ target: form, preventDefault() {} })`);
+  assert.equal(error.textContent, '');
+  const delivery = service.get(id).resolution.delivery;
+  assert.equal(delivery.sessions[1].exercises[0].weightKg, 81);
+  assert.equal(delivery.sessions[1].exercises[0].reps, '6–8');
+  assert.equal(delivery.nutrition.calories, 2400);
+  assert.equal(delivery.trainerComment, values.feedback);
+});
+
+test('предложение питания учитывает замедление веса и полноту дневника без изменения исходных целей', () => {
+  const { service, store, cycle, answers } = fixture();
+  const client = store.client('maria'), id = cycle('maria').id;
+  client.weights = [{ measured_on: '2026-10-03', weight_kg: 67 }, { measured_on: '2026-10-10', weight_kg: 66 }, { measured_on: '2026-10-17', weight_kg: 65.7 }];
+  client.nutrition = Array.from({ length: 7 }, (_, day) => ({ report_date: '2026-10-' + String(11 + day), calories: 2500 }));
+  service.submit(id, answers);
+  const before = JSON.stringify(service.facts(id)), base = service.proposal(id, true), proposed = service.proposal(id);
+  assert.equal(proposed.nutritionTarget.carbs_g, base.nutritionTarget.carbs_g - 20);
+  assert.equal(proposed.nutritionTarget.calories, base.nutritionTarget.calories - 80);
+  assert.match(proposed.nutritionReason, /Темп снижения веса замедлился/);
+  assert.equal(JSON.stringify(service.facts(id)), before);
+});
+
+test('статус в карточке стоит рядом с именем, питание подписывает соблюдение плана отдельной строкой', () => {
+  const { run, cycle } = fixture({ demo: true });
+  const id = cycle('alexander').id;
+  const card = run(`trenzoReportCard(trenzoReports.get('${id}'))`);
+  assert.match(card, /report-name-row"><strong>Александр Иванов<\/strong><span class="trainer-client-status is-overload">Перегруз<\/span><\/span><small>/);
+  assert.match(card, /report-card-end"><svg/);
+  assert.equal((card.match(/trainer-client-status/g) || []).length, 1);
+  assert.ok(card.indexOf('Перегруз') < card.indexOf('report-card-facts'));
+  const nutrition = run(`trenzoReportNutrition(trenzoReports.facts('${id}'))`);
+  assert.match(nutrition, /<h2>Питание<\/h2><p class="report-nutrition-adherence">Соблюдение плана <strong>[\d,]+%<\/strong><\/p><p class="trainer-muted">Внесено 7 дней из 7/);
+});
+
+test('ответ формируется отдельным действием, а отправка без комментария сохраняет весь план', () => {
+  const { run, context, service, cycle } = fixture({ demo: true });
+  const id = cycle('alexander').id;
+  const root = { innerHTML: '', querySelectorAll: () => [] };
+  context.document = { getElementById: () => root };
+  context.FormData = class extends Map { constructor(form) { super(Object.entries(form.values)); } };
+  const error = { textContent: '' };
+  context.form = { dataset: { form: 'period-trainer-report', id }, values: {}, reportValidity: () => true, querySelector: selector => selector.includes('trainer-form-error') ? error : null };
+  run(`trainerUI.route = { page: 'review', id: '${id}' }; trainerRender()`);
+  assert.match(root.innerHTML, /report-proposal-heading">Предложение TRENZO/);
+  assert.match(root.innerHTML, /report-proposal-training/);
+  assert.match(root.innerHTML, /report-proposal-nutrition/);
+  assert.doesNotMatch(root.innerHTML, /Ничего не менять|name="feedback"|type="submit"/);
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' })`);
+  run('trainerHandleSubmit({ target: form, preventDefault() {} })');
+  assert.match(error.textContent, /Сначала сформируйте/);
+  assert.equal(service.status(service.get(id)), 'submitted');
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form)`);
+  assert.equal(service.status(service.get(id)), 'submitted');
+  assert.match(root.innerHTML, /Согласованные тренировки · 3/);
+  assert.match(root.innerHTML, /Согласованное питание/);
+  assert.match(root.innerHTML, /Комментарий тренера — необязательно/);
+  assert.doesNotMatch(root.innerHTML, /name="feedback" required/);
+  context.form.values.feedback = '';
+  run('trainerHandleSubmit({ target: form, preventDefault() {} })');
+  const closed = service.get(id);
+  assert.equal(service.status(closed), 'reviewed');
+  assert.equal(closed.resolution.delivery.sessions.length, 3);
+  assert.equal(closed.resolution.delivery.trainerComment, '');
+  run("const emptyCommentStore = createTrainerStore(); emptyCommentStore.load(storage, 'reports-test')");
+  assert.equal(run(`emptyCommentStore.review('${id}').resolution.delivery.trainerComment`), '');
+});
+
+test('изменение после формирования требует пересобрать ответ, сохраняя комментарий тренера', () => {
+  const { run, context, service, id } = progressionFixture();
+  run('trainerStore.state.reportDemoVersion = 1');
+  const root = { innerHTML: '', querySelectorAll: () => [] };
+  context.document = { getElementById: () => root };
+  context.FormData = class extends Map { constructor(form) { super(Object.entries(form.values)); } };
+  const error = { textContent: '' }, generation = { hidden: true }, response = { hidden: false };
+  const form = { dataset: { form: 'period-trainer-report', id }, values: {}, reportValidity: () => true, querySelector: selector => selector === '.report-generation-step' ? generation : selector === '.report-response-draft' ? response : selector.includes('trainer-form-error') ? error : null };
+  context.form = form;
+  run(`trainerUI.route = { page: 'review', id: '${id}' }; trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'edit' }); trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form)`);
+  form.values.feedback = 'Сохранить мой комментарий';
+  form.values['report-weight-0-0'] = '83';
+  context.input = { name: 'report-weight-0-0', hasAttribute: attr => attr === 'data-report-prescription', closest: selector => selector === 'form' ? form : null };
+  run('trainerHandleInput({ target: input })');
+  assert.equal(service.get(id).trainerDraft.responseGenerated, false);
+  assert.equal(response.hidden, true);
+  assert.equal(generation.hidden, false);
+  run('trainerHandleSubmit({ target: form, preventDefault() {} })');
+  assert.match(error.textContent, /примите план/);
+  assert.equal(service.status(service.get(id)), 'submitted');
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form)`);
+  assert.equal(service.get(id).trainerDraft.feedback, form.values.feedback);
+  run('trainerHandleSubmit({ target: form, preventDefault() {} })');
+  assert.equal(service.get(id).resolution.delivery.sessions[0].exercises[0].weightKg, 83);
+  assert.equal(service.get(id).resolution.delivery.trainerComment, form.values.feedback);
+});
+
+test('карандаши включают редактирование нужной тренировки и питания прямо в предложении TRENZO', () => {
+  const { run, context, service, cycle } = fixture({ demo: true });
+  const id = cycle('alexander').id;
+  const disclosures = [0, 1, 2].map(day => ({ dataset: { reportDisclosure: 'proposal-' + day }, open: false }));
+  const root = { innerHTML: '', querySelectorAll: selector => selector === 'details[data-report-disclosure][open]' ? disclosures.filter(item => item.open) : selector === 'details[data-report-disclosure]' ? disclosures : [] };
+  context.document = { getElementById: () => root };
+  run(`trainerUI.route = { page: 'review', id: '${id}' }; trainerRender()`);
+  assert.equal((root.innerHTML.match(/data-action="report-edit-block"/g) || []).length, 4);
+  assert.equal((root.innerHTML.match(/class="report-inline-edit is-text"/g) || []).length, 3);
+  assert.match(root.innerHTML, /report-workout-title"><strong>Full Body · A<\/strong><button[^>]*data-day="0"[^>]*>Изменить<\/button>/);
+  assert.match(root.innerHTML, /report-proposal-heading">Предложение TRENZO/);
+  assert.doesNotMatch(root.innerHTML, /Предложение тренера/);
+  run(`trenzoReportClick({ action: 'report-edit-block', id: '${id}', block: 'training', day: '0' })`);
+  assert.equal(disclosures[0].open, true);
+  assert.match(root.innerHTML, /name="report-weight-0-3"[^>]*data-report-prescription/);
+  assert.match(root.innerHTML, /name="report-weight-1-3"[^>]*readonly/);
+  assert.match(root.innerHTML, /name="report-calories"[^>]*readonly/);
+  assert.match(root.innerHTML, /data-action="report-generate-response"[^>]*disabled/);
+  assert.equal(service.get(id).trainerDraft.planAccepted, false);
+  run(`trenzoReportClick({ action: 'report-edit-block', id: '${id}', block: 'nutrition' })`);
+  assert.equal(disclosures[0].open, true);
+  assert.match(root.innerHTML, /name="report-carbs_g"[^>]*data-report-prescription/);
+  assert.equal(service.get(id).trainerDraft.editingBlocks.nutrition, true);
+});
+
+test('принятие сохраняет локальные правки, только затем разрешает сформировать и отправить ответ', () => {
+  const { run, context, service, cycle } = fixture({ demo: true });
+  const id = cycle('alexander').id;
+  const root = { innerHTML: '', querySelectorAll: () => [] };
+  context.document = { getElementById: () => root };
+  context.FormData = class extends Map { constructor(form) { super(Object.entries(form.values)); } };
+  const error = { textContent: '' };
+  context.form = { dataset: { form: 'period-trainer-report', id }, values: { 'report-weight-0-3': '55' }, reportValidity: () => true, querySelector: selector => selector.includes('trainer-form-error') ? error : null };
+  context.input = { name: 'report-weight-0-3', closest: selector => selector === 'form' ? context.form : null, hasAttribute: attr => attr === 'data-report-prescription' };
+  run(`trainerUI.route = { page: 'review', id: '${id}' }; trenzoReportClick({ action: 'report-edit-block', id: '${id}', block: 'training', day: '0' }); trainerHandleInput({ target: input })`);
+  assert.throws(() => run(`trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form)`), /Принять/);
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form)`);
+  let draft = service.get(id).trainerDraft;
+  assert.equal(draft.planAccepted, true);
+  assert.equal(draft.weeklyPlan.sessions[0].exercises[3].weightKg, 55);
+  assert.doesNotMatch(root.innerHTML, /data-action="report-generate-response"[^>]*disabled/);
+  run(`trenzoReportClick({ action: 'report-edit-block', id: '${id}', block: 'nutrition' }, form)`);
+  assert.equal(service.get(id).trainerDraft.planAccepted, false);
+  context.form.values['report-carbs_g'] = '280';
+  run(`trenzoReportClick({ action: 'report-decision', id: '${id}', mode: 'accept' }, form); trenzoReportClick({ action: 'report-generate-response', id: '${id}' }, form)`);
+  draft = service.get(id).trainerDraft;
+  assert.equal(draft.weeklyPlan.sessions[0].exercises[3].weightKg, 55);
+  assert.equal(draft.weeklyPlan.nutritionTarget.carbs_g, 280);
+  run("const acceptedStore = createTrainerStore(); acceptedStore.load(storage, 'reports-test')");
+  assert.equal(run(`acceptedStore.review('${id}').trainerDraft.planAccepted`), true);
+  run('trainerHandleSubmit({ target: form, preventDefault() {} })');
+  const delivery = service.get(id).resolution.delivery;
+  assert.equal(delivery.sessions[0].exercises[3].weightKg, 55);
+  assert.equal(delivery.nutrition.carbs_g, 280);
+});
+
+test('таблица и карточки используют фиксированную сетку и центрированную правую область', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../styles/reports.css'), 'utf8');
+  assert.match(css, /\.report-card-end\s*\{[^}]*align-items: center;[^}]*align-self: stretch;/);
+  assert.match(css, /\.report-name-row\s*\{[^}]*justify-content: flex-start;[^}]*gap: 8px;/);
+  assert.match(css, /\.report-name-row \.trainer-client-status\s*\{[^}]*flex-shrink: 0;[^}]*max-width: none;[^}]*white-space: nowrap;/);
+  assert.match(css, /\.report-nutrition-table\s*\{[^}]*table-layout: fixed;/);
+  assert.match(css, /\.report-prescription-fields\.is-nutrition\s*\{[^}]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.report-trainer-form \.report-proposal-training\s*\{\s*gap: 0;/);
 });
