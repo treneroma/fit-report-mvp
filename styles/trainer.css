@@ -535,6 +535,20 @@
 .trainer-facts dt,
 .trainer-facts span { color: var(--muted); font-size: var(--text-support); }
 .trainer-facts dd { margin: 0; }
+.trainer-measurement-list { display: flex; flex-direction: column; gap: 0; }
+.trainer-measurement-list > div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.trainer-measurement-list > div:first-child { padding-top: 0; }
+.trainer-measurement-list > div:last-child { padding-bottom: 0; border-bottom: 0; }
+.trainer-measurement-list > div > span,
+.trainer-measurement-list > div > small { color: var(--muted); font-size: var(--text-caption); }
+.trainer-measurement-list > div > strong,
+.trainer-record-list > div > strong { font-size: var(--text-support); font-variant-numeric: tabular-nums; }
+.trainer-measurement-list > div > small { white-space: nowrap; }
+.trainer-record-list { gap: 8px; }
+.trainer-record-list > div { display: flex; flex-direction: row; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; }
+.trainer-record-list > div > span { min-width: 0; color: var(--text); }
+.trainer-record-list > div > strong { flex: 0 0 auto; }
+.trainer-streak-note { margin: 4px 0 0; font-size: var(--text-caption); }
 .trainer-timeline article { position: relative; border-left: 1px solid var(--border); padding: 0 0 22px 16px; }
 .trainer-timeline article:last-child { padding-bottom: 0; }
 .trainer-timeline article::before { content: ''; position: absolute; left: -4px; top: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
