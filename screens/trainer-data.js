@@ -138,16 +138,17 @@ function trainerProgramWeeks(count = 6, days = 3) {
 function trainerCreateDemoData(now = Date.now()) {
   const period = trainerWeeklyPeriod(trainerDefaultReviewSchedule, now);
   const specs = [
-    ['alexander', 'Александр', 'Иванов', 'Снижение веса', 82.4, 79, -0.4, 3, 3, 91, 8.8, 'fullbody'],
-    ['maria', 'Мария', 'Петрова', 'Снижение веса', 65.2, 62, 0, 2, 2, 97, 7.1, 'fullbody-two'],
-    ['maxim', 'Максим', 'Соколов', 'Набор мышечной массы', 76.8, 80, 0.1, 0, 3, null, null, 'fullbody'],
-    ['anna', 'Анна', 'Орлова', 'Изменение состава тела', 59.6, 59, -0.2, 3, 3, 94, 7.2, 'fullbody'],
-    ['ilya', 'Илья', 'Морозов', 'Рост силовых показателей', 88.5, 89, 0.2, 4, 4, 96, 7, 'upperlower'],
-    ['ekaterina', 'Екатерина', 'Волкова', 'Снижение веса', 71.1, 68, -0.3, 2, 3, 86, 7.6, 'fullbody'],
-    ['andrey', 'Андрей', 'Козлов', 'Поддержание формы', 81.3, 81, 0, 4, 4, 98, 7.3, 'upperlower']
+    ['alexander', 'Александр', 'Иванов', 'Снижение веса', 82.4, 79, -0.4, 3, 3, 91, 8.8, 'fullbody', 'male'],
+    ['maria', 'Мария', 'Петрова', 'Снижение веса', 65.2, 62, 0, 2, 2, 97, 7.1, 'fullbody-two', 'female'],
+    ['maxim', 'Максим', 'Соколов', 'Набор мышечной массы', 76.8, 80, 0.1, 0, 3, null, null, 'fullbody', 'male'],
+    ['anna', 'Анна', 'Орлова', 'Изменение состава тела', 59.6, 59, -0.2, 3, 3, 94, 7.2, 'fullbody', 'female'],
+    ['ilya', 'Илья', 'Морозов', 'Рост силовых показателей', 88.5, 89, 0.2, 4, 4, 96, 7, 'upperlower', 'male'],
+    ['ekaterina', 'Екатерина', 'Волкова', 'Снижение веса', 71.1, 68, -0.3, 2, 3, 86, 7.6, 'fullbody', 'female'],
+    ['andrey', 'Андрей', 'Козлов', 'Поддержание формы', 81.3, 81, 0, 4, 4, 98, 7.3, 'upperlower', 'male']
   ];
-  const clients = specs.map(([id, name, surname, goal, weight, target, delta, completed, planned, nutrition, rpe, programId], index) => ({
+  const clients = specs.map(([id, name, surname, goal, weight, target, delta, completed, planned, nutrition, rpe, programId, sex], index) => ({
     id, name, surname, goal, targetWeight: target, currentWeek: 5, totalWeeks: programId.startsWith('fullbody') ? 6 : 8,
+    questionnaire: { sex },
     activityDate: trainerDemoDate(id === 'maxim' ? 8 : 0, now),
     metrics: { workoutCompleted: completed, workoutTarget: planned, weightDelta: delta, nutritionPercent: nutrition, rpe },
     programId, programCompleted: completed, programOverrides: {}, equipment: 'Тренажёрный зал',
@@ -413,6 +414,12 @@ function createTrainerStore() {
       const legacyDemoJoinDate = trainerShiftDate(state.firstReviewStart, -35);
       state.clients.forEach(item => {
         delete item.metrics.sleep;
+        const demo = freshDemo.clients.find(client => client.id === item.id);
+        const answers = item.questionnaire || item.athleteAnswers || item.profileAnswers;
+        if (demo && answers?.sex == null && item.sex == null) {
+          if (answers) answers.sex = demo.questionnaire.sex;
+          else item.questionnaire = { sex: demo.questionnaire.sex };
+        }
         const demoTenure = trainerDemoTenureDays[item.id];
         if (demoTenure != null && (!item.joinedOn || item.joinedOn === legacyDemoJoinDate)) item.joinedOn = trainerDemoDate(demoTenure);
         item.measurementHistory ||= []; item.mediaReports ||= [];
