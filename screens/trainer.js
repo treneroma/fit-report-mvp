@@ -2,7 +2,7 @@
    доступ к данным изолирован за trainerStore. */
 const trainerUI = {
   route: { page: 'today' }, history: [], search: '', clientFilter: 'all', reviewFilter: 'all',
-  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
+  reviewPeriod: '', reviewNoteDrafts: {}, trainingHistoryWeeks: {}, nutritionHistoryWeeks: {}, programFilter: 'mine', modal: null, draft: null, editorWeek: 0, messages: [], tasks: [], chatMessages: {}, workspaceStorage: null, workspaceKey: '', toastTimer: null, editingClientTag: null
 };
 let trainerTouchStart = null;
 const trainerStatusLabels = { ok: 'Всё по плану', attention: 'Требует внимания', waiting: 'Ждёт решения', inactive: 'Нет активности' };
@@ -366,11 +366,37 @@ function trainerClientTraining(client) {
   return `${currentProgram}${currentWeekMarkup}${historyMarkup}`;
 }
 function trainerClientNutrition(client) {
-  if (!client.nutrition.length) return trainerEmpty('Пока нет данных о питании', 'После внесения дневника здесь появятся суточные КБЖУ и история отчётов.');
-  const avg = key => Math.round(client.nutrition.reduce((sum, entry) => sum + entry[key], 0) / client.nutrition.length);
-  return `<section class="trainer-card">${trainerSection('Среднее за 7 дней')}<div class="trainer-metrics-grid">${trainerMetric('Калории', `${avg('calories')} ккал`)}${trainerMetric('Белки', `${avg('protein_g')} г`)}${trainerMetric('Жиры', `${avg('fat_g')} г`)}${trainerMetric('Углеводы', `${avg('carbs_g')} г`)}${trainerMetric('Выполнение цели', `${client.metrics.nutritionPercent}%`)}</div></section>
-    <section>${trainerSection('Дневник питания')}<div class="trainer-card trainer-nutrition-days">${client.nutrition.slice().reverse().map(entry => `<div><strong>${trainerDateLabel(entry.report_date)}</strong><span>${Math.round(entry.calories)} ккал<small>Б ${Math.round(entry.protein_g)} · Ж ${Math.round(entry.fat_g)} · У ${Math.round(entry.carbs_g)} г</small></span></div>`).join('')}</div></section>
-    ${trainerClientReports(client, 'Питание')}`;
+  const currentWeek = trainerTrainingWeek(client);
+  const targets = client.nutritionTarget || {};
+  const entries = new Map(client.nutrition.map(entry => [entry.report_date, entry]));
+  const currentEntries = client.nutrition.filter(entry => entry.report_date >= currentWeek.start && entry.report_date <= currentWeek.end);
+  const currentCompliance = currentEntries.length ? client.metrics.nutritionPercent : null;
+  const targetValue = (key, unit) => targets[key] != null && Number.isFinite(Number(targets[key])) ? `${Math.round(targets[key])} ${unit}` : '—';
+  const diaryRows = Array.from({ length: 7 }, (_, index) => {
+    const date = trainerShiftDate(currentWeek.start, index), entry = entries.get(date);
+    return `<div class="trainer-nutrition-day${entry ? ' is-recorded' : ' is-empty'}"><strong>${trainerDateLabel(date)}</strong><span>${entry ? `${Math.round(entry.calories)} ккал<small>Б ${Math.round(entry.protein_g)} · Ж ${Math.round(entry.fat_g)} · У ${Math.round(entry.carbs_g)} г</small>` : '<small>Нет записи</small>'}</span></div>`;
+  }).join('');
+  const history = trainerNutritionHistory(client, currentWeek);
+  const selectedHistory = history.selected;
+  const historyOptions = history.weeks.map(week => `<option value="${week.start}" ${week.start === selectedHistory?.start ? 'selected' : ''}>Неделя ${week.number} · ${trainerPeriodLabel(week)}</option>`).join('');
+  const historyRows = selectedHistory?.entries.map(entry => `<div class="trainer-nutrition-day is-recorded"><strong>${trainerDateLabel(entry.report_date)}</strong><span>${Math.round(entry.calories)} ккал<small>Б ${Math.round(entry.protein_g)} · Ж ${Math.round(entry.fat_g)} · У ${Math.round(entry.carbs_g)} г</small></span></div>`).join('');
+  return `<section class="trainer-card trainer-nutrition-plan">${trainerSection('Ежедневный план на неделю')}<div class="trainer-metrics-grid">${trainerMetric('Калории', targetValue('calories', 'ккал'))}${trainerMetric('Белки', targetValue('protein_g', 'г'))}${trainerMetric('Жиры', targetValue('fat_g', 'г'))}${trainerMetric('Углеводы', targetValue('carbs_g', 'г'))}${trainerMetric('Выполнение цели', currentCompliance == null ? '—' : `${Math.round(currentCompliance)}%`, currentCompliance == null ? 'Нет данных за текущую неделю' : 'За текущую неделю')}</div></section>
+    <section>${trainerSection('Дневник питания')}<p class="trainer-muted trainer-nutrition-period">${trainerPeriodLabel(currentWeek)}</p><div class="trainer-card trainer-nutrition-days">${diaryRows}</div></section>
+    <section>${trainerSection('История питания')}${history.weeks.length ? `<label class="trainer-field trainer-training-history-filter">Неделя<select data-nutrition-history-week aria-label="Неделя истории питания">${historyOptions}</select></label><div class="trainer-card trainer-nutrition-days">${historyRows || '<p class="trainer-muted">За эту неделю записей питания нет.</p>'}</div>` : '<p class="trainer-muted">История появится после первой записи питания.</p>'}</section>`;
+}
+function trainerNutritionHistory(client, currentWeek = trainerTrainingWeek(client)) {
+  const recordedDates = client.nutrition.map(entry => entry.report_date).filter(Boolean).sort();
+  if (!recordedDates.length) return { weeks: [], selected: null };
+  const firstDate = [recordedDates[0], client.joinedOn].filter(Boolean).sort()[0];
+  const oldestStart = trainerDayDistance(firstDate, currentWeek.start) > 0 ? firstDate : currentWeek.start;
+  const totalWeeks = Math.max(1, Math.ceil(trainerDayDistance(oldestStart, currentWeek.start) / 7));
+  const weeks = Array.from({ length: totalWeeks }, (_, index) => {
+    const start = trainerShiftDate(currentWeek.start, -(index + 1) * 7), end = trainerShiftDate(start, 6);
+    return { number: totalWeeks - index, start, end, entries: client.nutrition.filter(entry => entry.report_date >= start && entry.report_date <= end).sort((a, b) => a.report_date.localeCompare(b.report_date)) };
+  }).filter(week => week.entries.length);
+  const preferred = weeks.find(week => week.entries.length);
+  const selected = weeks.find(week => week.start === trainerUI.nutritionHistoryWeeks[client.id]) || preferred;
+  return { weeks, selected };
 }
 function trainerWeightChart(client) {
   if (client.weights.length < 2) return '<p class="trainer-muted">График появится после двух взвешиваний.</p>';
@@ -762,6 +788,7 @@ function trainerHandleChange(event) {
   if (input.hasAttribute('data-program-week')) { trainerUI.route.week = Number(input.value); trainerRender(); }
   if (input.hasAttribute('data-review-period')) { trainerUI.reviewPeriod = input.value; trainerUI.reviewFilter = 'all'; trainerRender(); }
   if (input.hasAttribute('data-training-history-week')) { trainerUI.trainingHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
+  if (input.hasAttribute('data-nutrition-history-week')) { trainerUI.nutritionHistoryWeeks[trainerUI.route.id] = input.value; trainerRender(); }
   if (input.hasAttribute('data-creation-client')) {
     const client = trainerStore.client(input.value), form = input.closest('form');
     if (client) {
