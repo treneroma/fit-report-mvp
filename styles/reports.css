@@ -1,12 +1,20 @@
 /* Reports reuse the trainer palette, typography and safe-area shell. */
 #trainerScreen .report-demo-label { display: block; margin-top: 12px; }
 #trainerScreen .report-navigation-count { position: absolute; top: 0; left: calc(50% + 4px); display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border: 2px solid var(--surface); border-radius: 12px; background: var(--accent); color: #161616; font-size: 10px; line-height: 1; }
-#trainerScreen .report-inbox-card { display: flex; flex-direction: column; gap: 14px; cursor: pointer; }
+#trainerScreen .report-inbox-card { display: flex; flex-direction: row; align-items: center; gap: 10px; padding: 12px; cursor: pointer; }
+.report-card-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: 1; }
+.report-card-end { display: flex; align-items: center; justify-content: flex-end; align-self: stretch; gap: 8px; flex: 0 0 auto; }
+#trainerScreen .report-card-end > svg { width: 18px; height: 18px; }
+.report-inbox-card .report-person-row { gap: 8px; }
+.report-inbox-card .report-person-row .trainer-avatar { width: 36px; height: 36px; }
 .report-person-row { display: flex; align-items: center; gap: 12px; min-width: 0; width: 100%; }
 .report-person-row > div, .report-person-row > span:not(.trainer-avatar) { flex: 1; min-width: 0; }
 .report-person-row strong, .report-person-row small { display: block; overflow-wrap: anywhere; }
 .report-person-row .trainer-avatar { width: 44px; height: 44px; }
 .report-person-row small { margin-top: 3px; }
+.report-name-row { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
+.report-name-row > strong { min-width: 0; }
+.report-name-row .trainer-client-status { display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0; max-width: none; padding: 4px 7px; border: 1px solid currentColor; border-radius: 8px; font-size: var(--text-support); line-height: 1.25; text-align: center; white-space: nowrap; }
 .report-card-facts { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: var(--text-support); }
 .report-card-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: var(--text-support); }
 .report-card-bottom > span:last-child { color: var(--accent); }
@@ -38,7 +46,13 @@
 .report-recommendation:last-of-type { border-bottom: 0; }
 .report-recommendation-toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
 .report-decision-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
-.report-decision-actions > :last-child { grid-column: 1 / -1; }
+.report-decision-actions > button { min-width: 0; }
+.report-recommendations { display: flex; flex-direction: column; gap: 16px; }
+#trainerScreen .report-proposal-heading { font-size: var(--text-page-title); margin: 0; }
+.report-generation-step { display: flex; flex-direction: column; gap: 8px; }
+.report-generation-step[hidden], .report-response-draft[hidden] { display: none !important; }
+#trainerScreen .report-nutrition-adherence { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+.report-nutrition-adherence strong { color: var(--accent); font-variant-numeric: tabular-nums; }
 .report-trainer-form .trainer-card { display: flex; flex-direction: column; gap: 14px; }
 .report-trainer-form textarea { min-height: 94px; }
 .report-trainer-form textarea[readonly] { background: transparent; border-color: transparent; padding: 0; min-height: 70px; color: #dedede; }
@@ -47,6 +61,52 @@
 .report-details > summary { min-height: 44px; padding: 12px 0; color: var(--muted); cursor: pointer; }
 .report-details > .trainer-card { margin-top: 14px; }
 .report-next-plan li { margin-top: 8px; }
+.report-inbox-card > .trainer-client-status { align-self: flex-start; }
+.report-section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.report-section-title > strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+.report-nutrition-target { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
+.report-nutrition-target strong { font-size: var(--text-body); font-weight: 600; line-height: 1.45; }
+.report-table-wrap { overflow-x: auto; }
+.report-nutrition-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.report-nutrition-table th, .report-nutrition-table td { padding: 8px 2px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: center; white-space: nowrap; }
+.report-nutrition-table th:nth-child(1), .report-nutrition-table th:nth-child(2), .report-nutrition-table th:nth-child(6) { width: 18%; }
+.report-nutrition-table th:last-child, .report-nutrition-table td:last-child { border-right: 0; }
+.report-nutrition-table thead { background: rgba(255, 255, 255, .035); }
+.report-nutrition-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .02); }
+.report-nutrition-table th { color: var(--muted); font-weight: 500; }
+.report-nutrition-table th:first-child { text-align: center; }
+.report-nutrition-table tr:last-child > * { border-bottom: 0; }
+.report-session { min-width: 0; border-bottom: 1px solid var(--border); }
+.report-session:last-child { border-bottom: 0; }
+.report-session > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 58px; padding: 12px 0; list-style: none; cursor: pointer; }
+.report-session > summary::-webkit-details-marker { display: none; }
+.report-session > summary > span { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.report-session > summary > svg { width: 18px !important; height: 18px !important; transition: transform .15s; }
+.report-session[open] > summary > svg { transform: rotate(90deg); }
+.report-session-body { padding: 0 0 14px; }
+.report-exercise { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-top: 1px solid var(--border); min-width: 0; }
+.report-exercise p { margin: 0 !important; overflow-wrap: anywhere; }
+.report-prescription-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.report-prescription-fields.is-nutrition { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.report-block-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+#trainerScreen .report-block-heading h3 { margin: 0; }
+#trainerScreen .report-inline-edit { display: grid; place-items: center; flex: 0 0 auto; width: 44px; height: 44px; padding: 10px; border: 0; border-radius: var(--trainer-radius-icon); background: transparent; color: var(--muted); }
+#trainerScreen .report-inline-edit svg { width: 19px; height: 19px; }
+.report-proposal-workout { position: relative; border-bottom: 1px solid var(--border); }
+.report-proposal-workout:last-child { border-bottom: 0; }
+.report-workout-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+#trainerScreen .report-inline-edit.is-text { display: inline-flex; align-items: center; justify-content: center; width: auto; min-height: 28px; height: auto; padding: 4px 12px; background: var(--accent); color: #171717; font-size: var(--text-support); font-weight: 600; white-space: nowrap; }
+.report-proposal-workout > .report-session { border-bottom: 0; }
+.report-proposal-workout > .report-session > summary { padding-right: 0; }
+.report-trainer-form .report-proposal-training { gap: 0; }
+.report-proposal-training > h3 { margin-bottom: 8px !important; }
+.report-trainer-form .report-proposal-nutrition { gap: 10px; }
+.report-prescription-fields .trainer-field { min-width: 0; font-size: var(--text-support); }
+.report-prescription-fields input { min-width: 0; width: 100%; padding: 10px 6px; }
+.report-prescription-fields input[readonly] { background: transparent; border-color: transparent; padding-left: 0; }
+#trainerScreen .report-reason { font-size: var(--text-support); color: var(--muted); line-height: 1.5; }
+.report-delivery { display: flex; flex-direction: column; gap: 14px; }
+.report-delivery p { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media (max-width: 359px) {
   .report-person-row { gap: 8px; }
   .report-person-row .trainer-avatar { width: 36px; height: 36px; }
