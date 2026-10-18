@@ -510,7 +510,7 @@ function createTrainerStore() {
     completeReportCycle(cycle) {
       const previous = (state.reportCycles || []).find(item => item.id === cycle.id);
       if (previous?.resolution) return trainerCopy(previous);
-      if (!previous?.submission || JSON.stringify(previous.submission) !== JSON.stringify(cycle.submission) || !cycle.resolution?.feedback?.trim()) throw new Error('Нужен отправленный отчёт и ответ тренера.');
+      if (!previous?.submission || JSON.stringify(previous.submission) !== JSON.stringify(cycle.submission) || typeof cycle.resolution?.feedback !== 'string' || (!cycle.resolution.feedback.trim() && !cycle.resolution.delivery)) throw new Error('Нужен отправленный отчёт и ответ тренера.');
       const item = client(previous.clientId), resolution = cycle.resolution;
       if ((item.nextPeriodPlans || []).some(plan => plan.effectiveOn === resolution.nextPlan.effectiveOn && plan.reportEnd > previous.end)) throw new Error('Для этого периода уже согласован более новый план.');
       const saved = trainerCopy(cycle);
