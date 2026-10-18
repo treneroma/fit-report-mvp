@@ -7,7 +7,7 @@ const path = require('node:path');
 function fixture({ demo = false } = {}) {
   const context = vm.createContext({ console, URL });
   vm.runInContext("Date.now = () => Date.parse('2026-10-18T09:00:00Z')", context);
-  for (const name of ['trainer-data', 'report-cycle', 'trainer', 'report-ui']) {
+  for (const name of ['trainer-data', 'report-cycle', 'analytics-data', 'trainer', 'report-ui', 'analytics-ui']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, `../screens/${name}.js`), 'utf8'), context);
   }
   const run = source => vm.runInContext(source, context);
