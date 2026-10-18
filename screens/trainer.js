@@ -152,7 +152,7 @@ function trainerNavigation() {
   if (['tasks', 'chats', 'chat', 'income'].includes(active)) active = 'today';
   if (active === 'review') active = 'reviews';
   if (['program', 'program-new', 'program-edit', 'library-workout'].includes(active)) active = trainerUI.route.clientId ? 'clients' : 'programs';
-  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Отчёты', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trainerStore.state.weeklyReviews.some(trainerStore.pending) ? '<i aria-hidden="true"></i>' : ''}</button>`).join('')}</nav>`;
+  return `<nav class="trainer-navigation" aria-label="Разделы тренера">${[['today', 'Главная', 'home'], ['clients', 'Клиенты', 'clients'], ['reviews', 'Отчёты', 'reviews'], ['programs', 'Схемы', 'programs'], ['analytics', 'Аналитика', 'analytics']].map(([page, label, icon]) => `<button type="button" data-action="navigate" data-page="${page}" ${active === page ? 'aria-current="page"' : ''}>${trainerIcon(icon)}<span>${label}</span>${page === 'reviews' && trenzoReportPendingCount() ? `<b class="report-navigation-count" aria-label="Ожидают проверки: ${trenzoReportPendingCount()}">${trenzoReportPendingCount()}</b>` : ''}</button>`).join('')}</nav>`;
 }
 function trainerFilterTabs(items, active, action) { return `<div class="trainer-filter-tabs" role="group" aria-label="Фильтр">${items.map(([value, label]) => `<button type="button" aria-pressed="${value === active}" data-action="${action}" data-value="${value}">${label}</button>`).join('')}</div>`; }
 function trainerReviewCard(review, compact = false) {
@@ -227,11 +227,11 @@ function trainerWeeklyReview(review) {
     <section class="trainer-card trainer-weekly-decision">${trainerSection('Итог и следующая неделя')}${pending ? `<form class="trainer-form" data-form="weekly-note" data-id="${trainerEscape(review.id)}">${trainerField('Решение тренера', 'note', noteValue, { multiline: true, maxlength: 2000, extra: 'placeholder="Что меняем или сохраняем в тренировках и питании?" data-weekly-note' })}<p class="trainer-muted">Завершение разбора сохраняет решение, но не меняет программу автоматически. Подготовить следующую неделю можно в программе клиента.</p><p class="trainer-form-error" role="alert"></p><div class="trainer-button-row"><button type="submit" name="intent" value="save" class="trainer-secondary-button">Сохранить черновик</button><button type="submit" name="intent" value="complete" class="trainer-button">Завершить разбор</button></div></form>` : `<p>${trainerEscape(review.note)}</p><small>Завершён ${trainerDateLabel(review.decidedAt)}. Данные недели зафиксированы.</small>`}${client.programId ? trainerAction('client-program', 'Открыть программу клиента →', { id: client.id }, 'trainer-text-button') : trainerAction('client-programs', 'Выбрать программу →', { id: client.id }, 'trainer-text-button')}</section>`;
 }
 function trainerToday() {
-  const { clients, reviews } = trainerStore.state;
+  const { clients } = trainerStore.state;
   const weekStart = trainerDemoDate(6);
   const activeClients = clients.filter(client => client.activityDate && client.activityDate >= weekStart).length;
   const completedWorkouts = clients.reduce((total, client) => total + (Number(client.metrics.workoutCompleted) || 0), 0);
-  const submittedAnswers = reviews.filter(review => !['inactive', 'decision'].includes(review.kind) && review.occurredAt?.slice(0, 10) >= weekStart).length;
+  const submittedAnswers = trenzoReports.list().filter(report => report.submission?.submittedAt.slice(0, 10) >= weekStart).length;
   return `<section class="trainer-dashboard" aria-labelledby="trainerDashboardTitle"><h2 id="trainerDashboardTitle">Недельные показатели</h2><div class="trainer-dashboard-metrics">${trainerDashboardMetric('clients', activeClients, 'Активные|клиенты')}${trainerDashboardMetric('programs', completedWorkouts, 'Выполнено|тренировок', true)}${trainerDashboardMetric('reports', submittedAnswers, 'Сдано|отчетов')}</div></section>
     <section class="trainer-home-tools" aria-label="Инструменты тренера">
       ${trainerAction('navigate', `<span class="trainer-home-tool-icon">${trainerIcon('task')}</span><span class="trainer-home-tool-copy"><strong>Мои задачи</strong><small>Личные дела и задачи от TRENZO</small></span>${trainerIcon('arrow')}`, { page: 'tasks' }, 'trainer-card trainer-home-shortcut')}
@@ -242,7 +242,7 @@ function trainerToday() {
 }
 
 function trainerTasks() {
-  const aiTasks = trainerStore.state.weeklyReviews.filter(trainerStore.pending).sort((a, b) => b.end.localeCompare(a.end));
+  const aiTasks = trenzoReports.list().filter(report => trenzoReports.status(report) === 'submitted').sort((a, b) => trenzoReports.analyze(b.id).priority - trenzoReports.analyze(a.id).priority);
   const personalTasks = trainerUI.tasks;
   const personalMarkup = personalTasks.length ? personalTasks.map(task => `<article class="trainer-card trainer-task-row${task.done ? ' is-complete' : ''}"><button type="button" class="trainer-task-toggle" data-action="toggle-task" data-id="${trainerEscape(task.id)}" aria-pressed="${task.done}" aria-label="${task.done ? 'Отметить невыполненной' : 'Отметить выполненной'}: ${trainerEscape(task.title)}">${task.done ? trainerIcon('check') : ''}</button><span class="trainer-task-copy"><strong>${trainerEscape(task.title)}</strong><small>${task.done ? 'Выполнено' : 'Личная задача'}</small></span><button type="button" class="trainer-task-delete" data-action="delete-task" data-id="${trainerEscape(task.id)}" aria-label="Удалить задачу">${trainerIcon('close')}</button></article>`).join('') : '<p class="trainer-muted trainer-task-empty">Пока нет личных задач. Добавь первую — она сохранится на этом устройстве.</p>';
   const aiMarkup = aiTasks.length ? aiTasks.map(review => {
@@ -319,17 +319,7 @@ function trainerClientOverview(client, now = Date.now()) {
       ${trainerMetric('Соблюдение питания', metrics.nutritionPercent == null ? 'Нет данных' : `${metrics.nutritionPercent}%`)}${trainerMetric('Система тренировок', trainerProgramSystem(program))}
       ${trainerMetric('Изменение веса', trainerOverviewWeightChange(metrics.weightDelta))}${trainerMetric('Следующий отчёт', nextReportDate.split('-').reverse().join('.'))}
     </div></section>`;
-  const outstanding = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end));
-  const lastReview = trainerStore.state.weeklyReviews.filter(r => r.clientId === client.id && !trainerStore.pending(r)).sort((a, b) => b.end.localeCompare(a.end))[0];
-  const incomingReports = trainerStore.state.reviews.filter(r => r.clientId === client.id && trainerStore.pending(r) && (r.kind === 'report' || /отч[её]т/i.test(`${r.type || ''} ${r.title || ''}`))).sort((a, b) => (b.occurredAt || '').localeCompare(a.occurredAt || ''));
-  const summary = outstanding.length ? `Готов недельный отчёт за ${trainerPeriodLabel(outstanding[0])}: тренировки, питание, вес и отчётные материалы.` : lastReview
-    ? `Последний отчёт проверен. Решение тренера: ${lastReview.note}` : client.programId
-    ? 'Следующий недельный отчёт появится по расписанию тренера, даже если клиент не внесёт данные.'
-    : 'Подопечный добавлен. Чтобы подготовить первый отчёт, назначьте программу и дождитесь данных о тренировках и питании.';
-  return `${weeklySummary}
-    <section class="trainer-card trainer-ai-summary"><div class="trainer-ai-summary-heading">${trainerIcon('ai')}<strong>AI TRENZO</strong><span>Вывод по данным</span></div><p>${trainerEscape(summary)}</p>
-      ${outstanding.length ? trainerAction('review', 'Проверить отчёт', { id: outstanding[0].id }) : trainerAction('ai-client', 'Проверить отчёт', { id: client.id }, 'trainer-secondary-button')}</section>
-    <section>${trainerSection('Неразобранные отчёты', incomingReports.length)}${incomingReports.length ? `<div class="trainer-list">${incomingReports.map(r => trainerReviewCard(r, true)).join('')}</div>` : '<p class="trainer-muted">Новых отчётов от клиента пока нет.</p>'}</section>`;
+  return `${weeklySummary}${trenzoClientOverviewReports(client)}`;
 }
 function trainerTrainingWeek(client, now = Date.now()) {
   const schedule = trainerStore.state.trainer.reviewSchedule;
@@ -491,24 +481,7 @@ function trainerClientReportCard(review) {
   const label = trainerStore.pending(review) ? 'Не разобран' : 'Проверен';
   return trainerAction('review', `<span class="trainer-client-report-copy"><strong>Отчёт за ${trainerPeriodLabel(review)}</strong><small>${label}</small></span>${trainerIcon('arrow')}`, { id: review.id }, 'trainer-card trainer-client-report-item');
 }
-function trainerClientReports(client) {
-  const reviews = trainerStore.state.weeklyReviews.filter(review => review.clientId === client.id).sort((a, b) => b.end.localeCompare(a.end));
-  const pending = reviews.filter(trainerStore.pending);
-  const schedule = trainerStore.state.trainer.reviewSchedule;
-  const latestSchedule = trainerWeeklyPeriod(schedule);
-  const today = trainerScheduleClock(schedule).date;
-  const nextReport = latestSchedule.reviewDate > today ? latestSchedule.reviewDate : trainerShiftDate(latestSchedule.reviewDate, 7);
-  const currentReportBlock = pending.length
-    ? `<section>${trainerSection('Неразобранные отчёты', pending.length)}<div class="trainer-list">${trainerClientReportCard(pending[0])}</div></section>`
-    : `<section class="trainer-card trainer-client-current-report"><span class="trainer-client-report-label">Следующий отчёт</span><strong>${nextReport.split('-').reverse().join('.')}</strong><small>${schedule.time} · ${schedule.timeZone}</small></section>`;
-  const periods = trainerClientReportHistory(client);
-  const selected = periods.find(period => period.start === trainerUI.reportHistoryWeeks[client.id]) || periods[0];
-  const options = periods.map(period => `<option value="${period.start}" ${period.start === selected?.start ? 'selected' : ''}>Неделя ${period.number} · ${trainerPeriodLabel(period)}</option>`).join('');
-  const history = periods.length
-    ? `<label class="trainer-field trainer-client-report-filter">Неделя<select data-report-history-week aria-label="Неделя истории отчётов">${options}</select></label><div class="trainer-list">${selected.reports.map(trainerClientReportCard).join('')}</div>`
-    : '<p class="trainer-muted">История появится после первого отчёта.</p>';
-  return `${currentReportBlock}<section>${trainerSection('История отчётов', reviews.length || 0)}${history}</section>`;
-}
+function trainerClientReports(client) { return trenzoClientReports(client); }
 function trainerQuestionnaireValue(field, value) {
   const labels = {
     sex: { male: 'Мужской', female: 'Женский', unspecified: 'Предпочитаю не указывать' },
@@ -572,19 +545,11 @@ function trainerMemory() {
   return `<div class="trainer-page-heading"><p class="trainer-kicker">${trainerEscape(client.name)}</p><h1>Память TRENZO</h1><p>Подтверждённые данные и решения тренера.</p></div><section class="trainer-card">${trainerSection('Факты')}<dl class="trainer-facts">${facts.map(([label, value]) => `<div><dt>${label}</dt><dd>${trainerEscape(value)}</dd></div>`).join('')}</dl></section>
     <section>${trainerSection('Последние решения')}<div class="trainer-card trainer-timeline">${client.decisions.map(item => `<article><time>${trainerDateLabel(item.date)}</time><p>${trainerEscape(item.action)}</p>${item.reviewId ? trainerAction('review', 'Открыть разбор →', { id: item.reviewId }, 'trainer-text-button') : ''}</article>`).join('') || '<p class="trainer-muted">Принятых решений ещё нет.</p>'}</div></section>`;
 }
-function trainerReviews() {
-  const schedule = trainerStore.state.trainer.reviewSchedule;
-  const periods = [...new Map(trainerStore.state.weeklyReviews.map(review => [review.start, review])).values()].sort((a, b) => b.end.localeCompare(a.end));
-  const selected = periods.find(item => item.start === trainerUI.reviewPeriod) || periods[0];
-  const batch = selected ? trainerStore.state.weeklyReviews.filter(item => item.start === selected.start && item.end === selected.end) : [];
-  const pendingCount = batch.filter(trainerStore.pending).length;
-  const filtered = batch.filter(review => trainerUI.reviewFilter === 'all' || (trainerUI.reviewFilter === 'pending' ? trainerStore.pending(review) : !trainerStore.pending(review))).sort((a, b) => Number(trainerStore.pending(b)) - Number(trainerStore.pending(a)) || trainerFullName(trainerStore.client(a.clientId)).localeCompare(trainerFullName(trainerStore.client(b.clientId)), 'ru'));
-  const next = trainerWeeklyPeriod(schedule), nextDate = trainerShiftDate(next.reviewDate, 7);
-  return `<div class="trainer-page-heading"><div class="trainer-weekly-title-row"><h1>Отчёты</h1>${trainerAction('review-schedule', 'Расписание', {}, 'trainer-text-button')}</div><p>Каждый клиент · одна неделя · решение тренера</p></div><div class="trainer-weekly-schedule"><span>${trainerWeekdays[schedule.day]} · ${trainerEscape(schedule.time)} · ${trainerEscape(schedule.timeZone)}</span><small>Следующая очередь ${trainerDateLabel(nextDate)}: ${trainerPeriodLabel({ start: trainerShiftDate(nextDate, -7), end: trainerShiftDate(nextDate, -1) })}</small></div>${periods.length ? `<label class="trainer-field trainer-weekly-period">Период разбора<select data-review-period>${periods.map(item => `<option value="${item.start}" ${item.start === selected.start ? 'selected' : ''}>${trainerPeriodLabel(item)}</option>`).join('')}</select></label><p class="trainer-weekly-counter" role="status">Разобрано ${batch.length - pendingCount} из ${batch.length}</p>${trainerFilterTabs([['all', 'Все'], ['pending', `К разбору · ${pendingCount}`], ['done', 'Разобрано']], trainerUI.reviewFilter, 'review-filter')}<div class="trainer-list">${filtered.map(r => trainerWeeklyReviewCard(r)).join('') || trainerEmpty('В этом фильтре нет отчётов', 'Смени фильтр, чтобы увидеть остальные карточки.')}</div>` : trainerEmpty('Отчётов пока нет', trainerStore.state.clients.length ? 'Очередь за первую неделю появится по выбранному расписанию.' : 'Добавь клиентов. Для каждого появится отдельный недельный отчёт.', trainerStore.state.clients.length ? '' : trainerAction('add-client', 'Добавить клиента'))}`;
-}
+function trainerReviews() { return trenzoReportsIndex(); }
 function trainerReview() {
   const review = trainerStore.review(trainerUI.route.id);
   if (!review) return trainerEmpty('Разбор не найден', 'Вернитесь к списку разборов.', trainerAction('navigate', 'Все разборы', { page: 'reviews' }));
+  if (review.kind === 'period-report') return trenzoTrainerReportScreen(review);
   if (review.kind === 'weekly') return trainerWeeklyReview(review);
   const client = trainerStore.client(review.clientId), pending = trainerStore.pending(review);
   return `<div class="trainer-review-heading">${trainerAction('client', `${trainerAvatar(client)}<span><strong>${trainerEscape(client.name)}</strong><small>${trainerTimeLabel(review.occurredAt)}</small></span>${trainerIcon('arrow')}`, { id: client.id }, 'trainer-client-shortcut')}${trainerBadge(review.status, true)}</div>
@@ -805,6 +770,7 @@ function trainerStart() {
   try { storage = window.localStorage; } catch { /* Демо доступно и без хранилища. */ }
   const identity = tg?.initDataUnsafe?.user?.id || 'local';
   trainerStore.load(storage, identity); trainerLoadWorkspace(storage, identity);
+  trenzoEnsureReports();
   trainerUI.route = { page: 'today' }; trainerUI.history = []; trainerUI.modal = null;
   const root = document.getElementById('trainerScreen');
   if (!root.dataset.trainerBound) {
@@ -821,10 +787,11 @@ function trainerStart() {
 }
 function trainerRender() {
   trainerStore.ensureWeeklyReviews();
+  trenzoEnsureReports();
   const page = trainerUI.route.page;
-  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, 'client-questionnaire': () => trainerClientQuestionnaire(trainerStore.client(trainerUI.route.id)), memory: trainerMemory, reviews: trainerReviews, review: trainerReview, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, 'library-workout': trainerLibraryWorkout, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
-  const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', 'client-questionnaire': 'Анкета клиента', memory: 'Память TRENZO', review: 'Разбор', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
-  const hasNav = true;
+  const renderers = { today: trainerToday, tasks: trainerTasks, chats: trainerChats, chat: trainerChat, income: trainerIncome, clients: trainerClients, client: trainerClient, 'client-questionnaire': () => trainerClientQuestionnaire(trainerStore.client(trainerUI.route.id)), memory: trainerMemory, reviews: trainerReviews, review: trainerReview, 'client-report': trenzoClientReportScreen, programs: trainerPrograms, program: trainerProgram, 'program-new': trainerProgramNew, 'program-edit': trainerProgramEditor, 'library-workout': trainerLibraryWorkout, profile: trainerProfile, analytics: trainerAnalytics, ai: trainerAI };
+  const title = { tasks: 'Мои задачи', chats: 'Чаты с клиентами', chat: trainerStore.client(trainerUI.route.id)?.name || 'Диалог', income: 'Доходы', client: 'Подопечный', 'client-questionnaire': 'Анкета клиента', memory: 'Память TRENZO', review: 'Отчёт', program: 'Программа', 'program-new': 'Новая программа', 'program-edit': 'Конструктор', ai: 'Личный ассистент' }[page];
+  const hasNav = page !== 'client-report';
   const root = document.getElementById('trainerScreen');
   trainerRenderPreservingAvatars(root, `<div class="trainer-app${hasNav ? ' has-navigation' : ''}${page === 'ai' ? ' is-ai' : ''}${page === 'clients' ? ' is-clients' : ''}">${trainerHeader(title)}<main class="trainer-main">${trainerStore.storageWarning ? `<p class="trainer-storage-warning" role="status">${trainerEscape(trainerStore.storageWarning)}</p>` : ''}${renderers[page]()}</main>${hasNav ? trainerNavigation() : ''}${trainerModalMarkup()}<div id="trainerToast" class="trainer-toast" role="status" aria-live="polite" hidden></div></div>`);
   root.querySelectorAll('.trainer-filter-tabs').forEach(tabs => {
@@ -888,6 +855,7 @@ function trainerHandleClick(event) {
   if (!button || button.disabled) return;
   const { action, id, page, value, mode, client, day, exercise, index } = button.dataset;
   try {
+    if (action.startsWith('report-')) { trenzoReportClick(button.dataset); return; }
     if (action === 'navigate') { trainerUI.history = []; trainerGo(page, {}, true); }
     else if (action === 'back') trainerBack();
     else if (action === 'client') trainerGo('client', { id, tab: 'overview' });
@@ -957,6 +925,7 @@ function trainerHandleClick(event) {
 }
 function trainerHandleInput(event) {
   const input = event.target;
+  if (trenzoReportInput(input)) return;
   if (input.hasAttribute('data-weekly-note')) trainerUI.reviewNoteDrafts[input.closest('form').dataset.id] = input.value;
   if (input.hasAttribute('data-search')) {
     trainerUI.search = input.value;
@@ -973,6 +942,8 @@ function trainerHandleInput(event) {
 }
 function trainerHandleChange(event) {
   const input = event.target; trainerHandleInput(event);
+  if (input.hasAttribute('data-report-answer') || input.hasAttribute('data-report-choice') || input.hasAttribute('data-report-number')) { trainerRender(); return; }
+  if (input.hasAttribute('data-report-archive-period')) { trenzoReportUI.historyPeriod = input.value; trainerRender(); return; }
   if (input.hasAttribute('data-notifications')) { trainerStore.saveProfile({ ...trainerStore.state.trainer, notifications: input.checked }); trainerToast('Настройка уведомлений сохранена.'); }
   if (input.hasAttribute('data-editor-week')) { trainerUI.editorWeek = Number(input.value); trainerRender(); }
   if (input.hasAttribute('data-program-week')) { trainerUI.route.week = Number(input.value); trainerRender(); }
@@ -997,6 +968,7 @@ async function trainerCopyInvite() {
 function trainerHandleSubmit(event) {
   const form = event.target;
   if (!form.dataset.form) return;
+  if (['period-client-report', 'period-trainer-report'].includes(form.dataset.form)) return trenzoReportSubmit(event);
   event.preventDefault();
   if (['save-program', 'save-library-workout'].includes(form.dataset.form)) {
     const invalid = form.querySelector('input:invalid, select:invalid, textarea:invalid');
