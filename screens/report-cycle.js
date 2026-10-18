@@ -7,7 +7,7 @@ function createTrenzoReportService(adapter) {
     return numbers.length ? Math.round(numbers.reduce((sum, value) => sum + value, 0) / numbers.length * 10) / 10 : null;
   };
   const mean = (rows, key) => average(rows.map(row => row[key]));
-  const labels = { progress: 'Прогресс', stable: 'Стабильно', plateau: 'Застой', off_plan: 'Сбился с плана', overload: 'Перегруз', low_data: 'Мало данных' };
+  const labels = { progress: 'Прогресс', stable: 'Стабильно', plateau: 'Застой', off_plan: 'Сбился', overload: 'Перегруз', low_data: 'Мало данных' };
   const status = cycle => cycle.resolution ? 'reviewed' : cycle.submission ? 'submitted' : 'expected';
   const clients = () => adapter.clients();
   const cycles = () => adapter.cycles();
