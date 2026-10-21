@@ -86,8 +86,9 @@ test('карточка профиля показывает кнопку, сос�
   assert.ok(headerActions.indexOf("notification-bell-trim.png") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell-trim.png')));
   assert.match(athleteSource, /registration\.athlete\.sex === "male" \? " athlete-cabinet-page--male"/);
-  assert.match(mainCss, /\.athlete-cabinet-page--male::before\s*\{[^}]*url\("\.\.\/assets\/hero-man\.png\?v=1"\)/);
-  assert.match(mainCss, /background-size:\s*100% 100%, 100% 100%, 110% auto;/);
+  assert.match(mainCss, /\.athlete-cabinet-page--male::before\s*\{[^}]*url\("\.\.\/assets\/hero-man-portrait\.png\?v=1"\)/);
+  assert.match(mainCss, /background-position:\s*center, center, calc\(100% - 49px\) calc\(0% - 54vw\);/);
+  assert.match(mainCss, /background-size:\s*100% 100%, 100% 100%, 80% auto;/);
   const heroIndex = athleteSource.indexOf('class="athlete-dashboard-hero"');
   const metricsIndex = athleteSource.indexOf('class="info-card athlete-dashboard-summary"');
   const workoutsIndex = athleteSource.indexOf('class="athlete-dashboard-workouts"', metricsIndex);
@@ -99,7 +100,7 @@ test('карточка профиля показывает кнопку, сос�
   assert.match(athleteSource, /id="athleteDashboardAdherenceValue"[^>]*>0<\/span><span class="athlete-dashboard-adherence-percent">%/);
   assert.doesNotMatch(athleteSource, /athlete-dashboard-adherence-icon/);
   assert.match(mainCss, /\.athlete-dashboard-adherence-gauge\s*\{[^}]*width:\s*min\(41vw, 168px\)/);
-  assert.ok(fs.existsSync(path.join(__dirname, '../assets/hero-man.png')));
+  assert.ok(fs.existsSync(path.join(__dirname, '../assets/hero-man-portrait.png')));
   assert.doesNotMatch(athleteSource, /Демо-режим · данные не загружаются и не сохраняются на сервере/);
   assert.doesNotMatch(mainCss, /\.athlete-demo-mode-note/);
   assert.match(headerActions, /athlete-dashboard-profile-shortcut/);
