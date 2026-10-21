@@ -642,21 +642,29 @@ h3 {
 
 .athlete-dashboard-notification-icon {
   display: grid;
-  flex: 0 0 30px;
+  flex: 0 0 32px;
   place-items: center;
-  width: 30px;
-  height: 34px;
+  width: 32px;
+  height: 42px;
   color: #f2f2f2;
 }
 
 .athlete-dashboard-notification-icon svg {
-  width: 27px;
-  height: 31px;
+  width: 32px;
+  height: 42px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.8;
+  stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.athlete-dashboard-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: clamp(28px, 12vw, 48px);
+  margin-left: auto;
 }
 
 .athlete-dashboard-profile-shortcut {
