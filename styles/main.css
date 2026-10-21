@@ -637,6 +637,7 @@ h3 {
 #athleteScreen .athlete-dashboard-header {
   align-items: center;
   justify-content: space-between;
+  transform: translateY(-10px);
 }
 
 #athleteScreen .athlete-dashboard-header .logo {
