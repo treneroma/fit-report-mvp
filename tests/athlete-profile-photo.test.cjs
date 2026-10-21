@@ -82,6 +82,9 @@ test('карточка профиля показывает кнопку, сос�
   assert.match(mainCss, /\.athlete-dashboard-header-actions\s*\{[^}]*gap:\s*3\.8px;/);
   assert.ok(headerActions.indexOf("notification-bell-trim.png") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell-trim.png')));
+  assert.match(athleteSource, /registration\.athlete\.sex === "male" \? " athlete-dashboard-summary--male"/);
+  assert.match(mainCss, /\.athlete-dashboard-summary--male\s*\{[^}]*url\("\.\.\/assets\/hero-man\.png\?v=1"\)/);
+  assert.ok(fs.existsSync(path.join(__dirname, '../assets/hero-man.png')));
   assert.doesNotMatch(athleteSource, /Демо-режим · данные не загружаются и не сохраняются на сервере/);
   assert.doesNotMatch(mainCss, /\.athlete-demo-mode-note/);
   assert.match(headerActions, /athlete-dashboard-profile-shortcut/);

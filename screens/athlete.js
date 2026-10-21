@@ -1742,7 +1742,7 @@ function athleteRenderCabinet() {
           </button>
         </div>
       </div>
-      <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
+      <section class="info-card athlete-dashboard-summary${registration.athlete.sex === "male" ? " athlete-dashboard-summary--male" : ""}" aria-label="Твои показатели">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
