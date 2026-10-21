@@ -1731,11 +1731,10 @@ function athleteRenderCabinet() {
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
-      ${registration.demoMode ? '<p class="athlete-demo-mode-note" role="status">Демо-режим · данные не загружаются и не сохраняются на сервере</p>' : ""}
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
-          <img class="athlete-dashboard-notification-icon" src="assets/notification-bell.png" alt="" aria-hidden="true" width="44" height="44">
+          <img class="athlete-dashboard-notification-icon" src="assets/notification-bell-trim.png" alt="" aria-hidden="true" width="30" height="34">
           <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
             ${athleteProfilePhotoDataUrl
               ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`

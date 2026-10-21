@@ -640,19 +640,11 @@ h3 {
   height: 28px;
 }
 
-.athlete-demo-mode-note {
-  margin: 0 0 10px;
-  color: #b7b7b7;
-  font-size: 11px;
-  line-height: 1.35;
-  text-align: center;
-}
-
 .athlete-dashboard-notification-icon {
   display: block;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 34px;
   object-fit: contain;
 }
 
@@ -660,7 +652,7 @@ h3 {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: clamp(40px, 12vw, 56px);
+  gap: 3.8px;
   margin-left: auto;
 }
 
