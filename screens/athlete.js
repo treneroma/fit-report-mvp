@@ -1742,8 +1742,8 @@ function athleteRenderCabinet() {
           </button>
         </div>
       </div>
-      <section class="athlete-dashboard-hero" aria-labelledby="athleteDashboardProgressTitle">
-        <h1 class="athlete-dashboard-progress-title" id="athleteDashboardProgressTitle">Твой прогресс</h1>
+      <section class="athlete-dashboard-hero" aria-label="Соблюдение плана">
+        <h1 class="athlete-dashboard-progress-title" aria-hidden="true"></h1>
         <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
           <div class="athlete-dashboard-adherence-gauge">
             <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>

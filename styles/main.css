@@ -919,7 +919,9 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-progress-title {
+  height: 20px;
   margin: 2px 0 6px;
+  visibility: hidden;
   color: #c6c9ce;
   font-size: 16px;
   font-weight: 550;
@@ -1033,6 +1035,7 @@ h3 {
   aspect-ratio: 1;
   box-sizing: border-box;
   margin-left: 0;
+  transform: translateX(7px);
   place-items: center;
   border: 1px solid rgba(255, 113, 51, .38);
   border-radius: 50%;
