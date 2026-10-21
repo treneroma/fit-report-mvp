@@ -17,10 +17,10 @@ if (tg) {
   }
 }
 
-// Эти данные находятся в памяти открытого приложения.
-// На сервер отправляются только разрешённые поля анкеты.
+// Состояние выбранного раздела; локальный демо-режим не отправляет его на сервер.
 const registration = {
   role: null,
+  demoMode: false,
   athlete: {},
   trainer: {}
 };
@@ -61,6 +61,9 @@ function setTrenzoLoading(visible, title, message) {
 // Сервер заново проверяет подпись Telegram при КАЖДОМ запросе.
 // userId из интерфейса не используется как доказательство личности.
 async function trenzoRequest(action, extra = {}) {
+  if (registration.demoMode) {
+    throw new Error('В демо-режиме серверные данные и действия недоступны.');
+  }
   if (!tg || !tg.initData) {
     throw new Error('Открой TRENZO через Telegram и попробуй снова.');
   }
@@ -90,6 +93,7 @@ async function trenzoRequest(action, extra = {}) {
 
 function openAthleteProfile(profile) {
   registration.role = 'athlete';
+  registration.demoMode = profile?.demoMode === true;
   registration.athlete = profile?.answers &&
     typeof profile.answers === 'object' &&
     !Array.isArray(profile.answers)
@@ -99,16 +103,45 @@ function openAthleteProfile(profile) {
   showScreen('athleteScreen');
 }
 
+function openAthleteDemo() {
+  openAthleteProfile({
+    demoMode: true,
+    status: 'completed',
+    answers: {
+      name: 'Алексей',
+      age: '30',
+      sex: 'male',
+      height: '180',
+      weight: '88.0',
+      goal: 'gain',
+      targetWeight: '90',
+      result: 'Стать сильнее и набрать мышечную массу',
+      months: '6',
+      experience: 'Средний',
+      recentTraining: 'Тренируюсь регулярно',
+      frequency: '3',
+      duration: '60',
+      nutritionTracking: 'no',
+      nutritionWilling: 'yes',
+      meals: '3',
+      nutritionNotes: '',
+      trainingMode: 'gym',
+      programStatus: 'current'
+    }
+  });
+}
+
 // После приветственного экрана роль выбирается при каждом запуске.
 // Данные спортсмена загружаются только после явного выбора этой роли.
 function openRoles() {
   showScreen('roleScreen');
 }
 
-// Выбор роли определяет ветку приложения; анкета спортсмена восстанавливается с сервера.
+// У клиента есть локальный fallback, если Telegram недоступен.
 async function selectRole(role) {
   if (roleLoading) return;
   registration.role = role;
+  registration.demoMode = false;
 
   if (role === 'trainer') {
     showScreen('trainerScreen');
@@ -118,16 +151,19 @@ async function selectRole(role) {
 
   if (role !== 'athlete') return;
 
-  roleLoading = true;
-  setTrenzoLoading(true, 'Загружаем анкету', 'Восстанавливаем твои ответы...');
+  if (!tg || !tg.initData) {
+    openAthleteDemo();
+    return;
+  }
 
+  roleLoading = true;
+  setTrenzoLoading(true, 'Загружаем анкету', 'Проверяем вход и загружаем твои ответы...');
   try {
     const result = await trenzoRequest('load_profile');
-    const profile = result.profile;
-    openAthleteProfile(profile);
+    openAthleteProfile(result.profile);
   } catch (error) {
-    console.error('TRENZO profile loading failed:', error);
-    showMessage(error.message || 'Не удалось загрузить анкету.');
+    console.error('TRENZO profile loading failed; opening local demo:', error);
+    openAthleteDemo();
   } finally {
     setTrenzoLoading(false);
     roleLoading = false;
