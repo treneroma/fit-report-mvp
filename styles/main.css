@@ -901,7 +901,7 @@ h3 {
     linear-gradient(90deg, rgba(5, 6, 7, .12), rgba(5, 6, 7, 0) 62%),
     linear-gradient(180deg, rgba(5, 6, 7, .02) 0%, rgba(5, 6, 7, .04) 66%, #111 100%),
     url("../assets/hero-man-portrait.png?v=3");
-  background-position: center, center, 50% calc(0% - 39vw);
+  background-position: center, center, calc(50% + 5px) calc(0% - 39vw);
   background-size: 100% 100%, 100% 100%, 108% auto;
   background-color: #111;
   background-repeat: no-repeat;
