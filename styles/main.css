@@ -3232,6 +3232,7 @@ h3 {
 
 #athleteScreen .logo {
   font-size: 0 !important;
+  background-image: url("../assets/trenzo-logo-client.svg");
 }
 
 #athleteScreen .back-button {
