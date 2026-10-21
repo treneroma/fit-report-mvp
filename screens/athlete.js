@@ -1590,6 +1590,9 @@ function athleteRenderCabinet() {
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
+        <span class="athlete-dashboard-notification-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 28" focusable="false"><path d="M18 18.5c-.8-1.1-1.7-2.1-1.7-7.5a4.3 4.3 0 0 0-8.6 0c0 5.4-.9 6.4-1.7 7.5-.5.7-.9 1.1-1.8 1.4h15.6c-.9-.3-1.3-.7-1.8-1.4Z"/><path d="M10 23a2.2 2.2 0 0 0 4 0"/><path d="M12 4.7V3"/></svg>
+        </span>
         <button class="athlete-dashboard-profile-shortcut" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
           <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>
         </button>
