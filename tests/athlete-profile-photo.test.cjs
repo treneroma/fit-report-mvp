@@ -84,7 +84,14 @@ test('карточка профиля показывает кнопку, сос�
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell-trim.png')));
   assert.match(athleteSource, /registration\.athlete\.sex === "male" \? " athlete-cabinet-page--male"/);
   assert.match(mainCss, /\.athlete-cabinet-page--male::before\s*\{[^}]*url\("\.\.\/assets\/hero-man\.png\?v=1"\)/);
-  assert.match(mainCss, /\.athlete-cabinet-page--male\s+\.athlete-dashboard-summary\s*\{[^}]*background:\s*rgba\(0, 0, 0, \.08\)/);
+  const heroIndex = athleteSource.indexOf('class="athlete-dashboard-hero"');
+  const metricsIndex = athleteSource.indexOf('class="info-card athlete-dashboard-summary"');
+  const workoutsIndex = athleteSource.indexOf('class="athlete-dashboard-workouts"', metricsIndex);
+  const weightIndex = athleteSource.indexOf('class="athlete-dashboard-weight"', metricsIndex);
+  assert.ok(heroIndex >= 0 && heroIndex < metricsIndex);
+  assert.ok(athleteSource.indexOf('id="athleteDashboardAdherence"', heroIndex) < metricsIndex);
+  assert.ok(workoutsIndex > metricsIndex && weightIndex > workoutsIndex);
+  assert.match(athleteSource.slice(metricsIndex, athleteSource.indexOf('id="athleteDashboardNextWorkout"')), /aria-label="Тренировки и текущий вес"/);
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/hero-man.png')));
   assert.doesNotMatch(athleteSource, /Демо-режим · данные не загружаются и не сохраняются на сервере/);
   assert.doesNotMatch(mainCss, /\.athlete-demo-mode-note/);

@@ -1742,42 +1742,43 @@ function athleteRenderCabinet() {
           </button>
         </div>
       </div>
-      <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
+      <section class="athlete-dashboard-hero" aria-labelledby="athleteDashboardProgressTitle">
+        <h1 class="athlete-dashboard-progress-title" id="athleteDashboardProgressTitle">Твой прогресс</h1>
+        <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
+          <div class="athlete-dashboard-adherence-gauge">
+            <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
+            <div class="athlete-dashboard-adherence-copy">
+              <svg class="athlete-dashboard-adherence-icon gauge-icon" viewBox="865 100 490 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
+                <defs><filter id="dashboardProgressCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
+                <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardProgressCutout)"/>
+              </svg>
+              <strong id="athleteDashboardAdherenceValue">0</strong>
+              <span class="athlete-dashboard-adherence-label"><span>соблюдение</span><span>плана</span></span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="info-card athlete-dashboard-summary" aria-label="Тренировки и текущий вес">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
-            <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
-              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon gauge-dumbbell-icon" viewBox="132 100 684 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-                <defs><filter id="dashboardDumbbellCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-                <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardDumbbellCutout)"/>
-              </svg>
-            </div>
-            <strong id="athleteDashboardWorkoutCount">—</strong>
-            <span>тренировок</span>
-          </div>
-          <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
-            <div class="athlete-dashboard-adherence-gauge">
-              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
-              <div class="athlete-dashboard-adherence-copy">
-                <svg class="athlete-dashboard-adherence-icon gauge-icon" viewBox="865 100 490 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-                  <defs><filter id="dashboardProgressCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-                  <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardProgressCutout)"/>
-                </svg>
-                <strong id="athleteDashboardAdherenceValue">0</strong>
-                <span class="athlete-dashboard-adherence-label"><span>соблюдение</span><span>плана</span></span>
-              </div>
+            <svg class="athlete-dashboard-stat-icon" viewBox="132 100 684 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
+              <defs><filter id="dashboardDumbbellCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
+              <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardDumbbellCutout)"/>
+            </svg>
+            <div class="athlete-dashboard-stat-copy">
+              <strong id="athleteDashboardWorkoutCount">—</strong>
+              <span>тренировок</span>
             </div>
           </div>
           <div class="athlete-dashboard-weight">
-            <div class="athlete-dashboard-small-gauge athlete-dashboard-weight-gauge" aria-hidden="true">
-              <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="gauge-decorative-arc" cx="50" cy="50" r="43"/></svg>
-              <svg class="gauge-icon gauge-weight-icon" viewBox="1465 100 510 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-                <defs><filter id="dashboardWeightCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-                <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardWeightCutout)"/>
-              </svg>
+            <svg class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" viewBox="1465 100 510 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
+              <defs><filter id="dashboardWeightCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
+              <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardWeightCutout)"/>
+            </svg>
+            <div class="athlete-dashboard-stat-copy">
+              <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
+              <span>текущий вес</span>
             </div>
-            <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
-            <span>текущий вес</span>
           </div>
         </div>
       </section>
