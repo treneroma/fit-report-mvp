@@ -276,6 +276,10 @@ h3 {
   margin-bottom: clamp(28px, 5dvh, 40px);
 }
 
+#roleScreen .logo {
+  background-image: url("../assets/trenzo-logo-client.svg");
+}
+
 #roleScreen h1 {
   max-width: none;
   margin-bottom: 10px;
@@ -3228,6 +3232,10 @@ h3 {
 #athleteScreen .topbar {
   gap: 12px;
   margin-bottom: 16px;
+}
+
+#athleteScreen .topbar > .back-button {
+  margin-left: auto;
 }
 
 #athleteScreen .logo {
