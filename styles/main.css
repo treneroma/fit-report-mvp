@@ -652,6 +652,7 @@ h3 {
   width: 24px;
   height: 27px;
   object-fit: contain;
+  transform: translateX(5px);
 }
 
 .athlete-dashboard-header-actions {
