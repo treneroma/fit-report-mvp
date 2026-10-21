@@ -77,9 +77,12 @@ test('карточка профиля показывает кнопку, сос�
   assert.match(athleteSource, /athleteProfilePhotoDataUrl\s*\?\s*`<img src=/);
   assert.match(mainCss, /\.athlete-dashboard-profile-shortcut\.has-photo::before/);
   const headerActions = athleteSource.match(/<div class="athlete-dashboard-header-actions">([\s\S]*?)<\/div>/)?.[1] || "";
-  assert.match(headerActions, /<img class="athlete-dashboard-notification-icon" src="assets\/notification-bell-trim\.png"[^>]*width="30" height="34">/);
-  assert.match(mainCss, /\.athlete-dashboard-notification-icon\s*\{[^}]*width:\s*30px;[^}]*height:\s*34px;/);
-  assert.match(mainCss, /\.athlete-dashboard-header-actions\s*\{[^}]*gap:\s*3\.8px;/);
+  assert.match(headerActions, /<img class="athlete-dashboard-notification-icon" src="assets\/notification-bell-trim\.png"[^>]*width="24" height="27">/);
+  assert.match(mainCss, /#athleteScreen \.athlete-dashboard-header \.logo\s*\{[^}]*width:\s*min\(132px, 36vw\);[^}]*height:\s*20px;/);
+  assert.match(mainCss, /\.athlete-dashboard-notification-icon\s*\{[^}]*width:\s*24px;[^}]*height:\s*27px;/);
+  assert.match(mainCss, /\.athlete-dashboard-header-actions\s*\{[^}]*gap:\s*7\.5px;/);
+  assert.match(mainCss, /\.athlete-dashboard-profile-shortcut\s*\{[^}]*width:\s*46px;[^}]*height:\s*46px;/);
+  assert.match(mainCss, /\.athlete-dashboard-profile-shortcut::before\s*\{[^}]*width:\s*40px;[^}]*height:\s*40px;/);
   assert.ok(headerActions.indexOf("notification-bell-trim.png") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell-trim.png')));
   assert.match(athleteSource, /registration\.athlete\.sex === "male" \? " athlete-cabinet-page--male"/);
@@ -92,6 +95,9 @@ test('карточка профиля показывает кнопку, сос�
   assert.ok(athleteSource.indexOf('id="athleteDashboardAdherence"', heroIndex) < metricsIndex);
   assert.ok(workoutsIndex > metricsIndex && weightIndex > workoutsIndex);
   assert.match(athleteSource.slice(metricsIndex, athleteSource.indexOf('id="athleteDashboardNextWorkout"')), /aria-label="Тренировки и текущий вес"/);
+  assert.match(athleteSource, /id="athleteDashboardAdherenceValue"[^>]*>0<\/span><span class="athlete-dashboard-adherence-percent">%/);
+  assert.doesNotMatch(athleteSource, /athlete-dashboard-adherence-icon/);
+  assert.match(mainCss, /\.athlete-dashboard-adherence-gauge\s*\{[^}]*width:\s*min\(41vw, 168px\)/);
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/hero-man.png')));
   assert.doesNotMatch(athleteSource, /Демо-режим · данные не загружаются и не сохраняются на сервере/);
   assert.doesNotMatch(mainCss, /\.athlete-demo-mode-note/);

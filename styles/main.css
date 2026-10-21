@@ -629,22 +629,27 @@ h3 {
   margin: 0 0 10px !important;
 }
 
+#athleteScreen .athlete-cabinet-page > .athlete-dashboard-summary {
+  margin-right: -8px !important;
+  margin-left: -8px !important;
+}
+
 #athleteScreen .athlete-dashboard-header {
   align-items: center;
   justify-content: space-between;
 }
 
 #athleteScreen .athlete-dashboard-header .logo {
-  flex-basis: 190px;
-  width: min(190px, 51vw);
-  height: 28px;
+  flex-basis: 132px;
+  width: min(132px, 36vw);
+  height: 20px;
 }
 
 .athlete-dashboard-notification-icon {
   display: block;
-  flex: 0 0 30px;
-  width: 30px;
-  height: 34px;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 27px;
   object-fit: contain;
 }
 
@@ -652,7 +657,7 @@ h3 {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 3.8px;
+  gap: 7.5px;
   margin-left: auto;
 }
 
@@ -674,8 +679,8 @@ h3 {
 .athlete-dashboard-profile-shortcut::before {
   position: absolute;
   z-index: 0;
-  width: 32.2px;
-  height: 32.2px;
+  width: 40px;
+  height: 40px;
   box-sizing: border-box;
   border: 1px solid rgba(255, 120, 70, .72);
   border-radius: 50%;
@@ -688,8 +693,8 @@ h3 {
 .athlete-dashboard-profile-shortcut svg {
   position: relative;
   z-index: 1;
-  width: 26.6px;
-  height: 26.6px;
+  width: 32px;
+  height: 32px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -704,8 +709,8 @@ h3 {
 .athlete-dashboard-profile-shortcut > img {
   position: relative;
   z-index: 1;
-  width: 32.2px;
-  height: 32.2px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -894,7 +899,7 @@ h3 {
     linear-gradient(90deg, rgba(5, 6, 7, .12), rgba(5, 6, 7, 0) 62%),
     linear-gradient(180deg, rgba(5, 6, 7, .02) 0%, rgba(5, 6, 7, .04) 66%, #111 100%),
     url("../assets/hero-man.png?v=1");
-  background-position: center, center, 58% 44%;
+  background-position: center, center, 100% 44%;
   background-size: cover;
   background-repeat: no-repeat;
   content: "";
@@ -909,14 +914,13 @@ h3 {
 .athlete-dashboard-hero {
   position: relative;
   z-index: 1;
-  min-height: 226px;
   margin: 0 0 8px;
 }
 
 #athleteScreen .athlete-dashboard-progress-title {
-  margin: 2px 0 6px 8px;
+  margin: 2px 0 6px;
   color: #c6c9ce;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 550;
   line-height: 1.25;
   text-shadow: 0 1px 8px rgba(0, 0, 0, .5);
@@ -969,16 +973,16 @@ h3 {
 }
 
 .athlete-dashboard-stat-icon {
-  flex: 0 0 38px;
-  width: 38px;
-  height: 34px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 30px;
   overflow: visible;
 }
 
 .athlete-dashboard-weight-icon {
-  flex-basis: 30px;
-  width: 30px;
-  height: 30px;
+  flex-basis: 24px;
+  width: 24px;
+  height: 24px;
 }
 
 .athlete-dashboard-stat-copy {
@@ -992,7 +996,7 @@ h3 {
   align-items: baseline;
   gap: 4px;
   color: #fff;
-  font-size: clamp(23px, 6vw, 29px);
+  font-size: clamp(20px, 5.5vw, 25px);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   letter-spacing: -.035em;
@@ -1024,10 +1028,10 @@ h3 {
 .athlete-dashboard-adherence-gauge {
   position: relative;
   display: grid;
-  width: min(54vw, 204px);
+  width: min(41vw, 168px);
   aspect-ratio: 1;
   box-sizing: border-box;
-  margin-left: 16px;
+  margin-left: 0;
   place-items: center;
   border: 1px solid rgba(255, 113, 51, .38);
   border-radius: 50%;
@@ -1065,22 +1069,24 @@ h3 {
   pointer-events: none;
 }
 
-.athlete-dashboard-adherence-icon {
-  position: relative;
-  top: 2px;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 2px;
-}
-
 .athlete-dashboard-adherence-copy > strong {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
   color: #fff;
-  font-size: clamp(36px, 10vw, 54px);
+  font-size: clamp(38px, 10vw, 44px);
   font-variant-numeric: tabular-nums;
   font-weight: 800;
   letter-spacing: -.025em;
   line-height: .98;
   text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
+}
+
+.athlete-dashboard-adherence-percent {
+  color: #ff743f;
+  font-size: .58em;
+  font-weight: 750;
+  letter-spacing: 0;
 }
 
 .athlete-dashboard-adherence-copy > span {
@@ -1167,13 +1173,13 @@ h3 {
   }
 
   .athlete-dashboard-stat-icon {
-    flex-basis: 32px;
-    width: 32px;
-    height: 30px;
+    flex-basis: 28px;
+    width: 28px;
+    height: 26px;
   }
 
   .athlete-dashboard-adherence-gauge {
-    width: min(54vw, 184px);
+    width: min(41vw, 158px);
   }
 
   #athleteScreen .athlete-cabinet-links .cabinet-nav-button {

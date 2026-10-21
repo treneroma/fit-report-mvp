@@ -1734,7 +1734,7 @@ function athleteRenderCabinet() {
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
-          <img class="athlete-dashboard-notification-icon" src="assets/notification-bell-trim.png" alt="" aria-hidden="true" width="30" height="34">
+          <img class="athlete-dashboard-notification-icon" src="assets/notification-bell-trim.png" alt="" aria-hidden="true" width="24" height="27">
           <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
             ${athleteProfilePhotoDataUrl
               ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
@@ -1748,11 +1748,7 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-adherence-gauge">
             <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
             <div class="athlete-dashboard-adherence-copy">
-              <svg class="athlete-dashboard-adherence-icon gauge-icon" viewBox="865 100 490 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-                <defs><filter id="dashboardProgressCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-                <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardProgressCutout)"/>
-              </svg>
-              <strong id="athleteDashboardAdherenceValue">0</strong>
+              <strong><span id="athleteDashboardAdherenceValue">0</span><span class="athlete-dashboard-adherence-percent">%</span></strong>
               <span class="athlete-dashboard-adherence-label"><span>соблюдение</span><span>плана</span></span>
             </div>
           </div>
