@@ -883,23 +883,24 @@ h3 {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025), 0 10px 24px rgba(0, 0, 0, .2);
 }
 
-#athleteScreen .athlete-cabinet-page--male {
+#athleteScreen.has-athlete-male-dashboard.active {
   position: relative;
   isolation: isolate;
+  background: #111;
 }
 
-#athleteScreen .athlete-cabinet-page--male::before {
+#athleteScreen.has-athlete-male-dashboard.active::before {
   position: absolute;
   z-index: 0;
   top: 0;
-  right: -16px;
-  left: -16px;
-  height: min(calc(142.2vw + 46px), 740px);
+  right: 0;
+  left: 0;
+  height: min(142.2vw, 740px);
   background-image:
     linear-gradient(90deg, rgba(5, 6, 7, .12), rgba(5, 6, 7, 0) 62%),
     linear-gradient(180deg, rgba(5, 6, 7, .02) 0%, rgba(5, 6, 7, .04) 66%, #111 100%),
     url("../assets/hero-man-portrait.png?v=1");
-  background-position: center, center, calc(100% - 49px) 0%;
+  background-position: center, center, calc(100% - 49px) calc(0% - 20vw);
   background-size: 100% 100%, 100% 100%, 80% auto;
   background-color: #111;
   background-repeat: no-repeat;
@@ -907,7 +908,7 @@ h3 {
   pointer-events: none;
 }
 
-#athleteScreen .athlete-cabinet-page--male > * {
+#athleteScreen.has-athlete-male-dashboard.active > .page {
   position: relative;
   z-index: 1;
 }
