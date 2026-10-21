@@ -182,7 +182,6 @@ function athleteStart(profile = null) {
     const screen = document.getElementById("athleteScreen");
     screen.innerHTML = `
       <div class="page" style="display:block;min-height:0;">
-        <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
         <p class="hint" role="status">Загружаем личный кабинет...</p>
       </div>`;
     athleteOnboardingRequest("load").then(function(data) {
@@ -199,7 +198,6 @@ function athleteStart(profile = null) {
       if (athleteStep !== athleteTotalSteps || !screen.isConnected ||
           !screen.textContent.includes("Загружаем личный кабинет")) return;
       screen.innerHTML = `<div class="page" style="display:block;min-height:0;">
-        <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
         <p class="hint" role="alert">Не удалось загрузить личный кабинет.</p>
         <button class="primary-btn" type="button"
           onclick="athleteStart({status:'completed'})">Попробовать снова</button>
@@ -686,7 +684,6 @@ function athleteRender() {
     <div class="page athlete-onboarding-page${athleteStep === 0 ? " athlete-name-step" : ""}">
 
       <div class="topbar">
-        <div class="logo">TREN<span>ZO</span></div>
         <button
           class="back-button"
           type="button"
@@ -1053,7 +1050,6 @@ function athleteRenderComplete(prefetched = null) {
 
   document.getElementById("athleteScreen").innerHTML = `
     <div class="page">
-      <div class="topbar"><div class="logo">TREN<span>ZO</span></div></div>
       <div class="step-label">ПОСЛЕДНИЙ ШАГ</div>
       <h1>${name}, почти готово!</h1>
       <p class="hint">Я изучу твою цель, уточню то, чего не хватает, —
@@ -1428,10 +1424,7 @@ async function athleteDeleteAccount() {
 }
 
 function athleteCabinetHeader(label, title) {
-  return `<div class="topbar">
-      <div class="logo">TREN<span>ZO</span></div>
-    </div>
-    <h1 style="margin:0 0 14px;">
+  return `<h1 style="margin:0 0 14px;">
       ${athleteEscape(title)}
     </h1>`;
 }
@@ -2799,7 +2792,6 @@ if (section === "nutrition-diary") {
   screen.dataset.backSection = backSection;
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
-  <div class="logo">TREN<span>ZO</span></div>
   <button class="back-button athlete-desktop-back-button" type="button"
     onclick="athleteNavigateBack()" aria-label="Назад" title="Назад">←</button>
 </div>
