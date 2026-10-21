@@ -741,11 +741,12 @@ test('все экраны рендерятся на обычных и пусты
   evaluate("trainerUI.route = {page: 'program-new', mode: 'ai'}"); assert.match(evaluate('trainerProgramNew()'), /Собрать программу/);
   evaluate("trainerUI.draft = trainerCopy(trainerStore.program('fullbody'))"); assert.match(evaluate('trainerProgramEditor()'), /Сохранить программу/);
   evaluate("trainerUI.route = {page: 'today'}");
-  assert.match(evaluate('trainerHeader()'), /class="logo"/);
+  assert.doesNotMatch(evaluate('trainerHeader()'), /class="logo"/);
   assert.match(evaluate('trainerHeader()'), /class="trainer-profile-shortcut"/);
   evaluate("trainerUI.route = {page: 'clients'}");
   assert.match(evaluate('trainerHeader()'), /trainer-clients-add/);
-  assert.doesNotMatch(evaluate('trainerHeader()'), /class="logo"|trainer-profile-shortcut/);
+  assert.doesNotMatch(evaluate('trainerHeader()'), /class="logo"/);
+  assert.doesNotMatch(evaluate('trainerHeader()'), /trainer-profile-shortcut/);
   evaluate("trainerUI.route = {page: 'reviews'}");
   assert.equal(evaluate('trainerHeader()'), '');
   evaluate("trainerUI.route = {page: 'profile'}");
