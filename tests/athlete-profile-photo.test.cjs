@@ -86,8 +86,8 @@ test('карточка профиля показывает кнопку, сос�
   assert.ok(headerActions.indexOf("notification-bell-trim.png") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
   assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell-trim.png')));
   assert.match(athleteSource, /registration\.athlete\.sex === "male" \? " athlete-cabinet-page--male"/);
-  assert.match(mainCss, /\.athlete-cabinet-page--male::before\s*\{[^}]*url\("\.\.\/assets\/hero-man-portrait\.png\?v=1"\)/);
-  assert.match(mainCss, /background-position:\s*center, center, calc\(100% - 49px\) 0%;/);
+  assert.match(mainCss, /#athleteScreen\.has-athlete-male-dashboard\.active::before\s*\{[^}]*url\("\.\.\/assets\/hero-man-portrait\.png\?v=1"\)/);
+  assert.match(mainCss, /background-position:\s*center, center, calc\(100% - 49px\) calc\(0% - 20vw\);/);
   assert.match(mainCss, /background-size:\s*100% 100%, 100% 100%, 80% auto;/);
   const heroIndex = athleteSource.indexOf('class="athlete-dashboard-hero"');
   const metricsIndex = athleteSource.indexOf('class="info-card athlete-dashboard-summary"');
