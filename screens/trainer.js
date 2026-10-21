@@ -137,7 +137,7 @@ function trainerDashboardMetric(icon, value, label, center = false) {
 function trainerHeader(title = '') {
   const profileShortcut = `<button type="button" class="trainer-profile-shortcut" data-action="navigate" data-page="profile" aria-label="Профиль тренера" title="Профиль">${trainerAvatar({ ...trainerStore.state.trainer, id: 'trainer-profile' })}</button>`;
   if (trainerUI.route.page === 'today') {
-    return `<header class="trainer-header"><div class="trainer-header-brand"><div class="logo" aria-label="TRENZO">TREN<span>ZO</span></div></div><div class="trainer-header-actions">${profileShortcut}</div></header>`;
+    return `<header class="trainer-header"><div class="trainer-header-actions">${profileShortcut}</div></header>`;
   }
   if (trainerUI.route.page === 'clients') {
     const count = trainerStore.state.clients.length;
