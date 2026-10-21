@@ -708,6 +708,131 @@ h3 {
   stroke-linejoin: round;
 }
 
+.athlete-dashboard-profile-shortcut.has-photo::before {
+  display: none;
+}
+
+.athlete-dashboard-profile-shortcut > img {
+  position: relative;
+  z-index: 1;
+  width: 32.2px;
+  height: 32.2px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#athleteScreen .athlete-profile-photo-card {
+  padding: 16px !important;
+  border-radius: 16px;
+}
+
+.athlete-profile-photo-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.athlete-profile-photo-preview {
+  display: grid;
+  flex: 0 0 68px;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 120, 70, .5);
+  border-radius: 50%;
+  background: #1b1b1b;
+  color: #ff7846;
+}
+
+.athlete-profile-photo-preview > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.athlete-profile-photo-preview > svg {
+  width: 38px;
+  height: 38px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.athlete-profile-photo-copy {
+  min-width: 0;
+}
+
+.athlete-profile-photo-copy h2 {
+  margin: 0 0 4px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.athlete-profile-photo-copy p {
+  margin: 0 0 10px !important;
+  color: #c4c4c4;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.athlete-profile-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.athlete-profile-photo-add,
+.athlete-profile-photo-remove {
+  min-height: 40px;
+  padding: 9px 13px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.athlete-profile-photo-add {
+  background: #ff7846;
+  color: #171717;
+}
+
+.athlete-profile-photo-remove {
+  border-color: #414141;
+  background: #202020;
+  color: #e6e6e6;
+}
+
+.athlete-profile-photo-add:focus-visible,
+.athlete-profile-photo-remove:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.athlete-profile-photo-note,
+.athlete-profile-photo-status {
+  margin: 12px 0 0 !important;
+  color: #bdbdbd;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.athlete-profile-photo-status:empty {
+  display: none;
+}
+
+.athlete-profile-photo-status.is-error {
+  color: #ff9a7a;
+}
+
+.athlete-profile-photo-input {
+  display: none;
+}
+
 .athlete-dashboard-next {
   display: flex;
   width: 100%;
