@@ -13,8 +13,8 @@
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <link rel="stylesheet" href="styles/main.css?v=27">
-  <link rel="stylesheet" href="styles/trainer.css?v=38">
+  <link rel="stylesheet" href="styles/main.css?v=28">
+  <link rel="stylesheet" href="styles/trainer.css?v=39">
   <link rel="stylesheet" href="styles/reports.css?v=10">
   <link rel="stylesheet" href="styles/analytics.css?v=2">
   <link rel="preload" as="image" href="assets/client-avatar-male.png">
@@ -28,7 +28,7 @@
   <section class="screen active" id="welcomeScreen">
     <div class="welcome">
 
-      <img src="welcome.png" alt="TRENZO">
+      <img src="welcome-no-logo.png" alt="Твой прогресс под контролем: анализ прогресса, контроль тренировок, оценка питания и персональные рекомендации.">
 
       <button
         class="start-button-area"
@@ -76,7 +76,7 @@
     <div class="page role-screen-page">
 
       <div class="topbar role-screen-topbar">
-        <div class="logo">TREN<span>ZO</span></div>
+        <div class="logo" role="img" aria-label="TRENZO">TREN<span>ZO</span></div>
         <button
           class="back-button"
           onclick="showScreen('welcomeScreen')"
@@ -162,11 +162,11 @@
   <!-- ПОДКЛЮЧАЕМ ЛОГИКУ И ЭКРАНЫ -->
 
   <script src="app.js?v=8"></script>
-  <script src="screens/athlete.js?v=11"></script>
+  <script src="screens/athlete.js?v=12"></script>
   <script src="screens/trainer-data.js?v=17"></script>
   <script src="screens/report-cycle.js?v=5"></script>
   <script src="screens/analytics-data.js?v=2"></script>
-  <script src="screens/trainer.js?v=55"></script>
+  <script src="screens/trainer.js?v=56"></script>
   <script src="screens/report-ui.js?v=8"></script>
   <script src="screens/analytics-ui.js?v=2"></script>
 
