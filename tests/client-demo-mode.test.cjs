@@ -41,11 +41,11 @@ test('client opens a local demo dashboard without Telegram or server requests', 
   assert.equal(screens.find(screen => screen.id === 'athleteScreen').classList.active, true);
 });
 
-test('failed Telegram profile verification falls back to the local client demo', async () => {
-  const { context, calls } = fixture({ initData: 'invalid-or-expired' });
+test('client opens a local demo without checking valid Telegram initData', async () => {
+  const { context, calls } = fixture({ initData: 'valid-telegram-session' });
   await vm.runInContext("selectRole('athlete')", context);
 
-  assert.equal(calls.fetch, 1);
+  assert.equal(calls.fetch, 0);
   assert.equal(calls.athlete.length, 1);
   assert.equal(calls.athlete[0].demoMode, true);
   assert.equal(vm.runInContext('registration.demoMode', context), true);

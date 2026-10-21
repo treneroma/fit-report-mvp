@@ -43,21 +43,6 @@ function showScreen(screenId) {
 const TELEGRAM_AUTH_URL =
   'https://hdxfmvewlpmknyysrpac.supabase.co/functions/v1/telegram-auth';
 
-let roleLoading = false;
-
-function setTrenzoLoading(visible, title, message) {
-  const loading = document.getElementById('authLoading');
-  if (!loading) return;
-
-  const titleElement = loading.querySelector('.auth-loading-title');
-  const messageElement = loading.querySelector('.auth-loading-text');
-
-  if (titleElement && title) titleElement.textContent = title;
-  if (messageElement && message) messageElement.textContent = message;
-
-  loading.hidden = !visible;
-}
-
 // Сервер заново проверяет подпись Telegram при КАЖДОМ запросе.
 // userId из интерфейса не используется как доказательство личности.
 async function trenzoRequest(action, extra = {}) {
@@ -137,9 +122,8 @@ function openRoles() {
   showScreen('roleScreen');
 }
 
-// У клиента есть локальный fallback, если Telegram недоступен.
+// Клиентский экран пока работает без Telegram-верификации на локальных данных.
 async function selectRole(role) {
-  if (roleLoading) return;
   registration.role = role;
   registration.demoMode = false;
 
@@ -150,24 +134,7 @@ async function selectRole(role) {
   }
 
   if (role !== 'athlete') return;
-
-  if (!tg || !tg.initData) {
-    openAthleteDemo();
-    return;
-  }
-
-  roleLoading = true;
-  setTrenzoLoading(true, 'Загружаем анкету', 'Проверяем вход и загружаем твои ответы...');
-  try {
-    const result = await trenzoRequest('load_profile');
-    openAthleteProfile(result.profile);
-  } catch (error) {
-    console.error('TRENZO profile loading failed; opening local demo:', error);
-    openAthleteDemo();
-  } finally {
-    setTrenzoLoading(false);
-    roleLoading = false;
-  }
+  openAthleteDemo();
 }
 
 function showMessage(message) {
