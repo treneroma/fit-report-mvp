@@ -17,6 +17,14 @@ let athleteTrainingUploadStateError = "";
 let athleteBodyPhotoFiles = [];
 let athleteBodyPhotoConsent = false;
 const athleteMaxBodyPhotos = 3;
+const athleteProfilePhotoStorageKey = `trenzo:athlete-profile-photo:v1:${window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "current"}`;
+let athleteProfilePhotoDataUrl = (() => {
+  try {
+    return window.sessionStorage?.getItem(athleteProfilePhotoStorageKey) || "";
+  } catch {
+    return "";
+  }
+})();
 
 // Должен совпадать со списком allowedFields в Edge Function.
 const athleteServerFields = [
@@ -1305,6 +1313,124 @@ function athleteCabinetCard(title, rows) {
   </div>`;
 }
 
+function athleteProfilePhotoCardMarkup() {
+  const preview = athleteProfilePhotoDataUrl
+    ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
+    : `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="17" r="8"/><path d="M9 40c2-9 7-13 15-13s13 4 15 13H9Z"/></svg>`;
+  return `<section class="info-card athlete-profile-photo-card" aria-labelledby="athleteProfilePhotoTitle">
+    <div class="athlete-profile-photo-main">
+      <div class="athlete-profile-photo-preview" id="athleteProfilePhotoPreview" aria-hidden="true">${preview}</div>
+      <div class="athlete-profile-photo-copy">
+        <h2 id="athleteProfilePhotoTitle">Фото профиля</h2>
+        <p>Оно появится на главной странице вместо значка профиля.</p>
+        <div class="athlete-profile-photo-actions">
+          <button class="athlete-profile-photo-add" id="athleteProfilePhotoAdd" type="button"
+            onclick="document.getElementById('athleteProfilePhotoInput').click()">
+            ${athleteProfilePhotoDataUrl ? "Заменить фото" : "Добавить фото"}
+          </button>
+          <button class="athlete-profile-photo-remove" id="athleteProfilePhotoRemove" type="button"
+            onclick="athleteRemoveProfilePhoto()"${athleteProfilePhotoDataUrl ? "" : " hidden"}>
+            Удалить
+          </button>
+        </div>
+      </div>
+    </div>
+    <input class="athlete-profile-photo-input" id="athleteProfilePhotoInput" type="file"
+      accept="image/jpeg,image/png,image/webp" aria-label="Выбрать личную фотографию"
+      onchange="athleteHandleProfilePhoto(event)">
+    <p class="athlete-profile-photo-note">Фото хранится только в этой сессии и исчезнет после её завершения.</p>
+    <p class="athlete-profile-photo-status" id="athleteProfilePhotoStatus" role="status" aria-live="polite"></p>
+  </section>`;
+}
+
+function athleteSetProfilePhotoStatus(message, isError = false) {
+  const status = document.getElementById("athleteProfilePhotoStatus");
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle("is-error", isError);
+}
+
+function athleteRenderProfilePhotoPreview() {
+  const preview = document.getElementById("athleteProfilePhotoPreview");
+  const addButton = document.getElementById("athleteProfilePhotoAdd");
+  const removeButton = document.getElementById("athleteProfilePhotoRemove");
+  if (!preview || !addButton || !removeButton) return;
+  preview.innerHTML = athleteProfilePhotoDataUrl
+    ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
+    : `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="17" r="8"/><path d="M9 40c2-9 7-13 15-13s13 4 15 13H9Z"/></svg>`;
+  addButton.textContent = athleteProfilePhotoDataUrl ? "Заменить фото" : "Добавить фото";
+  removeButton.hidden = !athleteProfilePhotoDataUrl;
+}
+
+function athleteStoreProfilePhoto(photo) {
+  try {
+    if (photo) window.sessionStorage?.setItem(athleteProfilePhotoStorageKey, photo);
+    else window.sessionStorage?.removeItem(athleteProfilePhotoStorageKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function athleteHandleProfilePhoto(event) {
+  const input = event?.currentTarget || document.getElementById("athleteProfilePhotoInput");
+  const file = input?.files?.[0];
+  if (!file) return;
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    athleteSetProfilePhotoStatus("Выбери фото в формате JPG, PNG или WEBP.", true);
+    input.value = "";
+    return;
+  }
+  if (file.size > 12 * 1024 * 1024) {
+    athleteSetProfilePhotoStatus("Фото больше 12 МБ. Выбери файл поменьше.", true);
+    input.value = "";
+    return;
+  }
+
+  athleteSetProfilePhotoStatus("Подготавливаем фото…");
+  const imageUrl = URL.createObjectURL(file);
+  const image = new Image();
+  image.onload = () => {
+    try {
+      const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("Не удалось обработать фото.");
+      context.fillStyle = "#171717";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      athleteProfilePhotoDataUrl = canvas.toDataURL("image/jpeg", 0.84);
+      const storedForSession = athleteStoreProfilePhoto(athleteProfilePhotoDataUrl);
+      athleteRenderProfilePhotoPreview();
+      athleteSetProfilePhotoStatus(storedForSession
+        ? "Фото добавлено. Оно будет видно на главной до конца сессии."
+        : "Фото выбрано и видно на главной, пока приложение открыто. Браузер не разрешил сохранить его до конца сессии.", !storedForSession);
+    } catch (error) {
+      athleteSetProfilePhotoStatus(error?.message || "Не удалось обработать фото. Попробуй другое.", true);
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+      if (input) input.value = "";
+    }
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(imageUrl);
+    if (input) input.value = "";
+    athleteSetProfilePhotoStatus("Не удалось открыть это фото. Попробуй JPG, PNG или WEBP.", true);
+  };
+  image.src = imageUrl;
+}
+
+function athleteRemoveProfilePhoto() {
+  athleteProfilePhotoDataUrl = "";
+  const storedForSession = athleteStoreProfilePhoto("");
+  athleteRenderProfilePhotoPreview();
+  athleteSetProfilePhotoStatus(storedForSession
+    ? "Фото удалено из этой сессии."
+    : "Фото удалено с экрана, но браузер не смог очистить данные сессии.", !storedForSession);
+}
+
 function athleteAccountDeleteMarkup() {
   return `<section class="account-delete-zone" aria-labelledby="athleteDeleteAccountTitle">
     <h2 id="athleteDeleteAccountTitle">Удаление аккаунта</h2>
@@ -1594,8 +1720,10 @@ function athleteRenderCabinet() {
           <span class="athlete-dashboard-notification-icon" aria-hidden="true">
             <svg viewBox="0 0 32 42" focusable="false"><path d="M16 3v2.7c-6.5 0-11.5 5.1-11.5 11.5v8.5c0 4.8-1 8.3-2.5 10.3h28c-1.5-2-2.5-5.5-2.5-10.3v-8.5C27.5 10.8 22.5 5.7 16 5.7V3Z"/><path d="M12.7 39.5a3.5 3.5 0 0 0 6.6 0"/></svg>
           </span>
-          <button class="athlete-dashboard-profile-shortcut" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
-            <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>
+          <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
+            ${athleteProfilePhotoDataUrl
+              ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
+              : `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>`}
           </button>
         </div>
       </div>
@@ -1784,7 +1912,7 @@ function athleteOpenCabinetSection(section) {
       male: "Мужской", female: "Женский",
       unspecified: "Предпочитаю не указывать"
     };
-    content = athleteCabinetCard("Личные данные",
+    content = athleteProfilePhotoCardMarkup() + athleteCabinetCard("Личные данные",
       athleteCabinetRow("Имя", d.name) +
       athleteCabinetRow("Возраст", d.age ? d.age + " лет" : "") +
       athleteCabinetRow("Пол", d.sex, sexes) +
