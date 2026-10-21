@@ -651,11 +651,11 @@ h3 {
 
 .athlete-dashboard-notification-icon svg {
   display: block;
-  width: 20px;
-  height: 27px;
+  width: 23px;
+  height: 30px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -664,7 +664,7 @@ h3 {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: clamp(50px, 15vw, 76px);
+  gap: clamp(40px, 12vw, 56px);
   margin-left: auto;
 }
 
