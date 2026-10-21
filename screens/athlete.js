@@ -683,7 +683,7 @@ function athleteSummary() {
 // Отображаем текущий экран анкеты
 
 function athleteRender() {
-  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav");
+  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav", "has-athlete-male-dashboard");
   if (athleteStep === athleteTotalSteps) {
     athleteRenderComplete();
     return;
@@ -1062,7 +1062,7 @@ async function athleteOnboardingRequest(action, extra = {}) {
 
 // Показываем экран знакомства. Само открытие экрана НЕ вызывает OpenAI.
 function athleteRenderComplete(prefetched = null) {
-  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav");
+  document.getElementById("athleteScreen")?.classList.remove("has-athlete-bottom-nav", "has-athlete-male-dashboard");
   const name = athleteEscape(registration.athlete.name || "Друг");
 
   document.getElementById("athleteScreen").innerHTML = `
@@ -1728,6 +1728,7 @@ function athleteBottomNavigationMarkup(activeSection) {
 function athleteRenderCabinet() {
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
+  screen.classList.toggle("has-athlete-male-dashboard", registration.athlete.sex === "male");
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page${registration.athlete.sex === "male" ? " athlete-cabinet-page--male" : ""}" style="display:block;min-height:0;padding-bottom:24px;">
@@ -1924,6 +1925,7 @@ function athleteOpenCabinetSection(section) {
   const d = athleteSafeAnswers();
   const screen = document.getElementById("athleteScreen");
   if (!screen) return;
+  screen.classList.remove("has-athlete-male-dashboard");
   let title = "";
   let content = "";
 
@@ -2943,6 +2945,7 @@ if (section === "nutrition-diary") {
   backSection = "progress";
 }
   screen.classList.add("has-athlete-bottom-nav");
+  screen.classList.remove("has-athlete-male-dashboard");
   screen.dataset.backSection = backSection;
   screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
