@@ -1730,7 +1730,7 @@ function athleteRenderCabinet() {
   screen.classList.add("has-athlete-bottom-nav");
   screen.dataset.backSection = "home";
   screen.innerHTML = `
-    <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
+    <div class="page athlete-cabinet-page${registration.athlete.sex === "male" ? " athlete-cabinet-page--male" : ""}" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
@@ -1742,7 +1742,7 @@ function athleteRenderCabinet() {
           </button>
         </div>
       </div>
-      <section class="info-card athlete-dashboard-summary${registration.athlete.sex === "male" ? " athlete-dashboard-summary--male" : ""}" aria-label="Твои показатели">
+      <section class="info-card athlete-dashboard-summary" aria-label="Твои показатели">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
             <div class="athlete-dashboard-small-gauge athlete-dashboard-workout-gauge" aria-hidden="true">
