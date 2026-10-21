@@ -77,7 +77,10 @@ test('карточка профиля показывает кнопку, сос�
   assert.match(athleteSource, /athleteProfilePhotoDataUrl\s*\?\s*`<img src=/);
   assert.match(mainCss, /\.athlete-dashboard-profile-shortcut\.has-photo::before/);
   const headerActions = athleteSource.match(/<div class="athlete-dashboard-header-actions">([\s\S]*?)<\/div>/)?.[1] || "";
-  assert.doesNotMatch(athleteSource, /athlete-dashboard-notification-icon|notification-dot|unread-badge/);
+  assert.match(headerActions, /<img class="athlete-dashboard-notification-icon" src="assets\/notification-bell\.png"[^>]*>/);
+  assert.match(mainCss, /\.athlete-dashboard-notification-icon\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;/);
+  assert.ok(headerActions.indexOf("notification-bell.png") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
+  assert.ok(fs.existsSync(path.join(__dirname, '../assets/notification-bell.png')));
   assert.match(headerActions, /athlete-dashboard-profile-shortcut/);
 
   const selected = fixture('data:image/jpeg;base64,existing');

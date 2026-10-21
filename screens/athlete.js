@@ -1735,6 +1735,7 @@ function athleteRenderCabinet() {
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
+          <img class="athlete-dashboard-notification-icon" src="assets/notification-bell.png" alt="" aria-hidden="true" width="44" height="44">
           <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
             ${athleteProfilePhotoDataUrl
               ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
