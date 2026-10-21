@@ -1735,9 +1735,6 @@ function athleteRenderCabinet() {
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
-          <span class="athlete-dashboard-notification-icon" aria-hidden="true">
-            <svg viewBox="0 0 32 40" focusable="false"><path d="M16 3.2a1.8 1.8 0 0 1 1.8 1.8v.7c4.8.8 8 4.8 8 9.6v7.5c0 3 .9 5.4 2.5 7.4H3.7c1.6-2 2.5-4.4 2.5-7.4v-7.5c0-4.8 3.2-8.8 8-9.6V5A1.8 1.8 0 0 1 16 3.2Z"/><path d="M13.3 32.3a2.8 2.8 0 0 0 5.4 0"/></svg>
-          </span>
           <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
             ${athleteProfilePhotoDataUrl
               ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`

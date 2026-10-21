@@ -640,32 +640,12 @@ h3 {
   height: 28px;
 }
 
-.athlete-dashboard-notification-icon {
-  display: grid;
-  flex: 0 0 32px;
-  place-items: center;
-  width: 32px;
-  height: 40px;
-  color: #f2f2f2;
-}
-
 .athlete-demo-mode-note {
   margin: 0 0 10px;
   color: #b7b7b7;
   font-size: 11px;
   line-height: 1.35;
   text-align: center;
-}
-
-.athlete-dashboard-notification-icon svg {
-  display: block;
-  width: 28px;
-  height: 35px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .athlete-dashboard-header-actions {

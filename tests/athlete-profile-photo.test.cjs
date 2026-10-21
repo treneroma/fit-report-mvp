@@ -76,11 +76,9 @@ test('карточка профиля показывает кнопку, сос�
   assert.match(emptyMarkup, /accept="image\/jpeg,image\/png,image\/webp"/);
   assert.match(athleteSource, /athleteProfilePhotoDataUrl\s*\?\s*`<img src=/);
   assert.match(mainCss, /\.athlete-dashboard-profile-shortcut\.has-photo::before/);
-  assert.match(mainCss, /\.athlete-dashboard-notification-icon svg\s*\{[^}]*width:\s*28px;[^}]*height:\s*35px;[^}]*stroke-width:\s*2\.2;/);
   const headerActions = athleteSource.match(/<div class="athlete-dashboard-header-actions">([\s\S]*?)<\/div>/)?.[1] || "";
-  assert.match(headerActions, /<svg viewBox="0 0 32 40"[^>]*><path[^>]+\/><path[^>]+\/><\/svg>/);
-  assert.doesNotMatch(headerActions, /notification-dot|unread-badge/);
-  assert.ok(headerActions.indexOf("athlete-dashboard-notification-icon") < headerActions.indexOf("athlete-dashboard-profile-shortcut"));
+  assert.doesNotMatch(athleteSource, /athlete-dashboard-notification-icon|notification-dot|unread-badge/);
+  assert.match(headerActions, /athlete-dashboard-profile-shortcut/);
 
   const selected = fixture('data:image/jpeg;base64,existing');
   const selectedMarkup = vm.runInContext('athleteProfilePhotoCardMarkup()', selected.context);
