@@ -184,6 +184,12 @@ function athleteOptions(name, label, choices) {
 function athleteStart(profile = null) {
   athleteRestoreNotice = "";
 
+  if (profile?.demoMode === true) {
+    athleteStep = athleteTotalSteps;
+    athleteRenderCabinet();
+    return;
+  }
+
   if (profile?.status === "completed") {
     athleteStep = athleteTotalSteps;
     // Не показываем экран «Почти готово», пока проверяется статус в базе.
@@ -1028,6 +1034,9 @@ async function athletePrepareBodyPhoto(file) {
 }
 
 async function athleteOnboardingRequest(action, extra = {}) {
+  if (registration.demoMode) {
+    throw new Error("В демо-режиме серверные данные и действия недоступны.");
+  }
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
   }
@@ -1214,6 +1223,10 @@ async function athleteAnalyzeProfile() {
   const button = document.getElementById("athleteAnalyzeButton");
   const statusBox = document.getElementById("athleteOnboardingStatus");
   if (!button || !statusBox) return;
+  if (registration.demoMode) {
+    showMessage("Анализ анкеты доступен после подключения аккаунта.");
+    return;
+  }
   if (!tg || !tg.initData) {
     showMessage("Открой TRENZO через Telegram и попробуй снова.");
     return;
@@ -1497,6 +1510,10 @@ async function athleteDeleteAccount() {
   const status = document.getElementById("athleteDeleteAccountStatus");
   const button = document.getElementById("athleteDeleteAccountSubmit");
   if (phrase?.value.trim().toLocaleUpperCase("ru-RU") !== "УДАЛИТЬ") return;
+  if (registration.demoMode) {
+    if (status) status.textContent = "В демо-режиме аккаунт и данные не удаляются.";
+    return;
+  }
   if (!tg?.initData) {
     if (status) status.textContent = "Открой TRENZO через Telegram и попробуй снова.";
     return;
@@ -1714,6 +1731,7 @@ function athleteRenderCabinet() {
   screen.dataset.backSection = "home";
   screen.innerHTML = `
     <div class="page athlete-cabinet-page" style="display:block;min-height:0;padding-bottom:24px;">
+      ${registration.demoMode ? '<p class="athlete-demo-mode-note" role="status">Демо-режим · данные не загружаются и не сохраняются на сервере</p>' : ""}
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
         <div class="athlete-dashboard-header-actions">
@@ -1843,6 +1861,15 @@ async function athleteLoadCabinetDashboard() {
   if (!nextSlot) return;
   const weightSlot = document.getElementById("athleteDashboardWeight");
   const adherenceValue = document.getElementById("athleteDashboardAdherenceValue");
+  if (registration.demoMode) {
+    athleteDashboardSetValue("athleteDashboardWorkoutCount", "3");
+    if (weightSlot) weightSlot.textContent = "88,0";
+    if (adherenceValue) adherenceValue.textContent = "0";
+    const arc = document.getElementById("athleteDashboardAdherenceArc");
+    if (arc) arc.style.strokeDashoffset = String(2 * Math.PI * 43);
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: базовые силовые</strong><span class="athlete-dashboard-next-meta">5 упражнений</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
+    return;
+  }
   if (adherenceValue) adherenceValue.textContent = "0";
 
   const results = await Promise.allSettled([
@@ -3026,6 +3053,7 @@ function athleteLocalDate() {
 }
 
 async function athleteWeightRequest(action, extra = {}) {
+  if (registration.demoMode) throw new Error("Изменение веса недоступно в демо-режиме.");
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
   }
@@ -3053,6 +3081,7 @@ async function athleteWeightRequest(action, extra = {}) {
 }
 
 async function athleteMeasurementsRequest(action, extra = {}) {
+  if (registration.demoMode) throw new Error("Замеры недоступны в демо-режиме.");
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
   }
@@ -3090,6 +3119,7 @@ async function athleteMeasurementsRequest(action, extra = {}) {
   return result;
 }
 async function athleteNutritionRequest(action, extra = {}) {
+  if (registration.demoMode) throw new Error("Питание и отчёты недоступны в демо-режиме.");
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
   }
@@ -3171,6 +3201,7 @@ let athleteAdaptationGenerationLoading = false;
 let athleteTrainingPlanLoaded = false;
 
 async function athleteTrainingRequest(action, extra = {}) {
+  if (registration.demoMode) throw new Error("Тренировки и планы недоступны в демо-режиме.");
   if (!tg || !tg.initData) {
     throw new Error("Открой TRENZO через Telegram и попробуй снова.");
   }
@@ -4650,6 +4681,10 @@ async function athleteLoadNutritionHistory() {
   }
 }
 async function athleteConnectFatSecret() {
+  if (registration.demoMode) {
+    showMessage("Подключение FatSecret доступно после подключения аккаунта.");
+    return;
+  }
   if (!tg || !tg.initData) {
     showMessage("Открой TRENZO через Telegram и попробуй снова.");
     return;
@@ -4707,6 +4742,11 @@ async function athleteTestFatSecretDay() {
 
   if (!dateInput || !dateInput.value) {
     showMessage("Выбери месяц, за который нужно загрузить питание.");
+    return;
+  }
+
+  if (registration.demoMode) {
+    showMessage("Загрузка питания из FatSecret недоступна в демо-режиме.");
     return;
   }
 
