@@ -882,8 +882,11 @@ h3 {
   box-sizing: border-box;
   padding: 9px 12px !important;
   border-radius: 18px !important;
-  background: linear-gradient(110deg, rgba(12, 13, 14, .96), rgba(9, 10, 11, .94)) !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025), 0 10px 24px rgba(0, 0, 0, .2);
+  border: 1px solid rgba(150, 160, 170, .22) !important;
+  background: rgba(5, 7, 8, .78) !important;
+  box-shadow: 0 0 5px 2px rgba(5, 7, 8, .2), inset 0 0 0 1px rgba(255, 255, 255, .025);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 #athleteScreen.has-athlete-male-dashboard.active {
@@ -938,7 +941,7 @@ h3 {
   position: absolute;
   z-index: 3;
   inset: 0;
-  border: 1px solid rgba(188, 191, 195, .2);
+  border: 1px solid rgba(150, 160, 170, .2);
   border-radius: inherit;
   content: "";
   pointer-events: none;
@@ -949,7 +952,7 @@ h3 {
   z-index: 1;
   display: grid;
   width: 100%;
-  min-height: 72px;
+  min-height: 82px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 0;
@@ -959,16 +962,47 @@ h3 {
   display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 4px 0;
+  gap: 7px;
+  padding: 0;
   border: 0;
   background: transparent;
 }
 
 .athlete-dashboard-weight {
-  border-left: 1px solid rgba(164, 168, 174, .22) !important;
-  padding-left: 10px !important;
+  border-left: 1px solid rgba(130, 140, 150, .3) !important;
+  padding-left: 9px !important;
+}
+
+.athlete-dashboard-workouts,
+.athlete-dashboard-weight {
+  display: grid !important;
+  grid-template-columns: 32px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 26px;
+  align-content: center;
+  column-gap: 7px;
+  row-gap: 2px;
+}
+
+.athlete-dashboard-workouts {
+  padding-right: 7px !important;
+}
+
+.athlete-dashboard-weight {
+  padding-left: 9px !important;
+}
+
+.athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
+.athlete-dashboard-weight > .athlete-dashboard-stat-icon {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: #9399A3;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .athlete-dashboard-adherence-gauge > svg:first-child {
@@ -982,48 +1016,86 @@ h3 {
 .athlete-dashboard-stat-icon {
   flex: 0 0 32px;
   width: 32px;
-  height: 30px;
+  height: 32px;
   overflow: visible;
 }
 
 .athlete-dashboard-weight-icon {
-  flex-basis: 24px;
-  width: 24px;
-  height: 24px;
+  flex-basis: 32px;
 }
 
 .athlete-dashboard-stat-copy {
   display: grid;
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
-  gap: 3px;
+  align-content: center;
+  gap: 2px;
 }
 
 .athlete-dashboard-stat-copy > strong {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  color: #fff;
-  font-size: clamp(20px, 5.5vw, 25px);
+  color: #FBFBFB;
+  font-size: clamp(23px, 6.4vw, 30px);
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: -.035em;
+  font-weight: 700;
+  letter-spacing: -.025em;
   line-height: 1;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, .48);
   white-space: nowrap;
 }
 
 .athlete-dashboard-stat-copy > span {
-  color: #c5c7ca;
-  font-size: clamp(12px, 3.3vw, 15px);
-  line-height: 1.15;
-  text-shadow: 0 1px 3px #111;
-  white-space: nowrap;
+  color: #ABB2BD;
+  font-size: clamp(10px, 3vw, 13px);
+  font-weight: 400;
+  line-height: 1.12;
+  white-space: normal;
 }
 
 .athlete-dashboard-weight-unit {
-  font-size: .72em;
+  color: #ABB2BD;
+  font-size: .62em;
   font-weight: 500;
   letter-spacing: 0;
+}
+
+.athlete-dashboard-week-dots {
+  display: flex;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 0 1px;
+}
+
+.athlete-dashboard-week-dot {
+  flex: 0 0 clamp(9px, 3.1vw, 13px);
+  width: clamp(9px, 3.1vw, 13px);
+  height: clamp(9px, 3.1vw, 13px);
+  border-radius: 50%;
+  background: #2B2F33;
+}
+
+.athlete-dashboard-week-dot.is-complete {
+  background: #FC6C17;
+  box-shadow: 0 0 5px rgba(252, 108, 23, .16);
+}
+
+.athlete-dashboard-weight-sparkline {
+  display: block;
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
+  width: 100%;
+  height: 26px;
+  overflow: visible;
+}
+
+.athlete-dashboard-weight-sparkline[hidden] {
+  display: none;
 }
 
 .athlete-dashboard-adherence {
