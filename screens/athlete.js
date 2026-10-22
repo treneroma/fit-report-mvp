@@ -1857,13 +1857,13 @@ function athleteRenderCabinet() {
         <span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>
       </button>
       <div class="athlete-cabinet-links" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0;align-items:stretch;">
-        ${athleteCabinetNavButton("profile", '<svg viewBox="0 0 48 48"><circle cx="24" cy="16" r="8"/><path d="M9 40c2-9 7-13 15-13s13 4 15 13H9Z"/></svg>', "Мой профиль",
+        ${athleteCabinetNavButton("profile", '<span class="athlete-cabinet-icon athlete-cabinet-icon--profile"></span>', "Мой профиль",
           "Цель и ответы анкеты")}
-        ${athleteCabinetNavButton("nutrition", '<svg viewBox="0 0 48 48"><path d="M12 6v15m6-15v15m-6-7h6m-3 7v21M34 6v34m0-34c-7 2-10 9-10 17h10"/></svg>', "Питание",
+        ${athleteCabinetNavButton("nutrition", '<span class="athlete-cabinet-icon athlete-cabinet-icon--nutrition"></span>', "Питание",
           "Рацион на неделю, отчёты")}
-        ${athleteCabinetNavButton("training", '<svg viewBox="0 0 48 48"><path d="M5 18v12m6-18v24m5-18h16m5-6v24m6-18v12"/></svg>', "Тренировочный план",
+        ${athleteCabinetNavButton("training", '<span class="athlete-cabinet-icon athlete-cabinet-icon--training"></span>', "Тренировочный план",
           "Программа, отчёты")}
-        ${athleteCabinetNavButton("progress", '<svg viewBox="0 0 48 48"><path d="M9 39V25h7v14H9Zm12 0V16h7v23h-7Zm12 0V7h7v32h-7Z"/></svg>', "Прогресс",
+        ${athleteCabinetNavButton("progress", '<span class="athlete-cabinet-icon athlete-cabinet-icon--progress"></span>', "Прогресс",
           "Динамика результатов")}
       </div>
     </div>
