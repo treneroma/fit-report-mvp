@@ -1747,10 +1747,10 @@ function athleteRenderCabinet() {
         <h1 class="athlete-dashboard-progress-title" aria-hidden="true"></h1>
         <div class="athlete-dashboard-adherence" id="athleteDashboardAdherence">
           <div class="athlete-dashboard-adherence-gauge">
-            <svg viewBox="0 0 100 100"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
+            <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="gauge-track" cx="50" cy="50" r="43"/><circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43"/></svg>
             <div class="athlete-dashboard-adherence-copy">
               <strong><span id="athleteDashboardAdherenceValue">0</span><span class="athlete-dashboard-adherence-percent">%</span></strong>
-              <span class="athlete-dashboard-adherence-label"><span>соблюдение</span><span>плана</span></span>
+              <span class="athlete-dashboard-adherence-label"><span>Соблюдение</span><span>плана</span></span>
             </div>
           </div>
         </div>
@@ -1799,6 +1799,7 @@ function athleteRenderCabinet() {
     </div>
     ${athleteBottomNavigationMarkup("home")}`;
   window.scrollTo(0, 0);
+  athleteDashboardSetAdherenceProgress(0);
   athleteLoadCabinetDashboard();
 }
 
@@ -1807,19 +1808,43 @@ function athleteDashboardSetValue(id, value) {
   if (slot) slot.textContent = value;
 }
 
+function athleteDashboardSetAdherenceProgress(value) {
+  const arc = document.getElementById("athleteDashboardAdherenceArc");
+  if (!arc) return;
+
+  const radius = Number(arc.getAttribute("r"));
+  if (!Number.isFinite(radius) || radius <= 0) return;
+
+  const numericValue = Number(value);
+  const progress = Math.max(0, Math.min(100, Number.isFinite(numericValue) ? numericValue : 0));
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - progress / 100);
+
+  arc.style.strokeDasharray = String(circumference);
+  arc.style.strokeDashoffset = String(offset);
+  arc.style.visibility = progress === 0 ? "hidden" : "visible";
+}
+
+function athleteDashboardApplyAdherenceVisualPreview() {
+  // TEMP: 74% visual check requested by the user; remove after approval.
+  const previewValue = 74;
+  athleteDashboardSetValue("athleteDashboardAdherenceValue", String(previewValue));
+  athleteDashboardSetAdherenceProgress(previewValue);
+}
+
 function athleteDashboardRenderAdherence(nutrition, training) {
   const value = document.getElementById("athleteDashboardAdherenceValue");
-  const arc = document.getElementById("athleteDashboardAdherenceArc");
   if (!value) return;
-  const circumference = 2 * Math.PI * 43;
   if (nutrition == null || training == null) {
     value.textContent = "0";
-    if (arc) arc.style.strokeDashoffset = String(circumference);
+    athleteDashboardSetAdherenceProgress(0);
+    athleteDashboardApplyAdherenceVisualPreview();
     return;
   }
-  const percent = Math.max(1, Math.min(100, Math.round((nutrition + training) / 2)));
+  const percent = Math.max(0, Math.min(100, Math.round((nutrition + training) / 2)));
   value.textContent = String(percent);
-  if (arc) arc.style.strokeDashoffset = String(circumference * (1 - percent / 100));
+  athleteDashboardSetAdherenceProgress(percent);
+  athleteDashboardApplyAdherenceVisualPreview();
 }
 
 function athleteDashboardNutritionPercent(plan, entries) {
@@ -1860,8 +1885,8 @@ async function athleteLoadCabinetDashboard() {
     athleteDashboardSetValue("athleteDashboardWorkoutCount", "3");
     if (weightSlot) weightSlot.textContent = "88,0";
     if (adherenceValue) adherenceValue.textContent = "0";
-    const arc = document.getElementById("athleteDashboardAdherenceArc");
-    if (arc) arc.style.strokeDashoffset = String(2 * Math.PI * 43);
+    athleteDashboardSetAdherenceProgress(0);
+    athleteDashboardApplyAdherenceVisualPreview();
     nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: базовые силовые</strong><span class="athlete-dashboard-next-meta">5 упражнений</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
     return;
   }
