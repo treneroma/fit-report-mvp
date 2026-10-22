@@ -942,6 +942,20 @@ h3 {
   pointer-events: none;
 }
 
+/* HERO_FADE_TRIAL: independent mask; photo position and scale stay unchanged. */
+#athleteScreen.has-athlete-male-dashboard.has-dashboard-hero-fade.active::before {
+  --athlete-hero-lower-mask: linear-gradient(to bottom,
+    #000 0,
+    #000 var(--athlete-hero-fade-start),
+    rgba(0, 0, 0, .85) calc(var(--athlete-hero-fade-start) * .75 + var(--athlete-hero-fade-end) * .25),
+    rgba(0, 0, 0, .5) calc(var(--athlete-hero-fade-start) * .5 + var(--athlete-hero-fade-end) * .5),
+    rgba(0, 0, 0, .15) calc(var(--athlete-hero-fade-start) * .25 + var(--athlete-hero-fade-end) * .75),
+    transparent var(--athlete-hero-fade-end));
+  -webkit-mask-image: var(--athlete-hero-lower-mask);
+  mask-image: var(--athlete-hero-lower-mask);
+}
+/* END HERO_FADE_TRIAL */
+
 #athleteScreen.has-athlete-male-dashboard.active > .page {
   position: relative;
   z-index: 1;
