@@ -1767,7 +1767,7 @@ function athleteRenderCabinet() {
       <section class="info-card athlete-dashboard-summary" aria-label="Тренировки и текущий вес">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
-            <img class="athlete-dashboard-stat-icon" src="assets/dashboard-icon-kettlebell.png?v=1" alt="" aria-hidden="true">
+            <img class="athlete-dashboard-stat-icon athlete-dashboard-kettlebell-icon" src="assets/dashboard-icon-kettlebell.png?v=3" alt="" aria-hidden="true">
             <div class="athlete-dashboard-stat-copy">
               <strong id="athleteDashboardWorkoutCount">2/3</strong>
               <span>Тренировок на неделе</span>
@@ -1859,10 +1859,29 @@ function athleteDashboardApplyWorkoutVisualPreview() {
   const dots = document.getElementById("athleteDashboardWeekDots");
   if (dots) {
     dots.querySelectorAll(".athlete-dashboard-week-dot").forEach((dot, index) => {
-      dot.classList.toggle("is-complete", index < 2);
+      dot.classList.toggle("is-complete", index === 0 || index === 2);
     });
-    dots.setAttribute("aria-label", "Тестовое значение: 2 из 3 тренировок");
+    dots.setAttribute("aria-label", "Тестовое значение: тренировки в понедельник и среду");
   }
+  athleteDashboardAlignWorkoutDots();
+}
+
+function athleteDashboardAlignWorkoutDots() {
+  const dots = document.getElementById("athleteDashboardWeekDots");
+  const group = dots?.closest(".athlete-dashboard-workouts");
+  const icon = group?.querySelector(".athlete-dashboard-stat-icon");
+  const label = group?.querySelector(".athlete-dashboard-stat-copy > span");
+  if (!dots || !icon || !label) return;
+
+  const labelRange = document.createRange();
+  labelRange.selectNodeContents(label);
+  const labelLines = Array.from(labelRange.getClientRects());
+  if (!labelLines.length) return;
+
+  const start = icon.getBoundingClientRect().left;
+  const end = labelLines[labelLines.length - 1].right;
+  dots.style.width = `${Math.max(0, end - start)}px`;
+  window.addEventListener("resize", athleteDashboardAlignWorkoutDots, { passive: true });
 }
 
 function athleteDashboardRenderWeightSparkline(points) {
@@ -1970,8 +1989,9 @@ async function athleteLoadCabinetDashboard() {
   const adherenceValue = document.getElementById("athleteDashboardAdherenceValue");
   if (registration.demoMode) {
     athleteDashboardRenderWeeklyWorkouts(null, null);
-    athleteDashboardRenderWeightSparkline([]);
-    if (weightSlot) weightSlot.textContent = "88,0";
+    const previewWeights = [84, 86, 85.5, 85, 86.5, 87].map(kg => ({ kg }));
+    athleteDashboardRenderWeightSparkline(previewWeights);
+    if (weightSlot) weightSlot.textContent = athleteFormatWeightNumber(87);
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
     athleteDashboardApplyAdherenceVisualPreview();
