@@ -1725,6 +1725,71 @@ function athleteBottomNavigationMarkup(activeSection) {
   </nav>`;
 }
 
+// HERO_FADE_TRIAL: set false to restore the previous photo without this mask.
+const ATHLETE_DASHBOARD_HERO_FADE_ENABLED = true;
+let athleteDashboardHeroFadeObserver = null;
+let athleteDashboardHeroFadeFrame = 0;
+let athleteDashboardHeroFadeEventsBound = false;
+
+function athleteDashboardUpdateHeroFade() {
+  athleteDashboardHeroFadeFrame = 0;
+  const screen = document.getElementById("athleteScreen");
+  const page = screen?.querySelector(".athlete-cabinet-page");
+  const summary = page?.querySelector(".athlete-dashboard-summary");
+  const label = summary?.querySelector(".athlete-dashboard-workouts .athlete-dashboard-stat-copy > span");
+  if (!ATHLETE_DASHBOARD_HERO_FADE_ENABLED || !screen?.matches(".has-athlete-male-dashboard.active") || !label) {
+    screen?.classList.remove("has-dashboard-hero-fade");
+    return;
+  }
+
+  const summaryBounds = summary.getBoundingClientRect();
+  const labelBounds = label.getBoundingClientRect();
+  if (!summaryBounds.height || !labelBounds.height) return;
+  // Keep the mask in the photo's coordinate system, including Telegram insets.
+  // Correct for internal scrolling so resizing a scrolled page does not move it.
+  const origin = screen.getBoundingClientRect().top - page.scrollTop;
+  const start = Math.max(0, summaryBounds.top - origin);
+  const end = Math.max(start + 1, labelBounds.top + labelBounds.height / 2 - origin);
+  screen.style.setProperty("--athlete-hero-fade-start", `${start.toFixed(2)}px`);
+  screen.style.setProperty("--athlete-hero-fade-end", `${end.toFixed(2)}px`);
+  screen.classList.add("has-dashboard-hero-fade");
+}
+
+function athleteDashboardQueueHeroFade() {
+  if (!athleteDashboardHeroFadeFrame) {
+    athleteDashboardHeroFadeFrame = requestAnimationFrame(athleteDashboardUpdateHeroFade);
+  }
+}
+
+function athleteDashboardSetupHeroFade() {
+  athleteDashboardHeroFadeObserver?.disconnect();
+  const screen = document.getElementById("athleteScreen");
+  screen.classList.remove("has-dashboard-hero-fade");
+  if (!ATHLETE_DASHBOARD_HERO_FADE_ENABLED || !screen.classList.contains("has-athlete-male-dashboard")) return;
+
+  if (!athleteDashboardHeroFadeEventsBound) {
+    window.addEventListener("resize", athleteDashboardQueueHeroFade, { passive: true });
+    window.visualViewport?.addEventListener("resize", athleteDashboardQueueHeroFade, { passive: true });
+    const webApp = window.Telegram?.WebApp;
+    if (typeof webApp?.onEvent === "function") {
+      ["safeAreaChanged", "contentSafeAreaChanged", "viewportChanged", "fullscreenChanged"].forEach(event => {
+        webApp.onEvent(event, athleteDashboardQueueHeroFade);
+      });
+    }
+    athleteDashboardHeroFadeEventsBound = true;
+  }
+
+  if (typeof ResizeObserver !== "undefined") {
+    athleteDashboardHeroFadeObserver = new ResizeObserver(athleteDashboardQueueHeroFade);
+    [screen, screen.querySelector(".athlete-cabinet-page"), screen.querySelector(".athlete-dashboard-summary"),
+      screen.querySelector(".athlete-dashboard-workouts .athlete-dashboard-stat-copy > span")].forEach(element => {
+      if (element) athleteDashboardHeroFadeObserver.observe(element);
+    });
+  }
+  athleteDashboardQueueHeroFade();
+}
+// END HERO_FADE_TRIAL
+
 function athleteRenderCabinet() {
   const screen = document.getElementById("athleteScreen");
   screen.classList.add("has-athlete-bottom-nav");
@@ -1807,6 +1872,7 @@ function athleteRenderCabinet() {
   athleteDashboardSetAdherenceProgress(0);
   athleteLoadCabinetDashboard();
   athleteDashboardApplyAdherenceVisualPreview();
+  athleteDashboardSetupHeroFade(); // HERO_FADE_TRIAL
 }
 
 function athleteDashboardSetValue(id, value) {
