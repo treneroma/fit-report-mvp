@@ -998,11 +998,7 @@ h3 {
   align-self: center;
   width: 32px;
   height: 32px;
-  fill: none;
-  stroke: #9399A3;
-  stroke-width: 2.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  object-fit: contain;
 }
 
 .athlete-dashboard-adherence-gauge > svg:first-child {
@@ -1044,6 +1040,12 @@ h3 {
   letter-spacing: -.025em;
   line-height: 1;
   white-space: nowrap;
+}
+
+.athlete-dashboard-workouts .athlete-dashboard-stat-copy > strong {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-stretch: normal;
 }
 
 .athlete-dashboard-stat-copy > span {
