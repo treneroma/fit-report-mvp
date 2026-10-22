@@ -1043,6 +1043,10 @@ h3 {
   white-space: nowrap;
 }
 
+.athlete-dashboard-weight .athlete-dashboard-stat-copy > strong {
+  font-weight: 500;
+}
+
 .athlete-dashboard-stat-copy > span {
   color: #ABB2BD;
   font-size: clamp(10px, 3vw, 13px);
