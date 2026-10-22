@@ -1767,24 +1767,26 @@ function athleteRenderCabinet() {
       <section class="info-card athlete-dashboard-summary" aria-label="Тренировки и текущий вес">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
-            <svg class="athlete-dashboard-stat-icon" viewBox="132 100 684 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-              <defs><filter id="dashboardDumbbellCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-              <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardDumbbellCutout)"/>
+            <svg class="athlete-dashboard-stat-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+              <path d="M8 15v10M13 11v18M17 17h6m4-6v18m5-14v10"/>
             </svg>
             <div class="athlete-dashboard-stat-copy">
-              <strong id="athleteDashboardWorkoutCount">—</strong>
-              <span>тренировок</span>
+              <strong id="athleteDashboardWorkoutCount">—/—</strong>
+              <span>тренировок на неделе</span>
             </div>
+            <div class="athlete-dashboard-week-dots" id="athleteDashboardWeekDots" role="img" aria-label="Тренировки по дням недели"></div>
           </div>
           <div class="athlete-dashboard-weight">
-            <svg class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" viewBox="1465 100 510 485" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid meet">
-              <defs><filter id="dashboardWeightCutout" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 1 0 0 0 0"/></filter></defs>
-              <image href="assets/dashboard-metric-icons.png" x="0" y="0" width="2172" height="724" filter="url(#dashboardWeightCutout)"/>
+            <svg class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+              <rect x="8.5" y="5.5" width="23" height="29" rx="5"/>
+              <rect x="13" y="10" width="14" height="8" rx="2"/>
+              <path d="M19 12.5h2"/>
             </svg>
             <div class="athlete-dashboard-stat-copy">
               <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
-              <span>текущий вес</span>
+              <span>Текущий вес</span>
             </div>
+            <svg class="athlete-dashboard-weight-sparkline" id="athleteDashboardWeightSparkline" viewBox="0 0 150 34" aria-hidden="true"></svg>
           </div>
         </div>
       </section>
@@ -1816,6 +1818,74 @@ function athleteRenderCabinet() {
 function athleteDashboardSetValue(id, value) {
   const slot = document.getElementById(id);
   if (slot) slot.textContent = value;
+}
+
+function athleteDashboardWeekDateKeys() {
+  const today = new Date(`${athleteLocalDate()}T12:00:00`);
+  today.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() + index);
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0")].join("-");
+  });
+}
+
+function athleteDashboardRenderWeeklyWorkouts(plan, history) {
+  const sessions = Array.isArray(plan?.sessions) ? plan.sessions : [];
+  const progress = document.getElementById("athleteDashboardWorkoutCount");
+  if (progress) {
+    progress.textContent = sessions.length && !plan?.reviewRequired
+      ? `${sessions.filter(session => session?.completed === true).length}/${sessions.length}`
+      : "—/—";
+  }
+
+  const dots = document.getElementById("athleteDashboardWeekDots");
+  if (!dots) return;
+  const completedDates = new Set((Array.isArray(history?.workouts) ? history.workouts : [])
+    .map(workout => String(workout?.workout_date || "").slice(0, 10)));
+  const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const weekDates = athleteDashboardWeekDateKeys();
+  dots.innerHTML = weekDates.map((date, index) => {
+    const completed = completedDates.has(date);
+    return `<span class="athlete-dashboard-week-dot${completed ? " is-complete" : ""}" aria-hidden="true"></span>`;
+  }).join("");
+  const completedDayNames = weekDates
+    .map((date, index) => completedDates.has(date) ? dayNames[index] : null)
+    .filter(Boolean);
+  dots.setAttribute("aria-label", completedDayNames.length
+    ? `Тренировки на неделе: ${completedDayNames.join(", ")}`
+    : "Тренировок на этой неделе пока нет");
+}
+
+function athleteDashboardRenderWeightSparkline(points) {
+  const sparkline = document.getElementById("athleteDashboardWeightSparkline");
+  if (!sparkline) return;
+  const recentPoints = Array.isArray(points) ? points.slice(-7) : [];
+  if (!recentPoints.length) {
+    sparkline.innerHTML = "";
+    sparkline.hidden = true;
+    return;
+  }
+
+  const values = recentPoints.map(point => Number(point.kg));
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const range = Math.max(high - low, .5);
+  const coords = values.map((value, index) => ({
+    x: recentPoints.length === 1 ? 140 : 4 + index * (142 / (recentPoints.length - 1)),
+    y: 26 - ((value - low) / range) * 18
+  }));
+  const path = coords.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+  const last = coords[coords.length - 1];
+  sparkline.hidden = false;
+  sparkline.innerHTML = `<defs><linearGradient id="athleteWeightSparkFade" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#FC6C17" stop-opacity=".28"/>
+    <stop offset="100%" stop-color="#FC6C17" stop-opacity="0"/>
+  </linearGradient></defs>
+  <line x1="${last.x.toFixed(1)}" y1="${last.y.toFixed(1)}" x2="${last.x.toFixed(1)}" y2="34" stroke="url(#athleteWeightSparkFade)" stroke-width="2"/>
+  <polyline points="${path}" fill="none" stroke="#FC6C17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3" fill="#FC6C17"/>`;
 }
 
 function athleteDashboardSetAdherenceProgress(value) {
@@ -1892,7 +1962,8 @@ async function athleteLoadCabinetDashboard() {
   const weightSlot = document.getElementById("athleteDashboardWeight");
   const adherenceValue = document.getElementById("athleteDashboardAdherenceValue");
   if (registration.demoMode) {
-    athleteDashboardSetValue("athleteDashboardWorkoutCount", "3");
+    athleteDashboardRenderWeeklyWorkouts(null, null);
+    athleteDashboardRenderWeightSparkline([]);
     if (weightSlot) weightSlot.textContent = "88,0";
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
@@ -1917,12 +1988,8 @@ async function athleteLoadCabinetDashboard() {
   const nutritionEntries = results[3].status === "fulfilled" ? results[3].value : null;
   const weights = results[4].status === "fulfilled" ? results[4].value : [];
 
-  if (history) {
-    const workoutCount = history.totalWorkouts ?? (history.hasMore ? "50+" : history.workouts?.length ?? 0);
-    athleteDashboardSetValue("athleteDashboardWorkoutCount", String(workoutCount));
-  } else {
-    athleteDashboardSetValue("athleteDashboardWorkoutCount", "—");
-  }
+  athleteDashboardRenderWeeklyWorkouts(trainingPlan, history);
+  athleteDashboardRenderWeightSparkline(weights);
   if (weightSlot) weightSlot.textContent = weights.length ? athleteFormatWeightNumber(weights[weights.length - 1].kg) : "—";
 
   const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
