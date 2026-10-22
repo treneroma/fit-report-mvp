@@ -989,6 +989,7 @@ h3 {
 
 .athlete-dashboard-weight {
   padding-left: 9px !important;
+  transform: translateX(20px);
 }
 
 .athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
