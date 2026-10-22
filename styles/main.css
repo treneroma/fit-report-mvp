@@ -873,6 +873,30 @@ h3 {
   line-height: 1.2;
 }
 
+.athlete-dashboard-next-type {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(252, 108, 23, .1);
+  color: #FC6C17;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.athlete-dashboard-next-type img {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(46%) sepia(96%) saturate(1667%) hue-rotate(347deg) brightness(101%) contrast(98%);
+}
+
 .athlete-dashboard-summary {
   position: relative;
   isolation: isolate;
