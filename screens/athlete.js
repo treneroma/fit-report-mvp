@@ -1995,7 +1995,7 @@ async function athleteLoadCabinetDashboard() {
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
     athleteDashboardApplyAdherenceVisualPreview();
-    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: базовые силовые</strong><span class="athlete-dashboard-next-meta">5 упражнений</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: Спина бицепс</strong><span class="athlete-dashboard-next-meta">5 упражнений</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
     return;
   }
   if (adherenceValue) adherenceValue.textContent = "0";
