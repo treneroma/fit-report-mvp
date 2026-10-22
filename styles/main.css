@@ -3380,10 +3380,10 @@ h3 {
 
 #athleteScreen {
   --athlete-bottom-nav-offset: max(
-    22px,
-    calc(env(safe-area-inset-bottom, 0px) + 8px),
-    calc(var(--tg-safe-area-inset-bottom, 0px) + 8px),
-    calc(var(--tg-content-safe-area-inset-bottom, 0px) + 8px)
+    8px,
+    env(safe-area-inset-bottom, 0px),
+    var(--tg-safe-area-inset-bottom, 0px),
+    var(--tg-content-safe-area-inset-bottom, 0px)
   );
 }
 
@@ -3392,9 +3392,9 @@ h3 {
   height: 100dvh;
   min-height: 0;
   flex-direction: column;
-  gap: 16px;
+  gap: 6px;
   overflow: hidden;
-  padding-bottom: calc(var(--athlete-bottom-nav-offset) + 15px);
+  padding-bottom: var(--athlete-bottom-nav-offset);
 }
 
 #athleteScreen.has-athlete-bottom-nav .page {
@@ -3404,7 +3404,7 @@ h3 {
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 16px !important;
+  padding-bottom: 6px !important;
 }
 
 .athlete-bottom-nav {
@@ -3417,68 +3417,99 @@ h3 {
   align-items: stretch;
   gap: 2px;
   max-width: 480px;
-  min-height: 75px;
-  flex: 0 0 75px;
+  min-height: 64px;
+  flex: 0 0 64px;
   margin: 0 auto;
-  padding: 7px 6px 5px;
-  border: 1px solid var(--border, #414141);
-  border-radius: 24px;
-  background: var(--surface, #262626);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.32);
+  padding: 5px 6px 3px;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background:
+    linear-gradient(115deg, rgba(252, 108, 23, .1), transparent 38%) padding-box,
+    linear-gradient(#060809, #060809) padding-box,
+    linear-gradient(115deg, rgba(252, 108, 23, .7), rgba(150, 160, 170, .12) 35%, rgba(150, 160, 170, .05)) border-box;
+  box-shadow: none;
 }
 
 .athlete-bottom-nav-item {
   display: grid;
   min-width: 0;
-  min-height: 59px;
-  grid-template-rows: 26px 1fr 3px;
+  min-height: 54px;
+  grid-template-rows: 28px 15px 3px;
   justify-items: center;
   align-content: center;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 2px 1px 0;
   border: 0;
   border-radius: 15px;
   background: transparent;
-  color: #8f9298;
+  color: #9399A3;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: color 140ms ease, background-color 140ms ease;
 }
 
 .athlete-bottom-nav-item.is-active {
-  color: var(--accent, #ff7846);
+  color: #FC6C17;
+}
+
+.athlete-bottom-nav-item:active {
+  background-color: rgba(255, 255, 255, .04);
 }
 
 .athlete-bottom-nav-item:focus-visible {
-  outline: 2px solid var(--accent, #ff7846);
+  outline: 2px solid #FC6C17;
   outline-offset: -2px;
 }
 
 .athlete-bottom-nav-icon {
-  width: 27px;
-  height: 27px;
-  overflow: visible;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  display: block;
+  width: 25.5px;
+  height: 23.8px;
+  justify-self: center;
+  align-self: center;
+  background-color: currentColor;
+  -webkit-mask: var(--athlete-nav-icon) center / contain no-repeat;
+  mask: var(--athlete-nav-icon) center / contain no-repeat;
+}
+
+/* Crops from the user's icon sheets; currentColor also colors the active icon. */
+.athlete-bottom-nav-icon--home {
+  --athlete-nav-icon: url("../assets/nav-home.png");
+}
+
+.athlete-bottom-nav-icon--nutrition {
+  --athlete-nav-icon: url("../assets/nav-nutrition.png");
+}
+
+.athlete-bottom-nav-icon--training {
+  --athlete-nav-icon: url("../assets/nav-kettlebell.png");
+}
+
+.athlete-bottom-nav-icon--progress {
+  --athlete-nav-icon: url("../assets/nav-progress.png");
 }
 
 .athlete-bottom-nav-label {
   max-width: 100%;
   overflow: hidden;
   color: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 400;
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.athlete-bottom-nav-item.is-active .athlete-bottom-nav-label {
+  font-weight: 500;
+}
+
 .athlete-bottom-nav-indicator {
-  width: 30px;
+  width: 44px;
   height: 3px;
   border-radius: 99px;
   background: transparent;
@@ -3486,13 +3517,19 @@ h3 {
 
 .athlete-bottom-nav-item.is-active .athlete-bottom-nav-indicator {
   background: currentColor;
-  box-shadow: 0 0 10px rgba(255, 120, 70, 0.25);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .athlete-bottom-nav-item {
+    transition: none;
+  }
 }
 
 @media (max-width: 360px) {
   .athlete-bottom-nav {
-    min-height: 71px;
-    flex-basis: 71px;
+    min-height: 64px;
+    flex-basis: 64px;
     width: calc(100% - 14px);
     padding-right: 4px;
     padding-left: 4px;
