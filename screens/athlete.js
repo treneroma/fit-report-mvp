@@ -1693,32 +1693,32 @@ function athleteBottomNavigationMarkup(activeSection) {
       id: "home",
       label: "Главная",
       action: "athleteNavigatePrimaryTab(\'home\')",
-      icon: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" fill="currentColor" stroke="none"/>'
+      icon: "home"
     },
     {
       id: "nutrition",
       label: "Питание",
       action: "athleteNavigatePrimaryTab(\'nutrition\')",
-      icon: '<circle cx="14" cy="12" r="7"/><path d="M3 4v6m3-6v6M3 7h3m-1.5 3v10"/>'
+      icon: "nutrition"
     },
     {
       id: "training",
       label: "Тренировки",
       action: "athleteNavigatePrimaryTab(\'training\')",
-      icon: '<path d="M3 9v6m3-9v12m2-6h8m2-6v12m3-9v6"/>'
+      icon: "training"
     },
     {
       id: "progress",
       label: "Прогресс",
       action: "athleteNavigatePrimaryTab(\'progress\')",
-      icon: '<path d="M4 20V12h4v8zm6 0V7h4v13zm6 0V3h4v17z" fill="currentColor" stroke="none"/>'
+      icon: "progress"
     }
   ];
 
   return `<nav class="athlete-bottom-nav" aria-label="Основные разделы">
     ${tabs.map((tab) => `<button class="athlete-bottom-nav-item${activeTab === tab.id ? " is-active" : ""}"
       type="button" onclick="${tab.action}"${activeTab === tab.id ? ' aria-current="page"' : ""}>
-      <svg class="athlete-bottom-nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${tab.icon}</svg>
+      <span class="athlete-bottom-nav-icon athlete-bottom-nav-icon--${tab.icon}" aria-hidden="true"></span>
       <span class="athlete-bottom-nav-label">${tab.label}</span>
       <span class="athlete-bottom-nav-indicator" aria-hidden="true"></span>
     </button>`).join("")}
