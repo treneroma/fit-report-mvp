@@ -952,7 +952,7 @@ h3 {
   z-index: 1;
   display: grid;
   width: 100%;
-  min-height: 82px;
+  min-height: 76px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
   gap: 0;
@@ -1299,7 +1299,7 @@ h3 {
   }
 
   .athlete-dashboard-metrics {
-    min-height: 68px;
+    min-height: 62px;
   }
 
   .athlete-dashboard-stat-icon {
