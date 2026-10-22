@@ -1810,6 +1810,7 @@ function athleteRenderCabinet() {
   window.scrollTo(0, 0);
   athleteDashboardSetAdherenceProgress(0);
   athleteLoadCabinetDashboard();
+  athleteDashboardApplyAdherenceVisualPreview();
 }
 
 function athleteDashboardSetValue(id, value) {
@@ -1834,17 +1835,26 @@ function athleteDashboardSetAdherenceProgress(value) {
   arc.style.visibility = progress === 0 ? "hidden" : "visible";
 }
 
+function athleteDashboardApplyAdherenceVisualPreview() {
+  // TEMP: fixed at 74% for the visual check requested by the user.
+  const previewValue = 74;
+  athleteDashboardSetValue("athleteDashboardAdherenceValue", String(previewValue));
+  athleteDashboardSetAdherenceProgress(previewValue);
+}
+
 function athleteDashboardRenderAdherence(nutrition, training) {
   const value = document.getElementById("athleteDashboardAdherenceValue");
   if (!value) return;
   if (nutrition == null || training == null) {
     value.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
+    athleteDashboardApplyAdherenceVisualPreview();
     return;
   }
   const percent = Math.max(0, Math.min(100, Math.round((nutrition + training) / 2)));
   value.textContent = String(percent);
   athleteDashboardSetAdherenceProgress(percent);
+  athleteDashboardApplyAdherenceVisualPreview();
 }
 
 function athleteDashboardNutritionPercent(plan, entries) {
@@ -1886,6 +1896,7 @@ async function athleteLoadCabinetDashboard() {
     if (weightSlot) weightSlot.textContent = "88,0";
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
+    athleteDashboardApplyAdherenceVisualPreview();
     nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: базовые силовые</strong><span class="athlete-dashboard-next-meta">5 упражнений</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
     return;
   }
