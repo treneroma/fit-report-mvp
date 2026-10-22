@@ -910,9 +910,9 @@ h3 {
   box-sizing: border-box;
   padding: 9px 12px !important;
   border-radius: 18px !important;
-  border: 1px solid rgba(150, 160, 170, .22) !important;
-  background: rgba(0, 0, 0, .72) !important;
-  box-shadow: 0 0 5px 2px rgba(5, 7, 8, .2), inset 0 0 0 1px rgba(255, 255, 255, .025);
+  border: 0 !important;
+  background: rgba(0, 0, 0, .8) !important;
+  box-shadow: none;
   -webkit-backdrop-filter: blur(1px);
   backdrop-filter: blur(1px);
 }
@@ -963,16 +963,6 @@ h3 {
   font-weight: 550;
   line-height: 1.25;
   text-shadow: 0 1px 8px rgba(0, 0, 0, .5);
-}
-
-.athlete-dashboard-summary::after {
-  position: absolute;
-  z-index: 3;
-  inset: 0;
-  border: 1px solid rgba(150, 160, 170, .2);
-  border-radius: inherit;
-  content: "";
-  pointer-events: none;
 }
 
 .athlete-dashboard-metrics {
@@ -1327,7 +1317,7 @@ h3 {
   transform: translateX(-50%);
   align-self: center !important;
   width: calc(100% + 8px) !important;
-  margin-top: -28px !important;
+  margin-top: -30px !important;
   margin-right: 0 !important;
   margin-left: 0 !important;
 }
@@ -3530,7 +3520,7 @@ h3 {
   }
 
   #athleteScreen .athlete-cabinet-page > .info-card.athlete-dashboard-next {
-    margin-top: -25px !important;
+    margin-top: -27px !important;
   }
 
   #athleteScreen .athlete-cabinet-links {
