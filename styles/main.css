@@ -1282,16 +1282,37 @@ h3 {
   height: 32px;
   border-radius: 10px;
   font-size: 18px;
+  background: transparent;
+  color: #9399A3;
 }
 
-#athleteScreen .athlete-cabinet-links .cabinet-nav-icon svg {
+#athleteScreen .athlete-cabinet-links .athlete-cabinet-icon {
+  display: block;
   width: 23px;
   height: 23px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  background-color: currentColor;
+  -webkit-mask: var(--athlete-cabinet-icon) center / contain no-repeat;
+  mask: var(--athlete-cabinet-icon) center / contain no-repeat;
+}
+
+.athlete-cabinet-icon--profile {
+  --athlete-cabinet-icon: url("../assets/nav-profile.png");
+}
+
+.athlete-cabinet-icon--nutrition {
+  --athlete-cabinet-icon: url("../assets/nav-nutrition.png");
+}
+
+.athlete-cabinet-icon--training {
+  --athlete-cabinet-icon: url("../assets/nav-kettlebell.png");
+}
+
+.athlete-cabinet-icon--progress {
+  --athlete-cabinet-icon: url("../assets/nav-progress.png");
+}
+
+#athleteScreen .athlete-cabinet-links .nutrition-plan-link-arrow {
+  color: #9399A3;
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-title {
