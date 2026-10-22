@@ -1034,18 +1034,13 @@ h3 {
   align-items: baseline;
   gap: 4px;
   color: #FBFBFB;
-  font-size: clamp(23px, 6.4vw, 30px);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(21.4px, 5.95vw, 27.9px);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -.025em;
   line-height: 1;
   white-space: nowrap;
-}
-
-.athlete-dashboard-workouts .athlete-dashboard-stat-copy > strong {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-weight: 600;
-  font-stretch: normal;
 }
 
 .athlete-dashboard-stat-copy > span {
@@ -1057,7 +1052,7 @@ h3 {
 }
 
 .athlete-dashboard-weight-unit {
-  color: #ABB2BD;
+  color: #FBFBFB;
   font-size: .62em;
   font-weight: 500;
   letter-spacing: 0;
