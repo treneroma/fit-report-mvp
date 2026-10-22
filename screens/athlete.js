@@ -1767,21 +1767,15 @@ function athleteRenderCabinet() {
       <section class="info-card athlete-dashboard-summary" aria-label="Тренировки и текущий вес">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
-            <svg class="athlete-dashboard-stat-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-              <path d="M8 15v10M13 11v18M17 17h6m4-6v18m5-14v10"/>
-            </svg>
+            <img class="athlete-dashboard-stat-icon" src="assets/dashboard-icon-dumbbell.png?v=1" alt="" aria-hidden="true">
             <div class="athlete-dashboard-stat-copy">
-              <strong id="athleteDashboardWorkoutCount">—/—</strong>
-              <span>тренировок на неделе</span>
+              <strong id="athleteDashboardWorkoutCount">2/3</strong>
+              <span>Тренировок на неделе</span>
             </div>
             <div class="athlete-dashboard-week-dots" id="athleteDashboardWeekDots" role="img" aria-label="Тренировки по дням недели"></div>
           </div>
           <div class="athlete-dashboard-weight">
-            <svg class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-              <rect x="8.5" y="5.5" width="23" height="29" rx="5"/>
-              <rect x="13" y="10" width="14" height="8" rx="2"/>
-              <path d="M19 12.5h2"/>
-            </svg>
+            <img class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" src="assets/dashboard-icon-scale.png?v=1" alt="" aria-hidden="true">
             <div class="athlete-dashboard-stat-copy">
               <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
               <span>Текущий вес</span>
@@ -1856,6 +1850,19 @@ function athleteDashboardRenderWeeklyWorkouts(plan, history) {
   dots.setAttribute("aria-label", completedDayNames.length
     ? `Тренировки на неделе: ${completedDayNames.join(", ")}`
     : "Тренировок на этой неделе пока нет");
+  athleteDashboardApplyWorkoutVisualPreview();
+}
+
+function athleteDashboardApplyWorkoutVisualPreview() {
+  const count = document.getElementById("athleteDashboardWorkoutCount");
+  if (count) count.textContent = "2/3";
+  const dots = document.getElementById("athleteDashboardWeekDots");
+  if (dots) {
+    dots.querySelectorAll(".athlete-dashboard-week-dot").forEach((dot, index) => {
+      dot.classList.toggle("is-complete", index < 2);
+    });
+    dots.setAttribute("aria-label", "Тестовое значение: 2 из 3 тренировок");
+  }
 }
 
 function athleteDashboardRenderWeightSparkline(points) {
