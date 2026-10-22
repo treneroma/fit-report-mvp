@@ -1102,11 +1102,15 @@ h3 {
   color: #FBFBFB;
   font-size: clamp(38px, 10vw, 44px);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 600;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-stretch: normal;
   letter-spacing: -.025em;
   line-height: .98;
+}
+
+#athleteDashboardAdherenceValue {
+  transform: translateY(-2px);
 }
 
 .athlete-dashboard-adherence-percent {
