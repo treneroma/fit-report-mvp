@@ -878,6 +878,7 @@ h3 {
 .athlete-dashboard-summary {
   position: relative;
   isolation: isolate;
+  transform: translateY(-20px);
   box-sizing: border-box;
   padding: 9px 12px !important;
   border-radius: 18px !important;
@@ -919,6 +920,7 @@ h3 {
   position: relative;
   z-index: 1;
   margin: 0 0 8px;
+  transform: translateY(-20px);
 }
 
 #athleteScreen .athlete-dashboard-progress-title {
@@ -1093,6 +1095,7 @@ h3 {
   padding: 12px;
   text-align: center;
   pointer-events: none;
+  transform: translateY(2px);
 }
 
 .athlete-dashboard-adherence-copy > strong {
@@ -1109,12 +1112,8 @@ h3 {
   line-height: .98;
 }
 
-#athleteDashboardAdherenceValue {
-  transform: translateY(-2px);
-}
-
 .athlete-dashboard-adherence-percent {
-  color: #FC6C17;
+  color: #FBFBFB;
   font-size: .48em;
   font-weight: 700;
   letter-spacing: 0;
