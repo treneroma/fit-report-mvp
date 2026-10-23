@@ -1146,7 +1146,7 @@ h3 {
   /* SVG outer radius: 43 + 8 / 2 = 47%; base extends 2px before blur. */
   inset: calc(3% - 2px);
   border-radius: 50%;
-  background: rgba(0, 0, 0, .67);
+  background: rgba(0, 0, 0, .71);
   content: "";
   filter: blur(1.7px);
   pointer-events: none;
