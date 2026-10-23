@@ -1278,7 +1278,7 @@ h3 {
 
 #athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--profile {
   /* Center the visible outline in the existing 23px icon slot. */
-  background: transparent url("../assets/cabinet-profile-silver-outline.png") -7.8052px -9.2062px / 38.6104px 38.6104px no-repeat;
+  background: transparent url("../assets/cabinet-profile-uniform-stroke.png") -7.8332px -9.2062px / 38.7282px 38.6104px no-repeat;
   -webkit-mask: none;
   mask: none;
 }
@@ -1289,7 +1289,7 @@ h3 {
 
 #athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--nutrition {
   /* Match the profile outline's visible height in the unchanged 23px slot. */
-  background: transparent url("../assets/cabinet-nutrition-silver-outline.png") -9.1035px -9.8112px / 40.3385px 40.3385px no-repeat;
+  background: transparent url("../assets/cabinet-nutrition-uniform-stroke.png") -8.8587px -9.6338px / 39.8903px 40.0028px no-repeat;
   -webkit-mask: none;
   mask: none;
 }
@@ -1300,7 +1300,7 @@ h3 {
 
 #athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--training {
   /* Match the other card outlines in the existing centered 23px slot. */
-  background: transparent url("../assets/cabinet-training-silver-outline.png") -4.6413px -4.5639px / 32.3341px 32.3341px no-repeat;
+  background: transparent url("../assets/cabinet-training-uniform-stroke.png") -4.6245px -4.5330px / 32.2490px 32.2979px no-repeat;
   -webkit-mask: none;
   mask: none;
   filter: brightness(1.05);
@@ -1312,7 +1312,7 @@ h3 {
 
 #athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--progress {
   /* Match the profile's contour weight; center the wide chart in the 23px slot. */
-  background: transparent url("../assets/cabinet-progress-silver-outline.png") -11.0733px -11.8974px / 44.9316px 44.9316px no-repeat;
+  background: transparent url("../assets/cabinet-progress-uniform-stroke.png") -11.0733px -11.8366px / 44.9316px 44.8492px no-repeat;
   -webkit-mask: none;
   mask: none;
 }
@@ -4105,14 +4105,15 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-kettlebell-icon {
-  /* Match the scale's visible height, center and silver-gray tone. */
-  transform: translate(-.01451px, calc(var(--metric-text-center-offset) - .07255px)) scale(1.137233);
-  filter: saturate(.85) brightness(1.03);
+  /* PNG has centered artwork and the same stroke/color as the scale. */
+  transform: translateY(var(--metric-text-center-offset));
+  filter: none;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-weight-icon {
   /* Use the same text center and visible height as the kettlebell. */
-  transform: translate(-.8955px, calc(var(--metric-text-center-offset) - .9562px)) scale(1.317255, 1.309642);
+  transform: translateY(var(--metric-text-center-offset));
+  filter: none;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > span {
