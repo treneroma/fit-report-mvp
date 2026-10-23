@@ -652,7 +652,7 @@ h3 {
   width: 24px;
   height: 27px;
   object-fit: contain;
-  transform: translateX(5px);
+  transform: translateX(8px);
 }
 
 .athlete-dashboard-header-actions {
@@ -678,36 +678,6 @@ h3 {
   cursor: pointer;
 }
 
-.athlete-dashboard-profile-shortcut::before {
-  position: absolute;
-  z-index: 0;
-  width: 40px;
-  height: 40px;
-  box-sizing: border-box;
-  border: 1px solid rgba(255, 120, 70, .72);
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%, #3a241b, #121314 68%);
-  box-shadow: 0 0 16px rgba(255, 104, 51, .23), inset 0 0 8px rgba(255, 104, 51, .16);
-  content: "";
-  pointer-events: none;
-}
-
-.athlete-dashboard-profile-shortcut svg {
-  position: relative;
-  z-index: 1;
-  width: 32px;
-  height: 32px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.athlete-dashboard-profile-shortcut.has-photo::before {
-  display: none;
-}
-
 .athlete-dashboard-profile-shortcut > img {
   position: relative;
   z-index: 1;
@@ -715,6 +685,14 @@ h3 {
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.athlete-dashboard-profile-shortcut > .athlete-dashboard-profile-placeholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 0;
+  object-fit: contain;
+  transform: translateY(-1px);
 }
 
 #athleteScreen .athlete-profile-photo-card {
