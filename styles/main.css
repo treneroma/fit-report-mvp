@@ -3933,15 +3933,52 @@ h3 {
   backdrop-filter: blur(2px);
 }
 
+#athleteScreen .athlete-dashboard-summary::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 20px);
+  width: 1px;
+  /* Original metric row height minus 7px; center against the whole card. */
+  height: calc(clamp(21.4px, 5.95vw, 27.9px) + clamp(10px, 3vw, 13px) * 1.12 + 28px);
+  background: rgba(130, 140, 150, .3);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-metrics {
   /* Keep the existing divider at the midpoint + its approved 20px offset. */
   grid-template-columns: minmax(0, calc(50% + 20px)) minmax(0, 1fr);
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts {
+  transform: translateX(6px);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight,
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-copy,
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
   transform: none;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight {
+  /* Center the icon and its text together over the unchanged full-width chart. */
+  grid-template-columns: minmax(0, 1fr) 32px 7px max-content minmax(0, 1fr);
+  column-gap: 0;
+  /* Reserve the existing 1px border space without drawing a second divider. */
+  border-left-color: transparent !important;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
+  grid-column: 2;
+  position: relative;
+  left: -3px;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-copy {
+  grid-column: 4;
+  position: relative;
+  left: -3px;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-kettlebell-icon {
@@ -3960,21 +3997,26 @@ h3 {
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
+  /* The number's 4px shift moves the combined number/label center down 2px. */
+  --metric-text-center-offset: 2px;
+  align-self: center;
   transform: scale(1.17);
   transform-origin: center;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-kettlebell-icon {
-  /* Match the scale icon's visible bounds and compensate for the PNG's empty margins. */
-  transform: translate(-.46px, .12px) scale(1.218, 1.198);
+  /* Center the visible artwork, compensating for the PNG's empty margins. */
+  transform: translate(-.46px, calc(var(--metric-text-center-offset) - .5127px)) scale(1.218, 1.198);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-weight-icon {
-  /* Match the kettlebell's visible size and center, independent of transparent margins. */
-  transform: translate(-.8955px, -.3235px) scale(1.317255, 1.309642);
+  /* Use the same text center and visible height as the kettlebell. */
+  transform: translate(-.8955px, calc(var(--metric-text-center-offset) - .9562px)) scale(1.317255, 1.309642);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > span {
+  font-size: calc(clamp(10px, 3vw, 13px) - 1px);
+  line-height: calc(clamp(10px, 3vw, 13px) * 1.12);
   font-weight: 400;
   color: #ABB2BD;
 }
