@@ -1921,7 +1921,7 @@ function athleteRenderCabinet() {
       <section class="info-card athlete-dashboard-summary" aria-label="Тренировки и текущий вес">
         <div class="athlete-dashboard-metrics">
           <div class="athlete-dashboard-workouts">
-            <img class="athlete-dashboard-stat-icon athlete-dashboard-kettlebell-icon" src="assets/metric-kettlebell-squared-cutout.png" alt="" aria-hidden="true">
+            <img class="athlete-dashboard-stat-icon athlete-dashboard-kettlebell-icon" src="assets/metric-kettlebell-matched-v156.png" alt="" aria-hidden="true">
             <div class="athlete-dashboard-stat-copy">
               <strong id="athleteDashboardWorkoutCount">2/3</strong>
               <span>Тренировок на неделе</span>
@@ -1929,7 +1929,7 @@ function athleteRenderCabinet() {
             <div class="athlete-dashboard-week-dots" id="athleteDashboardWeekDots" role="img" aria-label="Тренировки по дням недели"></div>
           </div>
           <div class="athlete-dashboard-weight">
-            <img class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" src="assets/metric-scale-cutout.png" alt="" aria-hidden="true">
+            <img class="athlete-dashboard-stat-icon athlete-dashboard-weight-icon" src="assets/metric-scale-matched-v156.png" alt="" aria-hidden="true">
             <div class="athlete-dashboard-stat-copy">
               <strong><span id="athleteDashboardWeight">—</span><span class="athlete-dashboard-weight-unit">кг</span></strong>
               <span>Текущий вес</span>
