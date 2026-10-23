@@ -3951,8 +3951,17 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > strong {
+  height: clamp(21.4px, 5.95vw, 27.9px);
+  font-size: clamp(17.334px, 4.8195vw, 22.599px);
   font-weight: 700;
   color: #FBFBFB;
+  transform: translateY(2px);
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
+  transform: scale(.9);
+  transform-origin: center;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > span {
