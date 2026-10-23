@@ -1302,6 +1302,13 @@ h3 {
   --athlete-cabinet-icon: url("../assets/nav-progress.png");
 }
 
+#athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--progress {
+  /* Match the profile's contour weight; center the wide chart in the 23px slot. */
+  background: transparent url("../assets/cabinet-progress-silver-outline.png") -11.0733px -11.8974px / 44.9316px 44.9316px no-repeat;
+  -webkit-mask: none;
+  mask: none;
+}
+
 #athleteScreen .athlete-cabinet-links .nutrition-plan-link-arrow {
   color: #9399A3;
 }
