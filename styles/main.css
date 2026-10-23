@@ -3924,3 +3924,55 @@ h3 {
     font-size: 15px;
   }
 }
+
+/* BEGIN METRICS_POLISH_V124 — remove this block to undo only the metrics polish. */
+#athleteScreen .athlete-dashboard-summary {
+  background: rgba(0, 0, 0, .67) !important;
+  box-shadow: inset 0 0 0 1px rgba(171, 178, 189, .10);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-metrics {
+  /* Keep the existing divider at the midpoint + its approved 20px offset. */
+  grid-template-columns: minmax(0, calc(50% + 20px)) minmax(0, 1fr);
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight,
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-copy,
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
+  transform: none;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-kettlebell-icon {
+  /* Both PNGs keep 32px containers; their visible heights are approximately 30px. */
+  padding-block: 1px;
+  object-position: center;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > strong {
+  font-weight: 700;
+  color: #FBFBFB;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > span {
+  font-weight: 400;
+  color: #ABB2BD;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-unit {
+  color: #ABB2BD;
+  font-weight: 500;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-sparkline {
+  transform: translateY(-5px);
+}
+
+@media (max-width: 372px) {
+  #athleteScreen .athlete-dashboard-summary .athlete-dashboard-metrics {
+    /* Reserve the original two-line label height on narrow phones. */
+    min-height: calc(clamp(21.4px, 5.95vw, 27.9px) + 35px + clamp(10px, 3vw, 13px) * 2.24 - .03125px);
+  }
+}
+/* END METRICS_POLISH_V124 */
