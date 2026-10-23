@@ -3955,7 +3955,7 @@ h3 {
   font-size: clamp(17.334px, 4.8195vw, 22.599px);
   font-weight: 700;
   color: #FBFBFB;
-  transform: translateY(2px);
+  transform: translateY(4px);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
@@ -3972,6 +3972,10 @@ h3 {
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-unit {
   color: #ABB2BD;
   font-weight: 500;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-comma {
+  font-size: .8em;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-sparkline {
