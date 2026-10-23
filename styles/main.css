@@ -78,15 +78,16 @@ button {
   display: grid;
   place-items: center;
   padding-bottom: var(--app-safe-bottom);
+  background: #000000;
 }
 
 .welcome {
   position: relative;
   width: 100%;
-  max-width: calc((var(--app-content-height) - var(--app-safe-bottom)) * 941 / 1672);
+  max-width: none;
   aspect-ratio: 941 / 1672;
   margin: 0 auto;
-  background: #111;
+  background: #000000;
   overflow: hidden;
 }
 
@@ -98,12 +99,19 @@ button {
 
 .start-button-area {
   position: absolute;
-  left: 6%;
-  top: 81%;
-  width: 88%;
+  /* Match the painted button in welcome-hero.png without altering the image. */
+  left: 9.8%;
+  top: 82%;
+  width: 80.4%;
   height: 7%;
   border: none;
+  border-radius: 99px;
   background: transparent;
+}
+
+.start-button-area:focus-visible {
+  outline: 2px solid #FC6C17;
+  outline-offset: 2px;
 }
 
 /* ОБЩИЕ ЭЛЕМЕНТЫ */
