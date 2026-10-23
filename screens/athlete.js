@@ -2166,7 +2166,7 @@ async function athleteLoadCabinetDashboard() {
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
     athleteDashboardApplyAdherenceVisualPreview();
-    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: Спина бицепс</strong><span class="athlete-dashboard-next-meta">5 упражнений</span><span class="athlete-dashboard-next-type"><img src="assets/dashboard-icon-kettlebell.png?v=3" alt="" aria-hidden="true"><span>Силовая тренировка</span></span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>FULL BODY: Спина бицепс</strong><span class="athlete-dashboard-next-meta athlete-dashboard-next-meta--training"><span>5 упражнений</span><span class="athlete-dashboard-next-meta-dot" aria-hidden="true"></span><span>Силовая тренировка</span></span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
     return;
   }
   if (adherenceValue) adherenceValue.textContent = "0";
@@ -2197,7 +2197,7 @@ async function athleteLoadCabinetDashboard() {
     const label = session.title || session.name || `Тренировка ${nextSessionIndex + 1}`;
     const exerciseCount = Array.isArray(session.exercises) ? session.exercises.length : 0;
     nextSlot.onclick = () => athleteOpenCabinetSection("training-plan");
-    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${athleteEscape(label)}</strong><span class="athlete-dashboard-next-meta">${exerciseCount ? athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений") : "Тренировка по плану"}</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
+    nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${athleteEscape(label)}</strong><span class="athlete-dashboard-next-meta athlete-dashboard-next-meta--training"><span>${exerciseCount ? athleteTrainingCountLabel(exerciseCount, "упражнение", "упражнения", "упражнений") : "Тренировка по плану"}</span><span class="athlete-dashboard-next-meta-dot" aria-hidden="true"></span><span>Силовая тренировка</span></span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
   } else {
     nextSlot.onclick = () => athleteOpenCabinetSection("training");
     nextSlot.innerHTML = `<span class="athlete-dashboard-next-copy"><span class="athlete-dashboard-eyebrow">СЛЕДУЮЩАЯ ТРЕНИРОВКА</span><strong>${trainingPlan && sessions.length ? "План на эту неделю завершён" : "Тренировка пока не запланирована"}</strong><span class="athlete-dashboard-next-meta">${trainingPlan && sessions.length ? "Открой план тренировок" : "Составь план тренировок"}</span></span><span class="nutrition-plan-link-arrow" aria-hidden="true">›</span>`;
