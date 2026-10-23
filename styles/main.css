@@ -4105,8 +4105,9 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-kettlebell-icon {
-  /* Center the visible artwork, compensating for the PNG's empty margins. */
-  transform: translate(-.46px, calc(var(--metric-text-center-offset) - .5127px)) scale(1.218, 1.198);
+  /* Match the scale's visible height, center and silver-gray tone. */
+  transform: translate(-.01451px, calc(var(--metric-text-center-offset) - .07255px)) scale(1.137233);
+  filter: saturate(.85) brightness(1.03);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-weight-icon {
