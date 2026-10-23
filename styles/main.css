@@ -1179,7 +1179,7 @@ h3 {
     rgba(0, 0, 0, .12) 80%,
     rgba(0, 0, 0, 0) 82%);
   content: "";
-  filter: blur(1.2px);
+  filter: blur(1.5px);
   pointer-events: none;
 }
 
