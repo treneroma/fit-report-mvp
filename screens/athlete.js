@@ -1607,11 +1607,15 @@ function athleteHasUnsavedFormChanges() {
   );
 }
 
-function athleteNavigatePrimaryTab(tab) {
+let athleteBottomNavigationInstantChange = false;
+let athleteBottomNavigationResizeBound = false;
+
+function athleteNavigatePrimaryTab(tab, event) {
   if (athleteHasUnsavedFormChanges() &&
       !window.confirm("Есть незаполненные изменения. Перейти в другой раздел и потерять их?")) {
     return;
   }
+  athleteBottomNavigationInstantChange = event?.detail === 0;
   if (tab === "home") {
     athleteRenderCabinet();
     return;
@@ -1692,37 +1696,121 @@ function athleteBottomNavigationMarkup(activeSection) {
     {
       id: "home",
       label: "Главная",
-      action: "athleteNavigatePrimaryTab(\'home\')",
+      action: "athleteNavigatePrimaryTab(\'home\', event)",
       icon: "home"
     },
     {
       id: "nutrition",
       label: "Питание",
-      action: "athleteNavigatePrimaryTab(\'nutrition\')",
+      action: "athleteNavigatePrimaryTab(\'nutrition\', event)",
       icon: "nutrition"
     },
     {
       id: "training",
       label: "Тренировки",
-      action: "athleteNavigatePrimaryTab(\'training\')",
+      action: "athleteNavigatePrimaryTab(\'training\', event)",
       icon: "training"
     },
     {
       id: "progress",
       label: "Прогресс",
-      action: "athleteNavigatePrimaryTab(\'progress\')",
+      action: "athleteNavigatePrimaryTab(\'progress\', event)",
       icon: "progress"
     }
   ];
 
-  return `<nav class="athlete-bottom-nav" aria-label="Основные разделы">
+  return `<nav class="athlete-bottom-nav" data-active-tab="${activeTab}" aria-label="Основные разделы">
+    <span class="athlete-bottom-nav-wash" aria-hidden="true"><span class="athlete-bottom-nav-wash-light"></span></span>
+    <span class="athlete-bottom-nav-ring" aria-hidden="true"><span class="athlete-bottom-nav-ring-light"></span></span>
+    <span class="athlete-bottom-nav-active-indicator" aria-hidden="true"></span>
     ${tabs.map((tab) => `<button class="athlete-bottom-nav-item${activeTab === tab.id ? " is-active" : ""}"
-      type="button" onclick="${tab.action}"${activeTab === tab.id ? ' aria-current="page"' : ""}>
+      type="button" data-tab="${tab.id}" onclick="${tab.action}"${activeTab === tab.id ? ' aria-current="page"' : ""}>
       <span class="athlete-bottom-nav-icon athlete-bottom-nav-icon--${tab.icon}" aria-hidden="true"></span>
       <span class="athlete-bottom-nav-label">${tab.label}</span>
       <span class="athlete-bottom-nav-indicator" aria-hidden="true"></span>
     </button>`).join("")}
   </nav>`;
+}
+
+function athletePositionBottomNavigation(nav, instant = false) {
+  if (!nav?.isConnected) return false;
+  const bounds = nav.getBoundingClientRect();
+  if (!bounds.width || !bounds.height) {
+    // The cabinet is rendered before showScreen makes it visible on first entry.
+    nav.dataset.hasActiveTab = "false";
+    nav.removeAttribute("data-motion-ready");
+    return false;
+  }
+  const buttons = Array.from(nav.querySelectorAll(".athlete-bottom-nav-item"));
+  const active = buttons.find(button => button.dataset.tab === nav.dataset.activeTab);
+  const indicator = nav.querySelector(".athlete-bottom-nav-active-indicator");
+  if (!indicator) return false;
+  const lights = nav.querySelectorAll(".athlete-bottom-nav-wash-light, .athlete-bottom-nav-ring-light");
+  if (instant) nav.removeAttribute("data-motion-ready");
+  for (const button of buttons) {
+    const selected = button === active;
+    button.classList.toggle("is-active", selected);
+    if (selected) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  }
+  nav.dataset.hasActiveTab = String(Boolean(active));
+  if (active) {
+    const iconBounds = active.querySelector(".athlete-bottom-nav-icon").getBoundingClientRect();
+    const center = iconBounds.left + iconBounds.width / 2;
+    const firstIcon = buttons[0].querySelector(".athlete-bottom-nav-icon").getBoundingClientRect();
+    const lastIcon = buttons[buttons.length - 1].querySelector(".athlete-bottom-nav-icon").getBoundingClientRect();
+    // Use one width for every tab, with enough reach to softly light both end caps.
+    const edgeReach = Math.max(
+      firstIcon.left + firstIcon.width / 2 - bounds.left,
+      bounds.right - lastIcon.left - lastIcon.width / 2
+    );
+    const glowWidth = Math.max(100, edgeReach * 2 + 16);
+    for (const light of lights) {
+      const parentBounds = light.parentElement.getBoundingClientRect();
+      light.style.width = `${glowWidth}px`;
+      light.style.transform = `translateX(${center - parentBounds.left - glowWidth / 2}px)`;
+    }
+    const slot = active.querySelector(".athlete-bottom-nav-indicator").getBoundingClientRect();
+    indicator.style.transform = `translate(${slot.left - bounds.left - nav.clientLeft}px, ${slot.top - bounds.top - nav.clientTop}px)`;
+  }
+  // Commit the initial/keyboard/resize position before enabling future transitions.
+  if (instant) indicator.getBoundingClientRect();
+  nav.dataset.motionReady = "true";
+  return true;
+}
+
+function athleteRenderWithBottomNavigation(screen, markup) {
+  const template = document.createElement("template");
+  template.innerHTML = markup;
+  const nextNav = template.content.querySelector(".athlete-bottom-nav");
+  const currentNav = screen.querySelector(":scope > .athlete-bottom-nav");
+  const instant = athleteBottomNavigationInstantChange || !currentNav;
+  athleteBottomNavigationInstantChange = false;
+  let nav = nextNav;
+  if (currentNav && nextNav) {
+    // Keep the navigation connected so transitions can retarget during rapid taps.
+    currentNav.dataset.activeTab = nextNav.dataset.activeTab;
+    nextNav.remove();
+    for (const child of Array.from(screen.childNodes)) {
+      if (child !== currentNav) child.remove();
+    }
+    screen.insertBefore(template.content, currentNav);
+    nav = currentNav;
+  } else {
+    screen.replaceChildren(template.content);
+  }
+  if (!athletePositionBottomNavigation(nav, instant)) {
+    // Run after the synchronous showScreen call, before the first visible paint.
+    requestAnimationFrame(() => athletePositionBottomNavigation(nav, true));
+  }
+  if (!athleteBottomNavigationResizeBound) {
+    const reposition = () => athletePositionBottomNavigation(
+      document.querySelector("#athleteScreen > .athlete-bottom-nav"), true
+    );
+    window.addEventListener("resize", reposition, { passive: true });
+    window.visualViewport?.addEventListener("resize", reposition, { passive: true });
+    athleteBottomNavigationResizeBound = true;
+  }
 }
 
 // HERO_FADE_TRIAL: set false to restore the previous photo without this mask.
@@ -1795,7 +1883,7 @@ function athleteRenderCabinet() {
   screen.classList.add("has-athlete-bottom-nav");
   screen.classList.toggle("has-athlete-male-dashboard", registration.athlete.sex === "male");
   screen.dataset.backSection = "home";
-  screen.innerHTML = `
+  athleteRenderWithBottomNavigation(screen, `
     <div class="page athlete-cabinet-page${registration.athlete.sex === "male" ? " athlete-cabinet-page--male" : ""}" style="display:block;min-height:0;padding-bottom:24px;">
       <div class="topbar athlete-dashboard-header" style="margin-bottom:12px;">
         <div class="logo">TREN<span>ZO</span></div>
@@ -1868,7 +1956,7 @@ function athleteRenderCabinet() {
           "Динамика результатов")}
       </div>
     </div>
-    ${athleteBottomNavigationMarkup("home")}`;
+    ${athleteBottomNavigationMarkup("home")}`);
   window.scrollTo(0, 0);
   athleteDashboardSetAdherenceProgress(0);
   athleteLoadCabinetDashboard();
@@ -3159,7 +3247,7 @@ if (section === "nutrition-diary") {
   screen.classList.add("has-athlete-bottom-nav");
   screen.classList.remove("has-athlete-male-dashboard");
   screen.dataset.backSection = backSection;
-  screen.innerHTML = `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
+  athleteRenderWithBottomNavigation(screen, `<div class="page" style="display:block;min-height:0;padding-bottom:24px;">
     <div class="topbar" style="margin-bottom:12px;justify-content:space-between;">
   <button class="back-button athlete-desktop-back-button" type="button"
     onclick="athleteNavigateBack()" aria-label="Назад" title="Назад">←</button>
@@ -3167,7 +3255,7 @@ if (section === "nutrition-diary") {
     <h1 style="margin:0 0 16px;">${athleteEscape(title)}</h1>
     ${content}
   </div>
-  ${athleteBottomNavigationMarkup(section)}`;
+  ${athleteBottomNavigationMarkup(section)}`);
   window.scrollTo(0, 0);
 
   if (section === "profile") {
