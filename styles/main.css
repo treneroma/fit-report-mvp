@@ -1149,19 +1149,12 @@ h3 {
 .athlete-dashboard-adherence-gauge::before {
   position: absolute;
   z-index: 0;
-  /* SVG outer radius: 43 + 8 / 2 = 47%; allow exactly 2px beyond it. */
+  /* SVG outer radius: 43 + 8 / 2 = 47%; base extends 2px before blur. */
   inset: calc(3% - 2px);
   border-radius: 50%;
-  background: rgba(0, 0, 0, .70);
-  --athlete-gauge-shadow-mask: radial-gradient(circle closest-side,
-    #000 0 calc(100% - 4px),
-    rgba(0, 0, 0, .83) calc(100% - 3px),
-    rgba(0, 0, 0, .36) calc(100% - 1px),
-    transparent 100%);
-  -webkit-mask-image: var(--athlete-gauge-shadow-mask);
-  mask-image: var(--athlete-gauge-shadow-mask);
+  background: rgba(0, 0, 0, .67);
   content: "";
-  filter: blur(1.8px);
+  filter: blur(1.7px);
   pointer-events: none;
 }
 
