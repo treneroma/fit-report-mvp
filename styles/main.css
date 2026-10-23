@@ -1250,7 +1250,7 @@ h3 {
   padding: 6px 10px;
   border: 0 !important;
   background: #060809 !important;
-  box-shadow: inset 0 0 0 1px rgba(171, 178, 189, .16) !important;
+  box-shadow: inset 0 0 0 .5px rgba(171, 178, 189, .16) !important;
 }
 
 #athleteScreen .athlete-cabinet-links .cabinet-nav-icon {
