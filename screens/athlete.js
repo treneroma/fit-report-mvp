@@ -2061,6 +2061,10 @@ function athleteDashboardTrainingPercent(plan) {
   return sessions.filter(session => session?.completed === true).length / sessions.length * 100;
 }
 
+function athleteDashboardWeightNumberMarkup(value) {
+  return athleteFormatWeightNumber(value).replace(",", '<span class="athlete-dashboard-weight-comma">,</span>');
+}
+
 async function athleteLoadCabinetDashboard() {
   const nextSlot = document.getElementById("athleteDashboardNextWorkout");
   if (!nextSlot) return;
@@ -2070,7 +2074,7 @@ async function athleteLoadCabinetDashboard() {
     athleteDashboardRenderWeeklyWorkouts(null, null);
     const previewWeights = [84, 86, 85.5, 85, 86.5, 87].map(kg => ({ kg }));
     athleteDashboardRenderWeightSparkline(previewWeights);
-    if (weightSlot) weightSlot.textContent = athleteFormatWeightNumber(87);
+    if (weightSlot) weightSlot.innerHTML = athleteDashboardWeightNumberMarkup(87);
     if (adherenceValue) adherenceValue.textContent = "0";
     athleteDashboardSetAdherenceProgress(0);
     athleteDashboardApplyAdherenceVisualPreview();
@@ -2096,7 +2100,7 @@ async function athleteLoadCabinetDashboard() {
 
   athleteDashboardRenderWeeklyWorkouts(trainingPlan, history);
   athleteDashboardRenderWeightSparkline(weights);
-  if (weightSlot) weightSlot.textContent = weights.length ? athleteFormatWeightNumber(weights[weights.length - 1].kg) : "—";
+  if (weightSlot) weightSlot.innerHTML = weights.length ? athleteDashboardWeightNumberMarkup(weights[weights.length - 1].kg) : "—";
 
   const sessions = Array.isArray(trainingPlan?.sessions) ? trainingPlan.sessions : [];
   const nextSessionIndex = sessions.findIndex(session => session?.completed !== true);
