@@ -1814,10 +1814,11 @@ function athleteRenderCabinet() {
           <div class="athlete-dashboard-adherence-gauge">
             <svg viewBox="0 0 100 100" aria-hidden="true">
               <defs>
-                <linearGradient id="athleteAdherenceGradient" x1="0" y1="1" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#FC6C17"/>
+                <radialGradient id="athleteAdherenceGradient" gradientUnits="userSpaceOnUse" cx="7" cy="50" r="86">
+                  <stop offset="0%" stop-color="#F95D0F"/>
+                  <stop offset="65%" stop-color="#FC6C17"/>
                   <stop offset="100%" stop-color="#FFA347"/>
-                </linearGradient>
+                </radialGradient>
               </defs>
               <circle class="gauge-track" cx="50" cy="50" r="43"/>
               <circle class="athlete-dashboard-adherence-arc" id="athleteDashboardAdherenceArc" cx="50" cy="50" r="43" stroke="url(#athleteAdherenceGradient)"/>
@@ -1995,6 +1996,18 @@ function athleteDashboardSetAdherenceProgress(value) {
   arc.style.strokeDasharray = String(circumference);
   arc.style.strokeDashoffset = String(offset);
   arc.style.visibility = progress === 0 ? "hidden" : "visible";
+
+  const gradient = document.getElementById("athleteAdherenceGradient");
+  if (gradient && progress > 0) {
+    // Work in the circle's local coordinates, before its -90deg rotation.
+    // The arc midpoint is equally distant from both ends for every percentage.
+    const halfAngle = Math.PI * progress / 100;
+    const centerX = Number(arc.getAttribute("cx"));
+    const centerY = Number(arc.getAttribute("cy"));
+    gradient.setAttribute("cx", String(centerX + radius * Math.cos(halfAngle)));
+    gradient.setAttribute("cy", String(centerY + radius * Math.sin(halfAngle)));
+    gradient.setAttribute("r", String(2 * radius * Math.sin(halfAngle / 2)));
+  }
 }
 
 function athleteDashboardApplyAdherenceVisualPreview() {
