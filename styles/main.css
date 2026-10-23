@@ -1298,6 +1298,14 @@ h3 {
   --athlete-cabinet-icon: url("../assets/nav-kettlebell.png");
 }
 
+#athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--training {
+  /* Match the other card outlines in the existing centered 23px slot. */
+  background: transparent url("../assets/cabinet-training-silver-outline.png") -4.6413px -4.5639px / 32.3341px 32.3341px no-repeat;
+  -webkit-mask: none;
+  mask: none;
+  filter: brightness(1.05);
+}
+
 .athlete-cabinet-icon--progress {
   --athlete-cabinet-icon: url("../assets/nav-progress.png");
 }
