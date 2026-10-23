@@ -3972,13 +3972,13 @@ h3 {
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
   grid-column: 2;
   position: relative;
-  left: -3px;
+  left: -13px;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-copy {
   grid-column: 4;
   position: relative;
-  left: -3px;
+  left: -13px;
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-kettlebell-icon {
@@ -4031,7 +4031,7 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight-sparkline {
-  transform: translateY(-5px);
+  transform: translate(-6px, -5px);
 }
 
 @media (max-width: 372px) {
