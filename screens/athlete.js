@@ -1804,7 +1804,7 @@ function athleteRenderCabinet() {
           <button class="athlete-dashboard-profile-shortcut${athleteProfilePhotoDataUrl ? " has-photo" : ""}" type="button" aria-label="Личные данные и аккаунт" onclick="athleteOpenCabinetSection('account')">
             ${athleteProfilePhotoDataUrl
               ? `<img src="${athleteEscape(athleteProfilePhotoDataUrl)}" alt="">`
-              : `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><circle cx="24" cy="24" r="21"/><circle cx="24" cy="18" r="7"/><path d="M11 39c1.8-7 6.2-10.5 13-10.5S35.2 32 37 39"/></svg>`}
+              : `<img class="athlete-dashboard-profile-placeholder" src="assets/profile-icon.png" alt="" width="34" height="34">`}
           </button>
         </div>
       </div>
