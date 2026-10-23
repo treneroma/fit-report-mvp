@@ -1276,8 +1276,22 @@ h3 {
   --athlete-cabinet-icon: url("../assets/nav-profile.png");
 }
 
+#athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--profile {
+  /* Center the visible outline in the existing 23px icon slot. */
+  background: transparent url("../assets/cabinet-profile-silver-outline.png") -7.8052px -9.2062px / 38.6104px 38.6104px no-repeat;
+  -webkit-mask: none;
+  mask: none;
+}
+
 .athlete-cabinet-icon--nutrition {
   --athlete-cabinet-icon: url("../assets/nav-nutrition.png");
+}
+
+#athleteScreen .athlete-cabinet-links .athlete-cabinet-icon--nutrition {
+  /* Match the profile outline's visible height in the unchanged 23px slot. */
+  background: transparent url("../assets/cabinet-nutrition-silver-outline.png") -9.1035px -9.8112px / 40.3385px 40.3385px no-repeat;
+  -webkit-mask: none;
+  mask: none;
 }
 
 .athlete-cabinet-icon--training {
