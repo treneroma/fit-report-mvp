@@ -8,6 +8,8 @@
   --accent: #ff7846;
   --progress-fill: #32d6a0;
   --font-ui: Arial, sans-serif;
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --duration-navigation: 220ms;
   --text-logo: 28px;
   --text-page-title: clamp(27px, 7vw, 32px);
   --text-caption: 12px;
@@ -3420,13 +3422,75 @@ h3 {
   border: 1px solid transparent;
   border-radius: 28px;
   background:
-    linear-gradient(115deg, rgba(252, 108, 23, .1), transparent 38%) padding-box,
     linear-gradient(#060809, #060809) padding-box,
-    linear-gradient(115deg, rgba(252, 108, 23, .7), rgba(150, 160, 170, .12) 35%, rgba(150, 160, 170, .05)) border-box;
+    linear-gradient(115deg, rgba(150, 160, 170, .12), rgba(150, 160, 170, .05)) border-box;
   box-shadow: none;
 }
 
+.athlete-bottom-nav-wash,
+.athlete-bottom-nav-ring {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.athlete-bottom-nav-ring {
+  inset: -1px;
+  padding: 1px;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.athlete-bottom-nav-wash-light,
+.athlete-bottom-nav-ring-light {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100px;
+  opacity: 0;
+}
+
+.athlete-bottom-nav-wash-light {
+  background: linear-gradient(90deg, transparent 0%, rgba(252, 108, 23, .1) 50%, transparent 100%);
+}
+
+.athlete-bottom-nav-ring-light {
+  background: linear-gradient(90deg, transparent 0%, rgba(252, 108, 23, .7) 50%, transparent 100%);
+}
+
+.athlete-bottom-nav-active-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 44px;
+  height: 3px;
+  border-radius: 99px;
+  background: #FC6C17;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.athlete-bottom-nav[data-has-active-tab="true"] .athlete-bottom-nav-wash-light,
+.athlete-bottom-nav[data-has-active-tab="true"] .athlete-bottom-nav-ring-light,
+.athlete-bottom-nav[data-has-active-tab="true"] .athlete-bottom-nav-active-indicator {
+  opacity: 1;
+}
+
+.athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-wash-light,
+.athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-ring-light,
+.athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-active-indicator {
+  transition: transform var(--duration-navigation) var(--ease-in-out), opacity 140ms ease;
+}
+
 .athlete-bottom-nav-item {
+  position: relative;
+  z-index: 1;
   display: grid;
   min-width: 0;
   min-height: 54px;
@@ -3512,13 +3576,20 @@ h3 {
 }
 
 .athlete-bottom-nav-item.is-active .athlete-bottom-nav-indicator {
-  background: currentColor;
+  /* The shared indicator moves between these unchanged layout slots. */
+  background: transparent;
   box-shadow: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .athlete-bottom-nav-item {
     transition: none;
+  }
+
+  .athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-wash-light,
+  .athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-ring-light,
+  .athlete-bottom-nav[data-motion-ready="true"] .athlete-bottom-nav-active-indicator {
+    transition: opacity 140ms ease;
   }
 }
 
