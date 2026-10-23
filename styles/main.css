@@ -817,7 +817,7 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   padding: 14px !important;
-  border: 1px solid var(--border, #414141) !important;
+  border: 1px solid #373737 !important;
   background-color: #0D1011 !important;
   background-image:
     linear-gradient(90deg, rgba(13, 16, 17, .94) 0%, rgba(13, 16, 17, .88) 38%, rgba(13, 16, 17, .62) 62%, rgba(13, 16, 17, .18) 100%),
@@ -3928,7 +3928,7 @@ h3 {
 /* BEGIN METRICS_POLISH_V124 — remove this block to undo only the metrics polish. */
 #athleteScreen .athlete-dashboard-summary {
   background: rgba(0, 0, 0, .67) !important;
-  box-shadow: inset 0 0 0 1px rgba(171, 178, 189, .10);
+  box-shadow: inset 0 0 0 1px rgba(171, 178, 189, .16);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
@@ -3945,8 +3945,8 @@ h3 {
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-kettlebell-icon {
-  /* Both PNGs keep 32px containers; their visible heights are approximately 30px. */
-  padding-block: 1px;
+  /* Keep the layout boxes fixed; normalize the PNG artwork below. */
+  padding: 0;
   object-position: center;
 }
 
@@ -3960,8 +3960,18 @@ h3 {
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-stat-icon,
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-stat-icon {
-  transform: scale(.9);
+  transform: scale(1.17);
   transform-origin: center;
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-workouts > .athlete-dashboard-kettlebell-icon {
+  /* Match the scale icon's visible bounds and compensate for the PNG's empty margins. */
+  transform: translate(-.46px, .12px) scale(1.218, 1.198);
+}
+
+#athleteScreen .athlete-dashboard-summary .athlete-dashboard-weight > .athlete-dashboard-weight-icon {
+  /* Match the kettlebell's visible size and center, independent of transparent margins. */
+  transform: translate(-.8955px, -.3235px) scale(1.317255, 1.309642);
 }
 
 #athleteScreen .athlete-dashboard-summary .athlete-dashboard-stat-copy > span {
